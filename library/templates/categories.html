@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Browse Categories | BOOK HUB" %}{% endblock %}
+
+{% block content %}
+    <div class="container mx-auto py-8 px-4 flex flex-col md:flex-row gap-8">
+        <h1 id="pageTitle" class="text-3xl font-bold text-gray-900">{% trans "Browse Categories" %}</h1>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const category = urlParams.get('type');
+            if (category) {
+                const checkbox = document.getElementById(category);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    document.getElementById('pageTitle').innerText = `{% trans "Showing" %} ${category.charAt(0).toUpperCase() + category.slice(1)} {% trans "Books" %}`;
+                }
+            }
+        };
+    </script>
+{% endblock %}

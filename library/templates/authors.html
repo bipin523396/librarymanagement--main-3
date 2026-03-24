@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authors | BOOK HUB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<!-- HEADER -->
+<header class="bg-white shadow-md">
+    <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-orange-600">
+            BOOK<span class="text-gray-600">HUB</span>
+        </h1>
+        <a href="index.html" class="text-orange-600 font-medium">Back to Home</a>
+    </div>
+</header>
+
+<!-- AUTHORS SECTION -->
+<section class="container mx-auto py-12 px-6">
+    <h2 class="text-3xl font-bold mb-8 text-center">Choose an Author</h2>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-12">
+
+        <div onclick="showBooks('murty')" class="author-card flex items-center gap-6">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJ0lgzb4bFBgYW0QfEWddlpyKFp7j5sHqCdO1NCLkzldGMnn3SHWAAxwczDPqp4aI279lecZy6atiN4ek9Dwf4NGc67mSgihhQuutGLc2vWQ&s=10"
+                 class="author-img">
+            <div>
+                <h3>Sudha Murty</h3>
+                <p>Indian Literature</p>
+            </div>
+        </div>
+
+        <div onclick="showBooks('bond')" class="author-card flex items-center gap-6">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRM8sRqfFMLdFYHVVIvUlMIJ0yjwik98ze7WFlL3zHfpA&s"
+                 class="author-img">
+            <div>
+                <h3>Ruskin Bond</h3>
+                <p>Children's Fiction</p>
+            </div>
+        </div>
+
+        <div onclick="showBooks('rowling')" class="author-card flex items-center gap-6">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQiW9wNKQPmx8ufqxuKQ4CKg0Rrw8KC4D8Qog&s"
+                 class="author-img">
+            <div>
+                <h3>J.K. Rowling</h3>
+                <p>Fantasy</p>
+            </div>
+        </div>
+
+        <div onclick="showBooks('amish')" class="author-card flex items-center gap-6">
+            <img src="https://images.moneycontrol.com/static-mcnews/2022/10/amish-tripathi-author.jpg?impolicy=website&width=1600&height=900"
+                 class="author-img">
+            <div>
+                <h3>Amish Tripathi</h3>
+                <p>Mythology</p>
+            </div>
+        </div>
+
+        <div onclick="showBooks('roy')" class="author-card flex items-center gap-6">
+            <img src="https://i.guim.co.uk/img/media/993e587413d93ed0797dcfa550d143a19e87cd44/627_444_4277_3031/master/4277.jpg?width=480&dpr=1&s=none&crop=none"
+                 class="author-img">
+            <div>
+                <h3>Arundhati Roy</h3>
+                <p>Contemporary</p>
+            </div>
+        </div>
+
+        <div onclick="showBooks('clear')" class="author-card flex items-center gap-6">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnbrkQQKEYk66NR0Sc7vlpBoB-Hv9JmTLNnA&s"
+                 class="author-img">
+            <div>
+                <h3>James Clear</h3>
+                <p>Self-Help</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- BOOK DISPLAY -->
+    <div id="booksSection" class="hidden">
+        <h2 class="text-2xl font-bold mb-6">Books by Selected Author</h2>
+        <div id="booksGrid" class="grid md:grid-cols-4 gap-6"></div>
+    </div>
+</section>
+
+
+<!-- FOOTER -->
+<footer class="bg-gray-900 text-gray-400 py-8 text-center">
+    © 2026 JustBooks Clone
+</footer>
+
+<!-- SCRIPT -->
+<script>
+    const books = {
+        murty: ["Wise and Otherwise", "The Mother I Never Knew", "Grandma’s Bag of Stories"],
+        bond: ["The Blue Umbrella", "Rusty the Boy", "Room on the Roof"],
+        rowling: ["Harry Potter 1", "Harry Potter 2", "Harry Potter 3"],
+        amish: ["The Immortals of Meluha", "The Secret of the Nagas", "Raavan"],
+        roy: ["The God of Small Things", "Azadi", "The Ministry of Utmost Happiness"],
+        clear: ["Atomic Habits", "Master Your Habits"]
+    };
+
+    function showBooks(author) {
+        const grid = document.getElementById("booksGrid");
+        grid.innerHTML = "";
+
+        books[author].forEach(book => {
+            grid.innerHTML += `
+                <div class="bg-white p-4 rounded-lg shadow border">
+                    <img src="https://via.placeholder.com/150x220?text=Book"
+                         class="w-full mb-3 rounded">
+                    <h3 class="font-semibold text-sm">${book}</h3>
+                </div>
+            `;
+        });
+
+        document.getElementById("booksSection").classList.remove("hidden");
+        window.scrollTo({ top: booksSection.offsetTop, behavior: 'smooth' });
+    }
+</script>
+
+<!-- STYLES -->
+<style>
+    .author-card {
+        background: white;
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px solid #e5e7eb;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .author-card:hover {
+        background: #fff7ed;
+        transform: translateY(-4px);
+    }
+
+    .author-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #fb923c;
+    }
+
+    .author-card h3 {
+        font-weight: bold;
+        font-size: 18px;
+    }
+
+    .author-card p {
+        font-size: 14px;
+        color: #6b7280;
+    }
+</style>
+
+
+</body>
+</html>

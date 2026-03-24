@@ -1,0 +1,555 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-24 09:40+0530\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: bookhub_backend/settings.py:124
+msgid "English"
+msgstr ""
+
+#: bookhub_backend/settings.py:125
+msgid "Hindi"
+msgstr ""
+
+#: bookhub_backend/settings.py:126
+msgid "Tamil"
+msgstr ""
+
+#: bookhub_backend/settings.py:127
+msgid "Telugu"
+msgstr ""
+
+#: bookhub_backend/settings.py:128
+msgid "Kannada"
+msgstr ""
+
+#: bookhub_backend/settings.py:129
+msgid "Malayalam"
+msgstr ""
+
+#: bookhub_backend/settings.py:130
+msgid "Marathi"
+msgstr ""
+
+#: bookhub_backend/settings.py:131
+msgid "Bengali"
+msgstr ""
+
+#: bookhub_backend/settings.py:132
+msgid "Urdu"
+msgstr ""
+
+#: bookhub_backend/settings.py:133
+msgid "Punjabi"
+msgstr ""
+
+#: bookhub_backend/settings.py:134
+msgid "Nepali"
+msgstr ""
+
+#: library/templates/base.html:46
+msgid "Normal"
+msgstr ""
+
+#: library/templates/base.html:51
+msgid "LANGUAGE:"
+msgstr ""
+
+#: library/templates/base.html:75
+msgid "Impact"
+msgstr ""
+
+#: library/templates/base.html:76
+msgid "About"
+msgstr ""
+
+#: library/templates/base.html:77
+msgid "Contact"
+msgstr ""
+
+#: library/templates/base.html:95
+#, fuzzy
+#| msgid "Over 1 million books across 38 categories."
+msgid "Search books, authors, categories..."
+msgstr "38 వర్గాలలో 1 మిలియన్ కంటే ఎక్కువ పుస్తకాలు."
+
+#: library/templates/base.html:98
+msgid "Search"
+msgstr ""
+
+#: library/templates/base.html:105
+msgid "Browse"
+msgstr "బ్రౌజ్ చేయండి"
+
+#: library/templates/base.html:106 library/templates/index.html:247
+msgid "Premium"
+msgstr "ప్రీమియం"
+
+#: library/templates/base.html:107
+msgid "Branches"
+msgstr "శాఖలు"
+
+#: library/templates/base.html:108
+msgid "Gift a Card"
+msgstr "కార్డును బహుమతిగా ఇవ్వండి"
+
+#: library/templates/base.html:114 library/templates/login.html:59
+#: library/templates/signup.html:107
+msgid "Login"
+msgstr "లాగిన్"
+
+#: library/templates/base.html:117
+msgid "or"
+msgstr "లేదా"
+
+#: library/templates/base.html:120 library/templates/index.html:16
+msgid "Join Now"
+msgstr "ఇప్పుడే చేరండి"
+
+#: library/templates/base.html:142
+msgid "Synergy AI Assistant"
+msgstr ""
+
+#: library/templates/base.html:145
+msgid "Online & Ready to Help"
+msgstr ""
+
+#: library/templates/base.html:162
+msgid "Hello! I'm your real-time AI assistant for"
+msgstr ""
+
+#: library/templates/base.html:163
+msgid "You can ask me to:"
+msgstr ""
+
+#: library/templates/base.html:165
+msgid "Find information about books and authors"
+msgstr ""
+
+#: library/templates/base.html:166
+msgid "Check live stock prices (e.g. 'stock AAPL')"
+msgstr ""
+
+#: library/templates/base.html:167
+msgid "Check weather updates (e.g. 'weather London')"
+msgstr ""
+
+#: library/templates/base.html:168
+msgid "Summarize Wikipedia topics"
+msgstr ""
+
+#: library/templates/base.html:193
+msgid "Type your question..."
+msgstr ""
+
+#: library/templates/base.html:199
+msgid "Ask"
+msgstr ""
+
+#: library/templates/base.html:205
+msgid "Voice Output is Enabled • 24/7 Smart Assistance"
+msgstr ""
+
+#: library/templates/base.html:217
+msgid ""
+"The largest community library chain in India with over 1 million books and "
+"40+ branches."
+msgstr ""
+"భారతదేశంలో 1 మిలియన్ కంటే ఎక్కువ పుస్తకాలు మరియు 40+ శాఖలతో అతిపెద్ద కమ్యూనిటీ లైబ్రరీ నెట్‌వర్క్."
+
+#: library/templates/base.html:220
+msgid "Quick Links"
+msgstr "త్వరిత లింకులు"
+
+#: library/templates/base.html:222
+msgid "About Us"
+msgstr "మా గురించి"
+
+#: library/templates/base.html:223
+msgid "Franchise"
+msgstr "ఫ్రాంచైజీ"
+
+#: library/templates/base.html:224
+msgid "Terms of Use"
+msgstr "ఉపయోగ నిబంధనలు"
+
+#: library/templates/base.html:225 library/templates/signup.html:78
+msgid "Privacy Policy"
+msgstr "గోప్యతా విధానం"
+
+#: library/templates/base.html:229
+msgid "Support"
+msgstr "మద్దతు"
+
+#: library/templates/base.html:230 library/templates/base.html:236
+msgid "Email"
+msgstr "ఈమెయిల్"
+
+#: library/templates/base.html:231
+msgid "Call"
+msgstr "కాల్ చేయండి"
+
+#: library/templates/base.html:234
+msgid "Newsletter"
+msgstr "వార్తాలేఖ"
+
+#: library/templates/base.html:335
+msgid "Sorry, I encountered an error answering your request."
+msgstr ""
+
+#: library/templates/base.html:339
+msgid "Connection error. Please try again."
+msgstr ""
+
+#: library/templates/categories.html:5
+msgid "Browse Categories | BOOK HUB"
+msgstr ""
+
+#: library/templates/categories.html:9
+msgid "Browse Categories"
+msgstr ""
+
+#: library/templates/categories.html:22
+msgid "Showing"
+msgstr ""
+
+#: library/templates/categories.html:22
+msgid "Books"
+msgstr ""
+
+#: library/templates/index.html:5
+msgid "BOOK HUB"
+msgstr "బుక్ హబ్"
+
+#: library/templates/index.html:14
+msgid "Read Unlimited. Delivered Home."
+msgstr "అపరిమితంగా చదవండి. ఇంటికే డెలివరీ."
+
+#: library/templates/index.html:15
+msgid "Over 1 million books across 38 categories."
+msgstr "38 వర్గాలలో 1 మిలియన్ కంటే ఎక్కువ పుస్తకాలు."
+
+#: library/templates/index.html:23
+msgid "Ignite Their Imagination"
+msgstr "వారి ఊహాశక్తిని పెంచండి"
+
+#: library/templates/index.html:24
+msgid "Special reading plans for Toddlers and Teens."
+msgstr "చిన్నారులు మరియు టీనేజర్ల కోసం ప్రత్యేక పఠన ప్రణాళికలు."
+
+#: library/templates/index.html:25
+msgid "Explore Kids Store"
+msgstr "కిడ్స్ స్టోర్‌ను అన్వేషించండి"
+
+#: library/templates/index.html:32
+msgid "Start Your Own Library"
+msgstr "మీ స్వంత లైబ్రరీని ప్రారంభించండి"
+
+#: library/templates/index.html:33
+msgid "Become a BookHub Franchise partner today."
+msgstr "ఈరోజే బుక్‌హబ్ ఫ్రాంచైజీ భాగస్వామి అవ్వండి."
+
+#: library/templates/index.html:34
+msgid "Learn More"
+msgstr "మరింత తెలుసుకోండి"
+
+#: library/templates/index.html:54
+msgid "Popular Categories"
+msgstr "ప్రసిద్ధ వర్గాలు"
+
+#: library/templates/index.html:58
+msgid "Toddlers"
+msgstr "చిన్నారులు"
+
+#: library/templates/index.html:63 library/templates/index.html:123
+#: library/templates/index.html:137
+msgid "Fiction"
+msgstr "కల్పితం"
+
+#: library/templates/index.html:68
+msgid "Business"
+msgstr "వ్యాపారం"
+
+#: library/templates/index.html:72
+msgid "Biographies"
+msgstr "జీవిత చరిత్రలు"
+
+#: library/templates/index.html:76
+msgid "Regional"
+msgstr "ప్రాంతీయ"
+
+#: library/templates/index.html:80 library/templates/index.html:220
+msgid "Self-Help"
+msgstr "స్వయం సహాయం"
+
+#: library/templates/index.html:87
+msgid "Trending Books"
+msgstr "ట్రెండింగ్ పుస్తకాలు"
+
+#: library/templates/index.html:88
+msgid "View All"
+msgstr "అన్నీ చూడండి"
+
+#: library/templates/index.html:95
+msgid "Autobiography"
+msgstr ""
+
+#: library/templates/index.html:96
+msgid "One Day, Everyone Will Have Always Been Against This"
+msgstr ""
+
+#: library/templates/index.html:100 library/templates/index.html:114
+#: library/templates/index.html:128 library/templates/index.html:142
+msgid "Rent / Details"
+msgstr ""
+
+#: library/templates/index.html:109
+msgid "Animation"
+msgstr ""
+
+#: library/templates/index.html:110
+msgid "KPop Demon Hunters"
+msgstr ""
+
+#: library/templates/index.html:124
+msgid "The Book of Lost Friends"
+msgstr ""
+
+#: library/templates/index.html:138
+msgid "The God of Small Things"
+msgstr ""
+
+#: library/templates/index.html:153
+msgid "Meet the Authors"
+msgstr "రచయితలను కలవండి"
+
+#: library/templates/index.html:154
+msgid "Explore works from your favorite writers"
+msgstr "మీకు ఇష్టమైన రచయితల రచనలను అన్వేషించండి"
+
+#: library/templates/index.html:157
+msgid "All Authors"
+msgstr "రచయితలందరూ"
+
+#: library/templates/index.html:169
+msgid "Sudha Murty"
+msgstr "సుధా మూర్తి"
+
+#: library/templates/index.html:170
+msgid "Indian Literature"
+msgstr "భారతీయ సాహిత్యం"
+
+#: library/templates/index.html:179
+msgid "Ruskin Bond"
+msgstr ""
+
+#: library/templates/index.html:180
+msgid "Children's Fiction"
+msgstr ""
+
+#: library/templates/index.html:189
+msgid "J.K. Rowling"
+msgstr ""
+
+#: library/templates/index.html:190
+msgid "Fantasy"
+msgstr ""
+
+#: library/templates/index.html:199
+msgid "Amish Tripathi"
+msgstr ""
+
+#: library/templates/index.html:200
+msgid "Mythology"
+msgstr ""
+
+#: library/templates/index.html:209
+msgid "Arundhati Roy"
+msgstr ""
+
+#: library/templates/index.html:210
+msgid "Contemporary"
+msgstr ""
+
+#: library/templates/index.html:219
+msgid "James Clear"
+msgstr ""
+
+#: library/templates/index.html:227
+msgid "Choose Your Reading Plan"
+msgstr "మీ పఠన ప్రణాళికను ఎంచుకోండి"
+
+#: library/templates/index.html:228
+msgid "No due dates. No late fees. Free doorstep delivery."
+msgstr "గడువు తేదీలు లేవు. ఆలస్య రుసుములు లేవు. ఉచిత డోర్‌స్టెప్ డెలివరీ."
+
+#: library/templates/index.html:234
+msgid "Basic"
+msgstr ""
+
+#: library/templates/index.html:235
+msgid "Free"
+msgstr ""
+
+#: library/templates/index.html:239
+msgid "(50–200) rs per week per book"
+msgstr ""
+
+#: library/templates/index.html:240
+msgid "Delivery charges extra"
+msgstr ""
+
+#: library/templates/index.html:241
+msgid "No digital library"
+msgstr ""
+
+#: library/templates/index.html:243 library/templates/index.html:256
+msgid "Select Plan"
+msgstr ""
+
+#: library/templates/index.html:252
+msgid "Any number of books"
+msgstr ""
+
+#: library/templates/index.html:253
+msgid "Free delivery"
+msgstr ""
+
+#: library/templates/index.html:254
+msgid "Digital library included"
+msgstr ""
+
+#: library/templates/login.html:5
+msgid "Login | BOOK HUB"
+msgstr ""
+
+#: library/templates/login.html:14
+msgid "Back to Home"
+msgstr ""
+
+#: library/templates/login.html:21
+msgid "Welcome Back"
+msgstr ""
+
+#: library/templates/login.html:22
+msgid "Please enter your details to sign in"
+msgstr ""
+
+#: library/templates/login.html:29
+msgid "Username or Email"
+msgstr ""
+
+#: library/templates/login.html:34
+msgid "e.g. reader@email.com"
+msgstr ""
+
+#: library/templates/login.html:40
+msgid "Password"
+msgstr ""
+
+#: library/templates/login.html:53
+msgid "Remember me?"
+msgstr ""
+
+#: library/templates/login.html:55
+msgid "Forgot Password?"
+msgstr ""
+
+#: library/templates/login.html:66
+msgid "Staff Access"
+msgstr ""
+
+#: library/templates/login.html:72
+msgid "Admin"
+msgstr ""
+
+#: library/templates/login.html:75
+msgid "Delivery"
+msgstr ""
+
+#: library/templates/login.html:81
+msgid "Don't have an account?"
+msgstr ""
+
+#: library/templates/login.html:82
+msgid "Sign Up!"
+msgstr ""
+
+#: library/templates/signup.html:5
+msgid "Sign Up | BOOK HUB"
+msgstr ""
+
+#: library/templates/signup.html:14
+msgid "Back to Login"
+msgstr ""
+
+#: library/templates/signup.html:21 library/templates/signup.html:83
+msgid "Create Account"
+msgstr ""
+
+#: library/templates/signup.html:22
+msgid "Join the community of 1 million+ readers."
+msgstr ""
+
+#: library/templates/signup.html:30
+msgid "First Name"
+msgstr ""
+
+#: library/templates/signup.html:35
+msgid "Last Name"
+msgstr ""
+
+#: library/templates/signup.html:42
+msgid "Email Address"
+msgstr ""
+
+#: library/templates/signup.html:54
+msgid "Phone Number"
+msgstr ""
+
+#: library/templates/signup.html:64
+msgid "Pincode"
+msgstr ""
+
+#: library/templates/signup.html:78
+msgid "I agree to the"
+msgstr ""
+
+#: library/templates/signup.html:78
+msgid "Terms of Service"
+msgstr ""
+
+#: library/templates/signup.html:78
+msgid "and"
+msgstr ""
+
+#: library/templates/signup.html:92
+msgid "Or continue with"
+msgstr ""
+
+#: library/templates/signup.html:98
+msgid "Google"
+msgstr ""
+
+#: library/templates/signup.html:101
+msgid "Facebook"
+msgstr ""
+
+#: library/templates/signup.html:106
+msgid "Already have an account?"
+msgstr ""

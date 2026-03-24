@@ -1,0 +1,6 @@
+django==4.2.29
+requests
+mysqlclient
+pillow
+pymysql
+cryptography
