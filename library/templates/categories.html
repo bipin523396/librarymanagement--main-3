@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Categories | BOOK HUB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+
+    <nav class="bg-white shadow-sm p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="{% url 'home' %}" class="text-xl font-bold text-orange-600">BOOK HUB</a>
+            <div class="flex-grow max-w-md mx-4">
+                <input type="text" placeholder="Search books..." class="w-full bg-gray-100 px-4 py-2 rounded-lg outline-none border focus:border-orange-500">
+            </div>
+            <button class="text-gray-600 font-medium">My Account</button>
+        </div>
+    </nav>
+
+    <div class="container mx-auto py-8 px-4 flex flex-col md:flex-row gap-8">
+        </div>
+
+    <script>
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const category = urlParams.get('type');
+            if (category) {
+                const checkbox = document.getElementById(category);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    document.getElementById('pageTitle').innerText = `Showing ${category.charAt(0).toUpperCase() + category.slice(1)} Books`;
+                }
+            }
+        };
+    </script>
+</body>
+</html>

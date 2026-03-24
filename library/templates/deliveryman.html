@@ -1,0 +1,300 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Partner Portal | BOOK HUB</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-orange: #ea580c;
+            --dark-orange: #c2410c;
+            --bg-gray: #f9fafb;
+            --white: #ffffff;
+            --text-dark: #1f2937;
+            --text-gray: #6b7280;
+            --success-green: #10b981;
+            --danger-red: #ef4444;
+            --border-color: #e5e7eb;
+            --font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-family); background-color: var(--bg-gray); color: var(--text-dark); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+        /* --- SIDEBAR --- */
+        .sidebar { width: 260px; background-color: var(--white); border-right: 1px solid var(--border-color); position: fixed; height: 100%; display: flex; flex-direction: column; z-index: 10; }
+        .brand { padding: 24px; font-size: 24px; font-weight: 800; color: var(--primary-orange); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; }
+        .nav-links { list-style: none; padding: 20px 0; flex: 1; }
+        .nav-item { padding: 14px 24px; cursor: pointer; color: var(--text-gray); font-weight: 500; display: flex; align-items: center; transition: 0.3s; }
+        .nav-item i { width: 25px; font-size: 18px; }
+        .nav-item:hover, .nav-item.active { color: var(--primary-orange); background-color: #fff7ed; border-right: 3px solid var(--primary-orange); }
+        .logout-item { border-top: 1px solid var(--border-color); color: var(--danger-red); }
+        .logout-item:hover { background-color: #fef2f2; border-right: 3px solid var(--danger-red); color: var(--danger-red); }
+
+        /* --- MAIN CONTENT --- */
+        .main-content { margin-left: 260px; flex: 1; padding: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .status-toggle { display: flex; align-items: center; gap: 10px; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: 700; font-size: 14px; transition: 0.3s; }
+        .status-toggle.online { background-color: #d1fae5; color: #065f46; border: 1px solid #34d399; }
+        .status-toggle.offline { background-color: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
+        .toggle-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .online .toggle-dot { background-color: #10b981; }
+        .offline .toggle-dot { background-color: #9ca3af; }
+
+        /* --- TABLES & BADGES --- */
+        .table-container { background: var(--white); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .data-table th { padding: 16px 24px; background-color: #f9fafb; color: var(--text-gray); font-weight: 600; font-size: 13px; text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
+        .data-table td { padding: 16px 24px; border-bottom: 1px solid var(--border-color); font-size: 14px; }
+        .badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-pending { background: #fff7ed; color: #c2410c; }
+        .badge-out { background: #e0f2fe; color: #0369a1; }
+        .badge-success { background: #ecfdf5; color: #047857; }
+        .badge-failed { background: #fef2f2; color: #b91c1c; }
+
+        /* --- PROFILE STYLES --- */
+        .profile-grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: stretch; }
+        .profile-card { background: var(--white); padding: 30px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; display: flex; flex-direction: column; justify-content: center; }
+        .details-card { background: var(--white); padding: 30px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; }
+        .profile-img { width: 120px; height: 120px; border-radius: 50%; border: 4px solid var(--primary-orange); margin: 0 auto 15px; }
+        .detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-row span:first-child { color: var(--text-gray); }
+        .detail-row span:last-child { font-weight: 600; }
+
+        /* --- LOGOUT PAGE OVERLAY --- */
+        #logout-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--white); display: none; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center; z-index: 100;
+        }
+        .logout-box { max-width: 400px; padding: 40px; }
+        .logout-icon { font-size: 60px; color: var(--primary-orange); margin-bottom: 20px; }
+
+        /* --- BUTTONS --- */
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; margin-right: 5px; }
+        .btn-primary { background-color: var(--primary-orange); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-dark); }
+        .btn-call { color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 4px; font-size: 12px; text-decoration: none; display: inline-block; margin-top: 5px;}
+
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+    </style>
+</head>
+<body>
+
+    <div id="logout-screen">
+        <div class="logout-box">
+            <div class="logout-icon"><i class="fas fa-sign-out-alt"></i></div>
+            <h1 style="font-size: 28px; margin-bottom: 10px;">Logged Out</h1>
+            <p style="color: var(--text-gray); margin-bottom: 30px;">You have been safely logged out. Session ended.</p>
+            <a href="{% url 'login' %}"><button class="btn btn-primary" style="padding: 12px 30px; font-size: 16px;">Login Again</button></a>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <div class="brand"><i class="fas fa-truck-fast"></i> BOOK HUB</div>
+        <ul class="nav-links">
+            <li class="nav-item active" onclick="switchView('orders', this)"><i class="fas fa-clipboard-list"></i> Assigned Orders</li>
+            <li class="nav-item" onclick="switchView('history', this)"><i class="fas fa-history"></i> Delivery History</li>
+            <li class="nav-item" onclick="switchView('profile', this)"><i class="fas fa-user-circle"></i> My Profile</li>
+            <li class="nav-item logout-item" onclick="showLogout()"><i class="fas fa-power-off"></i> Logout</li>
+        </ul>
+        <div style="padding: 20px; border-top: 1px solid var(--border-color);">
+            <div style="font-weight: 700; font-size: 14px;">Rajesh Kumar</div>
+            <div style="font-size: 11px; color: var(--text-gray);">Salem, Tamil Nadu</div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="header">
+            <div class="page-title">
+                <h1 id="page-heading">Assigned Orders</h1>
+                <p>Friday, Jan 23, 2026</p>
+            </div>
+            <div id="statusToggle" class="status-toggle online" onclick="toggleStatus()">
+                <div class="toggle-dot"></div>
+                <span id="statusText">YOU ARE ONLINE</span>
+            </div>
+        </header>
+
+        <section id="view-orders" class="view-section active">
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer & Address</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-body">
+                        <tr id="row-9921">
+                            <td><strong>#ORD-9921</strong></td>
+                            <td>
+                                <div class="cust-name">Amit Verma</div>
+                                <div class="cust-addr" style="font-size:12px;color:gray">MG Road, Salem</div>
+                                <a href="tel:9876543210" class="btn-call"><i class="fas fa-phone"></i> Call</a>
+                            </td>
+                            <td>Delivery + Pickup</td>
+                            <td><span id="badge-9921" class="badge badge-pending">Pending</span></td>
+                            <td id="action-9921">
+                                <button class="btn btn-primary" onclick="handleAccept('9921')">Accept</button>
+                                <button class="btn btn-outline" style="color:var(--danger-red)" onclick="handleReject('9921')">Reject</button>
+                            </td>
+                        </tr>
+                        <tr id="row-9922">
+                            <td><strong>#ORD-9922</strong></td>
+                            <td>
+                                <div class="cust-name">Suresh Raina</div>
+                                <div class="cust-addr" style="font-size:12px;color:gray">Fairlands, Salem</div>
+                                <a href="tel:9876543211" class="btn-call"><i class="fas fa-phone"></i> Call</a>
+                            </td>
+                            <td>Delivery Only</td>
+                            <td><span id="badge-9922" class="badge badge-pending">Pending</span></td>
+                            <td id="action-9922">
+                                <button class="btn btn-primary" onclick="handleAccept('9922')">Accept</button>
+                                <button class="btn btn-outline" style="color:var(--danger-red)" onclick="handleReject('9922')">Reject</button>
+                            </td>
+                        </tr>
+                        <tr id="row-9923">
+                            <td><strong>#ORD-9923</strong></td>
+                            <td>
+                                <div class="cust-name">Meera Bai</div>
+                                <div class="cust-addr" style="font-size:12px;color:gray">Steel Plant Rd, Salem</div>
+                                <a href="tel:9876543212" class="btn-call"><i class="fas fa-phone"></i> Call</a>
+                            </td>
+                            <td>Pickup Only</td>
+                            <td><span id="badge-9923" class="badge badge-pending">Pending</span></td>
+                            <td id="action-9923">
+                                <button class="btn btn-primary" onclick="handleAccept('9923')">Accept</button>
+                                <button class="btn btn-outline" style="color:var(--danger-red)" onclick="handleReject('9923')">Reject</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="view-history" class="view-section">
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Location</th>
+                            <th>Outcome</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body">
+                        <tr>
+                            <td>#ORD-8810</td>
+                            <td>Rahul Dravid</td>
+                            <td>Suramangalam, Salem</td>
+                            <td><span class="badge badge-success">Delivered Successfully</span></td>
+                        </tr>
+                        <tr>
+                            <td>#ORD-8805</td>
+                            <td>Anitha Raj</td>
+                            <td>Ammapet, Salem</td>
+                            <td><span class="badge badge-success">Delivered Successfully</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="view-profile" class="view-section">
+            <div class="profile-grid">
+                <div class="profile-card">
+                    <img src="https://ui-avatars.com/api/?name=Rajesh+K&background=ea580c&color=fff&size=150" class="profile-img">
+                    <h2>Rajesh Kumar</h2>
+                    <p style="color: var(--text-gray); margin-bottom: 20px;">ID: JB-DL-402</p>
+                    <div style="background: #f9fafb; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--primary-orange);">4.8/5</div>
+                        <div style="font-size: 12px; color: var(--text-gray);">Average Rating</div>
+                    </div>
+                </div>
+
+                <div class="details-card">
+                    <h3 style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">Personal & Vehicle Details</h3>
+                    <div class="detail-row"><span>Phone Number</span><span>+91 98765 43210</span></div>
+                    <div class="detail-row"><span>Email Address</span><span>rajesh.k@gmail.com</span></div>
+                    <div class="detail-row"><span>Joining Date</span><span>12 Aug 2023</span></div>
+                    <div class="detail-row"><span>Vehicle Type</span><span>Scooter (Honda Activa)</span></div>
+                    <div class="detail-row"><span>Vehicle Number</span><span>TN-30-CK-9988</span></div>
+                    <div class="detail-row"><span>Driving License</span><span>TN-KA05-2019002</span></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function switchView(viewName, navItem) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + viewName).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            navItem.classList.add('active');
+            
+            const titles = { 'orders': 'Assigned Orders', 'history': 'Delivery History', 'profile': 'My Profile' };
+            document.getElementById('page-heading').textContent = titles[viewName];
+        }
+
+        function showLogout() {
+            if(confirm("Are you sure you want to logout?")) {
+                document.getElementById('logout-screen').style.display = 'flex';
+            }
+        }
+
+        function toggleStatus() {
+            const toggle = document.getElementById('statusToggle');
+            const isOnline = toggle.classList.contains('online');
+            toggle.className = isOnline ? 'status-toggle offline' : 'status-toggle online';
+            document.getElementById('statusText').textContent = isOnline ? "YOU ARE OFFLINE" : "YOU ARE ONLINE";
+        }
+
+        function handleAccept(id) {
+            const badge = document.getElementById('badge-' + id);
+            badge.textContent = "Out for Delivery";
+            badge.className = "badge badge-out";
+
+            const actionCell = document.getElementById('action-' + id);
+            actionCell.innerHTML = `<button class="btn" style="background:var(--success-green); color:white;" onclick="handleDeliver('${id}')">Mark Delivered</button>`;
+        }
+
+        function handleDeliver(id) {
+            moveToHistory(id, 'Delivered Successfully', 'badge-success');
+        }
+
+        function handleReject(id) {
+            if(confirm("Are you sure you want to reject this order?")) {
+                moveToHistory(id, 'Cancelled (Rejected)', 'badge-failed');
+            }
+        }
+
+        function moveToHistory(id, statusText, badgeClass) {
+            const row = document.getElementById('row-' + id);
+            if(!row) return;
+            const custName = row.querySelector('.cust-name').textContent;
+            const location = row.querySelector('.cust-addr').textContent;
+
+            const historyBody = document.getElementById('history-body');
+            const newHistoryRow = `
+                <tr>
+                    <td>#ORD-${id}</td>
+                    <td>${custName}</td>
+                    <td>${location}</td>
+                    <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                </tr>
+            `;
+            historyBody.insertAdjacentHTML('afterbegin', newHistoryRow);
+            row.remove();
+        }
+    </script>
+</body>
+</html>

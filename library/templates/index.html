@@ -1,0 +1,533 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOOK HUB</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-gray-800">
+    
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-3 flex items-center justify-between gap-6">
+            
+            <!-- Logo -->
+            <div class="text-2xl font-bold text-orange-600 whitespace-nowrap">
+                <a href="{% url 'home' %}">BOOK HUB</a>
+            </div>
+
+            <!-- Search Bar (Hidden on Mobile) -->
+            <div class="hidden md:flex flex-1 max-w-xl bg-gray-100 rounded-lg overflow-hidden">
+                <input type="text" placeholder="Search books, authors, ISBN..."
+                    class="w-full px-4 py-2 bg-transparent focus:outline-none">
+                <button class="bg-orange-600 text-white px-4 hover:bg-orange-700 transition">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+
+            <!-- Navigation Links (Hidden on Mobile) -->
+            <div class="hidden md:flex space-x-8 font-medium">
+                <a href="{% url 'categories' %}" class="text-gray-700 hover:text-orange-600 transition">Browse</a>
+                <a href="#plans-section" class="text-gray-700 hover:text-orange-600 transition">Premium</a>
+                <a href="#" class="text-gray-700 hover:text-orange-600 transition">Branches</a>
+                <a href="#" class="text-gray-700 hover:text-orange-600 transition">Gift a Card</a>
+                {% if user.is_authenticated and user.email == "rahul.k140905@gmail.com" %}
+                    <a href="{% url 'admin_dashboard' %}" class="text-orange-600 font-semibold hover:text-orange-700 transition flex items-center gap-2">
+                        <i class="fas fa-cog"></i> Admin
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- Right Section: Auth or Profile -->
+            <div class="flex items-center space-x-4">
+                {% if user.is_authenticated %}
+                    <!-- Profile Dropdown for Authenticated Users -->
+                    <div class="relative">
+                        <!-- Profile Button -->
+                        <button 
+                            id="profileBtn" 
+                            class="w-10 h-10 rounded-full bg-orange-600 text-white font-bold flex items-center justify-center hover:bg-orange-700 transition shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2"
+                            aria-label="User profile menu"
+                            aria-expanded="false"
+                            aria-haspopup="true">
+                            {{ user.email.0|upper }}
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div 
+                            id="dropdownMenu" 
+                            class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 animate-fadeIn origin-top-right"
+                            style="display: none;">
+                            
+                            <!-- User Info -->
+                            <div class="px-4 py-3 border-b border-gray-100">
+                                <p class="text-sm font-semibold text-gray-900">{{ user.username }}</p>
+                                <p class="text-xs text-gray-500 truncate">{{ user.email }}</p>
+                            </div>
+
+                            <!-- Logout Form (POST for security) -->
+                            <form method="post" action="{% url 'account_logout' %}" class="m-0">
+                                {% csrf_token %}
+                                <button 
+                                    type="submit"
+                                    class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition text-sm font-medium focus:outline-none focus:bg-red-50 border-0 bg-transparent cursor-pointer"
+                                    style="font-family: inherit;">
+                                    <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                {% else %}
+                    <!-- Login and Sign Up for Non-Authenticated Users -->
+                    <a href="{% url 'login' %}">
+                        <button class="text-gray-700 font-medium hover:text-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400 rounded px-2 py-1">
+                            Login
+                        </button>
+                    </a>
+                    <span class="text-gray-600 font-medium">or</span>
+                    <a href="{% url 'signup' %}">
+                        <button class="bg-orange-600 text-white px-5 py-2 rounded-full hover:bg-orange-700 transition focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2">
+                            Join Now
+                        </button>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fadeIn {
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+
+        .animate-fadeOut {
+            animation: fadeOut 0.15s ease-out forwards;
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+        }
+    </style>
+
+    <script>
+        // Get DOM elements
+        const profileBtn = document.getElementById('profileBtn');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+
+        // Only initialize if profile button exists (user is authenticated)
+        if (profileBtn && dropdownMenu) {
+            // Toggle dropdown visibility
+            function toggleDropdown(event) {
+                event.stopPropagation(); // Prevent event from bubbling to document
+                const isHidden = dropdownMenu.style.display === 'none' || !dropdownMenu.style.display;
+                
+                if (isHidden) {
+                    openDropdown();
+                    profileBtn.setAttribute('aria-expanded', 'true');
+                } else {
+                    closeDropdown();
+                    profileBtn.setAttribute('aria-expanded', 'false');
+                }
+            }
+
+            // Open dropdown with animation
+            function openDropdown() {
+                dropdownMenu.style.display = 'block';
+                dropdownMenu.classList.add('animate-fadeIn');
+                dropdownMenu.classList.remove('animate-fadeOut');
+                
+                // Add click listener to close dropdown when clicking outside
+                setTimeout(() => {
+                    document.addEventListener('click', handleClickOutside);
+                }, 0);
+            }
+
+            // Close dropdown with animation
+            function closeDropdown() {
+                dropdownMenu.classList.remove('animate-fadeIn');
+                dropdownMenu.classList.add('animate-fadeOut');
+                
+                // Delay hiding to allow animation
+                setTimeout(() => {
+                    dropdownMenu.style.display = 'none';
+                }, 150);
+
+                // Remove click listener
+                document.removeEventListener('click', handleClickOutside);
+            }
+
+            // Close dropdown when clicking outside
+            function handleClickOutside(event) {
+                if (!profileBtn.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                    closeDropdown();
+                    profileBtn.setAttribute('aria-expanded', 'false');
+                }
+            }
+
+            // Close dropdown on Escape key
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && dropdownMenu.style.display !== 'none') {
+                    closeDropdown();
+                    profileBtn.setAttribute('aria-expanded', 'false');
+                    profileBtn.focus();
+                }
+            });
+
+            // Attach click handler to profile button
+            profileBtn.addEventListener('click', toggleDropdown);
+        }
+    </script>
+
+
+    <section class="relative overflow-hidden bg-gray-100 h-[300px] md:h-[450px]">
+        <div id="carouselInner" class="flex transition-transform duration-500 ease-in-out h-full">
+            
+            <div class="min-w-full h-full relative">
+                <img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1600&q=80" class="w-full h-full object-cover brightness-50">
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-center text-white px-6">
+                    <h2 class="text-3xl md:text-5xl font-bold mb-4">Read Unlimited. Delivered Home.</h2>
+                    <p class="text-lg mb-6">Over 1 million books across 38 categories.</p>
+                    <a href="{% url 'signup' %}"><button class="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3 rounded-full font-bold">Join Now</button></a>
+                </div>
+            </div>
+
+            <div class="min-w-full h-full relative">
+                <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1600&q=80" class="w-full h-full object-cover brightness-50">
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-center text-white px-6">
+                    <h2 class="text-3xl md:text-5xl font-bold mb-4">Ignite Their Imagination</h2>
+                    <p class="text-lg mb-6">Special reading plans for Toddlers and Teens.</p>
+                    <button class="bg-white text-orange-600 px-8 py-3 rounded-full font-bold">Explore Kids Store</button>
+                </div>
+            </div>
+
+            <div class="min-w-full h-full relative">
+                <img src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&w=1600&q=80" class="w-full h-full object-cover brightness-50">
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-center text-white px-6">
+                    <h2 class="text-3xl md:text-5xl font-bold mb-4">Start Your Own Library</h2>
+                    <p class="text-lg mb-6">Become a BookHub Franchise partner today.</p>
+                    <button class="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3 rounded-full font-bold">Learn More</button>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="prevSlide()" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 text-white p-3 rounded-full">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button onclick="nextSlide()" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 text-white p-3 rounded-full">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+
+        <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-2">
+            <div class="dot w-3 h-3 rounded-full bg-white opacity-50 cursor-pointer" onclick="goToSlide(0)"></div>
+            <div class="dot w-3 h-3 rounded-full bg-white opacity-50 cursor-pointer" onclick="goToSlide(1)"></div>
+            <div class="dot w-3 h-3 rounded-full bg-white opacity-50 cursor-pointer" onclick="goToSlide(2)"></div>
+        </div>
+    </section>
+
+    <section class="container mx-auto py-12 px-6">
+        <h2 class="text-2xl font-bold mb-8">Popular Categories</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition">
+                <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-child"></i></div>
+                <p class="font-semibold text-sm">Toddlers</p>
+            </div>
+            <a href="{% url 'categories' %}?type=fiction" class="block">
+                <div class="bg-white p-6 rounded-xl border hover:shadow-md text-center cursor-pointer">
+                    <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-dragon"></i></div>
+                    <p class="font-semibold text-sm">Fiction</p>
+                </div>
+            </a>
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition">
+                <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-briefcase"></i></div>
+                <p class="font-semibold text-sm">Business</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition">
+                <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-user-tie"></i></div>
+                <p class="font-semibold text-sm">Biographies</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition">
+                <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-language"></i></div>
+                <p class="font-semibold text-sm">Regional</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition">
+                <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-brain"></i></div>
+                <p class="font-semibold text-sm">Self-Help</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="container mx-auto py-12 px-6">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold">Trending Books</h2>
+            <a href="{% url 'categories' %}" class="text-orange-600 font-semibold hover:underline">View All</a>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div class="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                <img src="https://images3.penguinrandomhouse.com/cover/9780593804148" alt="Book" class="w-full h-64 object-cover">
+                <div class="p-4">
+                    <p class="text-xs text-orange-600 font-bold uppercase tracking-wide">Autobiography</p>
+                    <h3 class="font-bold text-lg leading-tight mt-1">One Day, Everyone Will Have Always Been Against This</h3>
+                    <p class="text-sm text-gray-500 mt-1">Omar El Akkad</p>
+                    <a href="#">
+                        <button class="w-full mt-4 border border-orange-600 text-orange-600 py-2 rounded-md hover:bg-orange-600 hover:text-white transition">
+                            Rent / Details
+                        </button>
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                <img src="https://images3.penguinrandomhouse.com/cover/9798217233977" alt="Book" class="w-full h-64 object-cover">
+                <div class="p-4">
+                    <p class="text-xs text-orange-600 font-bold uppercase tracking-wide">Animation</p>
+                    <h3 class="font-bold text-lg leading-tight mt-1">KPop Demon Hunters</h3>
+                    <p class="text-sm text-gray-500 mt-1">Golden Books</p>
+                    <a href="#">
+                        <button class="w-full mt-4 border border-orange-600 text-orange-600 py-2 rounded-md hover:bg-orange-600 hover:text-white transition">
+                            Rent / Details
+                        </button>
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                <img src="https://images4.penguinrandomhouse.com/cover/9781984819901" alt="Book" class="w-full h-64 object-cover">
+                <div class="p-4">
+                    <p class="text-xs text-orange-600 font-bold uppercase tracking-wide">Fiction</p>
+                    <h3 class="font-bold text-lg leading-tight mt-1">The Book of Lost Friends</h3>
+                    <p class="text-sm text-gray-500 mt-1">Lisa Wingate</p>
+                    <a href="#">
+                        <button class="w-full mt-4 border border-orange-600 text-orange-600 py-2 rounded-md hover:bg-orange-600 hover:text-white transition">
+                            Rent / Details
+                        </button>
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                <img src="https://images4.penguinrandomhouse.com/cover/9780812979657" alt="Book" class="w-full h-64 object-cover">
+                <div class="p-4">
+                    <p class="text-xs text-orange-600 font-bold uppercase tracking-wide">Fiction</p>
+                    <h3 class="font-bold text-lg leading-tight mt-1">The God of Small Things</h3>
+                    <p class="text-sm text-gray-500 mt-1">Arundhati Roy</p>
+                    <a href="#">
+                        <button class="w-full mt-4 border border-orange-600 text-orange-600 py-2 rounded-md hover:bg-orange-600 hover:text-white transition">
+                            Rent / Details
+                        </button>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container mx-auto py-16 px-6">
+        <div class="flex justify-between items-center mb-10">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-900">Meet the Authors</h2>
+                <p class="text-gray-600 mt-1">Explore works from your favorite writers</p>
+            </div>
+            <a href="#" class="text-orange-600 font-semibold hover:underline flex items-center">
+                All Authors <i class="fas fa-arrow-right ml-2 text-sm"></i>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+            <div class="group text-center cursor-pointer">
+                <div class="relative mb-4 inline-block">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJ0lgzb4bFBgYW0QfEWddlpyKFp7j5sHqCdO1NCLkzldGMnn3SHWAAxwczDPqp4aI279lecZy6atiN4ek9Dwf4NGc67mSgihhQuutGLc2vWQ&s=10" 
+                        alt="Author" 
+                        class="w-32 h-32 rounded-full object-cover border-4 border-transparent group-hover:border-orange-500 transition-all duration-300 shadow-md">
+                </div>
+                <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">Sudha Murty</h3>
+                <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">Indian Literature</p>
+            </div>
+
+            <div class="group text-center cursor-pointer">
+                <div class="relative mb-4 inline-block">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRM8sRqfFMLdFYHVVIvUlMIJ0yjwik98ze7WFlL3zHfpA&s" 
+                        alt="Author" 
+                        class="w-32 h-32 rounded-full object-cover border-4 border-transparent group-hover:border-orange-500 transition-all duration-300 shadow-md">
+                </div>
+                <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">Ruskin Bond</h3>
+                <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">Children's Fiction</p>
+            </div>
+
+            <div class="group text-center cursor-pointer">
+                <div class="relative mb-4 inline-block">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQiW9wNKQPmx8ufqxuKQ4CKg0Rrw8KC4D8Qog&s" 
+                        alt="Author" 
+                        class="w-32 h-32 rounded-full object-cover border-4 border-transparent group-hover:border-orange-500 transition-all duration-300 shadow-md">
+                </div>
+                <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">J.K. Rowling</h3>
+                <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">Fantasy</p>
+            </div>
+
+            <div class="group text-center cursor-pointer">
+                <div class="relative mb-4 inline-block">
+                    <img src="https://images.moneycontrol.com/static-mcnews/2022/10/amish-tripathi-author.jpg?impolicy=website&width=1600&height=900" 
+                        alt="Author" 
+                        class="w-32 h-32 rounded-full object-cover border-4 border-transparent group-hover:border-orange-500 transition-all duration-300 shadow-md">
+                </div>
+                <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">Amish Tripathi</h3>
+                <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">Mythology</p>
+            </div>
+
+            <div class="group text-center cursor-pointer">
+                <div class="relative mb-4 inline-block">
+                    <img src="https://i.guim.co.uk/img/media/993e587413d93ed0797dcfa550d143a19e87cd44/627_444_4277_3031/master/4277.jpg?width=480&dpr=1&s=none&crop=none" 
+                        alt="Author" 
+                        class="w-32 h-32 rounded-full object-cover border-4 border-transparent group-hover:border-orange-500 transition-all duration-300 shadow-md">
+                </div>
+                <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">Arundhati Roy</h3>
+                <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">Contemporary</p>
+            </div>
+
+            <div class="group text-center cursor-pointer">
+                <div class="relative mb-4 inline-block">
+                    <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&h=300&q=80" 
+                        alt="Author" 
+                        class="w-32 h-32 rounded-full object-cover border-4 border-transparent group-hover:border-orange-500 transition-all duration-300 shadow-md">
+                </div>
+                <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">James Clear</h3>
+                <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">Self-Help</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="plans-section" class="bg-gray-100 py-16 px-6">
+        <div class="container mx-auto text-center max-w-4xl">
+            <h2 class="text-3xl font-bold mb-4">Choose Your Reading Plan</h2>
+            <p class="text-gray-600 mb-12">No due dates. No late fees. Free doorstep delivery.</p>
+            
+            <div class="flex justify-center">
+    <div class="grid md:grid-cols-2 gap-8 max-w-4xl w-full">
+        
+        <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+            <h3 class="text-xl font-bold">Basic</h3>
+            <div class="text-3xl font-bold my-4">Free
+                <span class="text-sm font-normal text-gray-500">/mo</span>
+            </div>
+            <ul class="text-left text-sm space-y-3 mb-8">
+                <li><i class="fas fa-check text-green-500 mr-2"></i>(50–200) rs per week per book</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>Delivery charges extra</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>No digital library</li>
+            </ul>
+            <button class="w-full bg-gray-800 text-white py-2 rounded-lg">Select Plan</button>
+        </div>
+
+        <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+            <h3 class="text-xl font-bold">Premium</h3>
+            <div class="text-3xl font-bold my-4">₹500
+                <span class="text-sm font-normal text-gray-500">/mo</span>
+            </div>
+            <ul class="text-left text-sm space-y-3 mb-8">
+                <li><i class="fas fa-check text-green-500 mr-2"></i>Any number of books</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>Free delivery</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>Digital library included</li>
+            </ul>
+            <button class="w-full bg-gray-800 text-white py-2 rounded-lg">Select Plan</button>
+        </div>
+
+    </div>
+</div>
+
+    </section>
+
+    <footer class="bg-gray-900 text-gray-400 py-12 px-6">
+        <div class="container mx-auto grid md:grid-cols-4 gap-8">
+            <div>
+                <h4 class="text-white font-bold mb-4">LIB.io</h4>
+                <p class="text-sm leading-relaxed">The largest community library chain in India with over 1 million books and 40+ branches.</p>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-4">Quick Links</h4>
+                <ul class="text-sm space-y-2">
+                    <li><a href="#" class="hover:text-white">About Us</a></li>
+                    <li><a href="#" class="hover:text-white">Franchise</a></li>
+                    <li><a href="#" class="hover:text-white">Terms of Use</a></li>
+                    <li><a href="#" class="hover:text-white">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-4">Support</h4>
+                <p class="text-sm">Email: care@LIB.io.in</p>
+                <p class="text-sm mt-2">Call: 1800-XXX-XXXX</p>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-4">Newsletter</h4>
+                <div class="flex">
+                    <input type="text" placeholder="Email" class="bg-gray-800 px-3 py-2 rounded-l-md w-full focus:outline-none">
+                    <button class="bg-orange-600 text-white px-4 py-2 rounded-r-md"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('#carouselInner > div');
+        const totalSlides = slides.length;
+        const dots = document.querySelectorAll('.dot');
+
+        function updateCarousel() {
+            // Move the container
+            const offset = currentSlide * -100;
+            const carouselInner = document.getElementById('carouselInner');
+            if (carouselInner) {
+                carouselInner.style.transform = `translateX(${offset}%)`;
+            }
+            
+            // Update dots
+            dots.forEach((dot, index) => {
+                dot.style.opacity = index === currentSlide ? "1" : "0.5";
+            });
+        }
+
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % totalSlides;
+            updateCarousel();
+        }
+
+        function prevSlide() {
+            currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+            updateCarousel();
+        }
+
+        function goToSlide(index) {
+            currentSlide = index;
+            updateCarousel();
+        }
+
+        // Auto-play every 5 seconds
+        setInterval(nextSlide, 5000);
+
+        // Initialize
+        updateCarousel();
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,1 @@
+# Using mysqlclient (Django's native MySQL driver) - no shimming needed

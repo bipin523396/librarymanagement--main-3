@@ -1,0 +1,66 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    width: 90%;
+    margin: auto;
+}
+
+.header {
+    background: #333;
+    color: white;
+    padding: 10px 0;
+}
+
+.logo {
+    display: inline-block;
+    margin: 0;
+}
+
+.nav {
+    float: right;
+}
+
+.nav a {
+    color: white;
+    text-decoration: none;
+    margin-left: 20px;
+    font-weight: bold;
+}
+
+.hero {
+    background: #f4f4f4;
+    padding: 40px 0;
+    text-align: center;
+}
+
+.book-list {
+    margin-top: 30px;
+}
+
+.books {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 20px;
+}
+
+.book-card {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+.book-card img {
+    width: 100%;
+    height: auto;
+}
+
+.footer {
+    background: #333;
+    color: white;
+    text-align: center;
+    padding: 15px;
+    margin-top: 30px;
+}
