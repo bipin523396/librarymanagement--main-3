@@ -161,6 +161,17 @@
         .detail-table td:first-child { color: var(--text-gray); }
         .detail-table td:last-child { text-align: right; font-weight: 600; color: var(--text-dark); }
         .detail-table tr:last-child td { border-bottom: none; }
+
+        /* --- MESSAGES --- */
+        .message-container { margin-bottom: 25px; }
+        .alert {
+            padding: 15px 20px; border-radius: 10px; margin-bottom: 10px; 
+            font-weight: 500; font-size: 14px; display: flex; 
+            align-items: center; gap: 12px; border: 1px solid transparent;
+        }
+        .alert-success { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+        .alert-error { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+        .alert-info { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
     </style>
 </head>
 <body>
@@ -198,6 +209,17 @@
                 </div>
             </div>
         </header>
+
+        {% if messages %}
+        <div class="message-container">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
 
         <section id="dashboard-overview" class="content-section active">
             <div class="stats-grid">
@@ -515,7 +537,13 @@
             document.getElementById('bookSubmitBtn').innerText = isEditing ? 'Update Book' : 'Add to Inventory';
             
             const form = document.getElementById('bookForm');
-            form.action = isEditing ? `/admin-dashboard/edit-book/${id}/` : "{% url 'add_book' %}";
+            if (isEditing) {
+                // Dynamically build correct URL including language prefixes
+                const editUrlTemplate = "{% url 'edit_book' book_id=999999 %}";
+                form.action = editUrlTemplate.replace('999999', id);
+            } else {
+                form.action = "{% url 'add_book' %}";
+            }
 
             document.getElementById('editBookId').value = id;
             document.getElementById('bookTitle').value = title;

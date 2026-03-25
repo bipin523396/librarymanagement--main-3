@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from .models import DeliveryRider, Order, Book, UserProfile, MembershipPlan
 
 # ==========================================
@@ -15,9 +16,7 @@ from .models import DeliveryRider, Order, Book, UserProfile, MembershipPlan
 # ==========================================
 
 def home(request):
-    # Fetch the 4 newest books to show in "Trending Books"
-    trending_books = Book.objects.all().order_by('-id')[:4]
-    return render(request, 'index.html', {'trending_books': trending_books})
+    return render(request, "index.html")
 
 def categories_view(request):
     # Support both '?category=' and '?type=' from the URL
@@ -66,7 +65,7 @@ def signup_view(request):
             address="Not provided yet"
         )
 
-        login(request, user)
+        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         return redirect('home')
 
     return render(request, 'signup.html')
@@ -137,15 +136,25 @@ def add_book(request):
         copies = request.POST.get('copies', 1)
         image_file = request.FILES.get('image') 
         
-        Book.objects.create(
-            title=title,
-            author=author,
-            category=category,
-            isbn=isbn,
-            copies_total=copies,
-            copies_available=copies,
-            image=image_file 
-        )
+        # Check if ISBN already exists
+        if Book.objects.filter(isbn=isbn).exists():
+            messages.error(request, f"Error: A book with ISBN '{isbn}' already exists in the inventory.")
+            return redirect('admin_dashboard')
+
+        try:
+            Book.objects.create(
+                title=title,
+                author=author,
+                category=category,
+                isbn=isbn,
+                copies_total=copies,
+                copies_available=copies,
+                image=image_file 
+            )
+            messages.success(request, f"Success: '{title}' has been added to the inventory.")
+        except Exception as e:
+            messages.error(request, f"Error adding book: {str(e)}")
+            
     return redirect('admin_dashboard')
 
 
@@ -153,22 +162,35 @@ def edit_book(request, book_id):
     book = get_object_or_404(Book, id=book_id)
     
     if request.method == 'POST':
-        book.title = request.POST.get('title')
-        book.author = request.POST.get('author')
-        book.category = request.POST.get('category')
-        book.isbn = request.POST.get('isbn')
+        new_isbn = request.POST.get('isbn')
         
-        if request.FILES.get('image'):
-            book.image = request.FILES.get('image')
-        
-        old_total = book.copies_total
-        new_total = int(request.POST.get('copies', old_total))
-        difference = new_total - old_total
-        
-        book.copies_total = new_total
-        book.copies_available = book.copies_available + difference
-        
-        book.save()
+        # Check if ISBN already exists on ANOTHER book
+        if Book.objects.filter(isbn=new_isbn).exclude(id=book_id).exists():
+            messages.error(request, f"Error: Cannot update. ISBN '{new_isbn}' is already assigned to another book.")
+            return redirect('admin_dashboard')
+
+        try:
+            book.title = request.POST.get('title')
+            book.author = request.POST.get('author')
+            book.category = request.POST.get('category')
+            book.isbn = new_isbn
+            
+            if request.FILES.get('image'):
+                book.image = request.FILES.get('image')
+            
+            # Adjust copies_available based on total change
+            old_total = book.copies_total
+            new_total = int(request.POST.get('copies', old_total))
+            difference = new_total - old_total
+            
+            book.copies_total = new_total
+            book.copies_available = book.copies_available + difference
+            
+            book.save()
+            messages.success(request, f"Success: '{book.title}' has been updated.")
+        except Exception as e:
+            messages.error(request, f"Error updating book: {str(e)}")
+
     return redirect('admin_dashboard')
 
 
@@ -264,3 +286,60 @@ def chat_api(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+@login_required
+def dashboard(request):
+    from .models import Book
+    
+    # Get the selected category from the URL (if any)
+    selected_category = request.GET.get('category')
+    
+    # Get all unique categories that actually have books
+    categories = Book.objects.values_list('category', flat=True).distinct()
+    
+    # Filter books based on the select category
+    if selected_category:
+        books = Book.objects.filter(category=selected_category)
+    else:
+        books = Book.objects.all()
+        
+    context = {
+        'books': books,
+        'categories': categories,
+        'selected_category': selected_category,
+    }
+    return render(request, 'dashboard.html', context)
+
+@login_required
+def profile(request):
+    return render(request, 'profile.html')
+
+@login_required
+def settings_view(request):
+    from .models import UserSettings
+    from django.utils import translation
+    
+    settings, created = UserSettings.objects.get_or_create(user=request.user)
+
+    if request.method == "POST":
+        # Check if we're only updating language (from the immediate JS submit)
+        # or the full form (including notifications)
+        lang_code = request.POST.get("language")
+        if lang_code:
+            settings.language = lang_code
+            
+            # Sync with Django's i18n system
+            translation.activate(lang_code)
+            request.session['_language'] = lang_code
+            
+        if "notifications" in request.POST or request.method == "POST":
+            # If notifications checkbox is missing in POST (because it's unchecked), 
+            # and we are doing a full save, set it to False.
+            # However, since language change auto-submits, we must distinguish.
+            if "notifications_form" in request.POST:
+                settings.notifications = request.POST.get("notifications") == "on"
+            
+        settings.save()
+        messages.success(request, "Settings updated!")
+
+    return render(request, "settings.html", {"settings": settings})

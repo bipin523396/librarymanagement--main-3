@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BookHub</title>
+</head>
+<body>
+
+<h1>Welcome to BookHub</h1>
+
+{% if user.is_authenticated %}
+    <p>Hello, {{ user.username }}</p>
+    <a href="/accounts/logout/">Logout</a>
+{% else %}
+    <a href="/accounts/google/login/">Login with Google</a>
+{% endif %}
+
+</body>
+</html>

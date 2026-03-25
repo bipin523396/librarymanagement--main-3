@@ -87,3 +87,12 @@ class Order(models.Model):
 
     def __str__(self):
         return f"{self.order_id} - {self.customer.user.username}"
+
+
+class UserSettings(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='usersettings')
+    language = models.CharField(max_length=20, default='English')
+    notifications = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.user.username
