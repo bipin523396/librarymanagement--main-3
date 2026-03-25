@@ -4,3 +4,4 @@ mysqlclient
 pillow
 pymysql
 cryptography
+django-allauth[socialaccount]
