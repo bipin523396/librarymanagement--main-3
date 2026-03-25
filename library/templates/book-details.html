@@ -11,7 +11,7 @@
 
     <nav class="bg-white shadow-md sticky top-0 z-50">
         <div class="container mx-auto px-6 py-3 flex items-center justify-between gap-6">
-            <a href="index.html" class="text-2xl font-bold text-orange-600 whitespace-nowrap">
+            <a href="{% url 'home' %}" class="text-2xl font-bold text-orange-600 whitespace-nowrap">
                 BOOK HUB
             </a>
             <div class="hidden md:flex flex-1 max-w-xl bg-gray-100 rounded-lg overflow-hidden">
@@ -29,7 +29,7 @@
 
     <section class="container mx-auto py-12 px-6">
         
-        <a href="index.html" class="inline-flex items-center text-gray-500 hover:text-orange-600 mb-6 transition">
+        <a href="{% url 'home' %}" class="inline-flex items-center text-gray-500 hover:text-orange-600 mb-6 transition">
             <i class="fas fa-arrow-left mr-2"></i> Back to Browse
         </a>
 
@@ -89,9 +89,12 @@
                     </div>
 
                     <div class="flex flex-wrap gap-4">
-                        <a href="payment.html"><button class="px-8 py-3 rounded-lg border-2 border-orange-600 text-orange-600 font-bold hover:bg-orange-600 hover:text-white transition shadow-sm hover:shadow-md">
-                            Rent
-                        </button> </a>
+                        <form action="{% url 'add_to_cart' book.id|default:1 %}" method="POST" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="px-8 py-3 rounded-lg border-2 border-orange-600 text-orange-600 font-bold hover:bg-orange-600 hover:text-white transition shadow-sm hover:shadow-md">
+                                Add to Cart
+                            </button>
+                        </form>
                         <button class="px-8 py-3 rounded-lg border-2 border-orange-600 text-orange-600 font-bold hover:bg-orange-600 hover:text-white transition shadow-sm hover:shadow-md">
                             Review
                         </button>

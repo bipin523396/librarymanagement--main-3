@@ -42,6 +42,7 @@ class Book(models.Model):
     isbn = models.CharField(max_length=20, unique=True)
     copies_total = models.IntegerField(default=1)
     copies_available = models.IntegerField(default=1)
+    price = models.DecimalField(max_digits=6, decimal_places=2, default=99.99)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Available')
     image = models.ImageField(upload_to='book_images/', null=True, blank=True)
 
@@ -87,3 +88,37 @@ class Order(models.Model):
 
     def __str__(self):
         return f"{self.order_id} - {self.customer.user.username}"
+
+
+# 6. CART AND CHECKOUT
+class Cart(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.book.title} ({self.quantity})"
+
+class StoreOrder(models.Model):
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Paid', 'Paid'),
+        ('Failed', 'Failed'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    total_amount = models.DecimalField(max_digits=8, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Order #{self.id} - {self.user.username} - {self.status}"
+
+class StoreOrderItem(models.Model):
+    order = models.ForeignKey(StoreOrder, related_name='items', on_delete=models.CASCADE)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    price = models.DecimalField(max_digits=6, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.quantity} x {self.book.title}"

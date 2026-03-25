@@ -8,7 +8,8 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from .models import DeliveryRider, Order, Book, UserProfile, MembershipPlan
+from django.contrib.auth.decorators import login_required
+from .models import DeliveryRider, Order, Book, UserProfile, MembershipPlan, Cart, StoreOrder, StoreOrderItem
 
 # ==========================================
 # --- 1. CUSTOMER PAGES ---
@@ -36,6 +37,134 @@ def categories_view(request):
         'active_category': requested_category # Pass this to HTML so JS can check the box
     }
     return render(request, 'categories.html', context)
+
+def payment_view(request, order_id=None):
+    if order_id:
+        order = get_object_or_404(StoreOrder, id=order_id, user=request.user)
+    else:
+        order = None
+    return render(request, 'payment.html', {'order': order})
+
+def book_details_view(request):
+    # This was a static view before, but we can make it dynamic if book_id is passed.
+    # For now, it remains the same as requested, but generally it takes book_id.
+    book = Book.objects.first()
+    return render(request, 'book-details.html', {'book': book})
+
+def gift_view(request):
+    return render(request, 'gift.html')
+
+def gift_details_view(request):
+    return render(request, 'gift-details.html')
+
+# ==========================================
+# --- CART & CHECKOUT PAGES ---
+# ==========================================
+
+@login_required
+def add_to_cart(request, book_id):
+    book = get_object_or_404(Book, id=book_id)
+    cart_item, created = Cart.objects.get_or_create(user=request.user, book=book)
+    if not created:
+        cart_item.quantity += 1
+        cart_item.save()
+    messages.success(request, f'Added {book.title} to your cart.')
+    return redirect('view_cart')
+
+@login_required
+def view_cart(request):
+    cart_items = Cart.objects.filter(user=request.user)
+    total_amount = sum(item.book.price * item.quantity for item in cart_items)
+    
+    for item in cart_items:
+        item.subtotal = item.book.price * item.quantity
+        
+    context = {
+        'cart_items': cart_items,
+        'total_amount': total_amount
+    }
+    return render(request, 'cart.html', context)
+
+@login_required
+def update_cart(request, item_id):
+    if request.method == 'POST':
+        try:
+            cart_item = Cart.objects.get(id=item_id, user=request.user)
+            quantity = int(request.POST.get('quantity', 1))
+            if quantity > 0:
+                cart_item.quantity = quantity
+                cart_item.save()
+                messages.success(request, 'Cart updated.')
+            else:
+                cart_item.delete()
+                messages.success(request, 'Item removed from cart.')
+        except Cart.DoesNotExist:
+            pass
+    return redirect('view_cart')
+
+@login_required
+def remove_from_cart(request, item_id):
+    try:
+        cart_item = Cart.objects.get(id=item_id, user=request.user)
+        cart_item.delete()
+        messages.success(request, 'Item removed from cart.')
+    except Cart.DoesNotExist:
+        pass
+    return redirect('view_cart')
+
+@login_required
+def checkout(request):
+    cart_items = Cart.objects.filter(user=request.user)
+    if not cart_items.exists():
+        messages.error(request, "Your cart is empty.")
+        return redirect('view_cart')
+        
+    total_amount = sum(item.book.price * item.quantity for item in cart_items)
+    
+    if request.method == 'POST':
+        order = StoreOrder.objects.create(
+            user=request.user,
+            total_amount=total_amount,
+            status='Pending'
+        )
+        
+        for item in cart_items:
+            StoreOrderItem.objects.create(
+                order=order,
+                book=item.book,
+                quantity=item.quantity,
+                price=item.book.price
+            )
+            
+        return redirect('payment_with_order', order_id=order.id)
+    
+    context = {
+        'cart_items': cart_items,
+        'total_amount': total_amount
+    }
+    return render(request, 'checkout.html', context)
+
+@login_required
+def process_payment(request, order_id):
+    if request.method == 'POST':
+        order = get_object_or_404(StoreOrder, id=order_id, user=request.user)
+        
+        import random
+        success = random.choice([True, True, True, False])
+        
+        if success:
+            order.status = 'Paid'
+            order.save()
+            Cart.objects.filter(user=request.user).delete()
+            messages.success(request, "Payment done successfully!")
+            return redirect('home')
+        else:
+            order.status = 'Failed'
+            order.save()
+            messages.error(request, "Payment failed. Try again.")
+            return redirect('view_cart')
+            
+    return redirect('home')
 
 # ==========================================
 # --- 2. SIGNUP AND LOGIN ---

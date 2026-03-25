@@ -127,9 +127,9 @@
 
     <nav class="navbar">
         <div class="container nav-wrapper">
-            <a href="index.html" class="nav-logo">BOOK HUB</a>
+            <a href="{% url 'home' %}" class="nav-logo">BOOK HUB</a>
             <div class="nav-links">
-                <a href="index.html" class="hover-underline">Back to Browse</a>
+                <a href="{% url 'home' %}" class="hover-underline">Back to Browse</a>
             </div>
             <div class="nav-actions">
                 <span class="text-gray" style="font-size: 0.9rem;">Secure Checkout <i class="fas fa-lock"></i></span>
@@ -139,9 +139,13 @@
 
     <div class="container py-12">
         
-        <h1 class="text-dark font-bold text-center" style="font-size: 2rem; margin-bottom: 2rem;">Complete Your Rental</h1>
+        <h1 class="text-dark font-bold text-center" style="font-size: 2rem; margin-bottom: 2rem;">
+            {% if order %}Checkout Order #{{ order.id }} - Total: ${{ order.total_amount }}{% else %}Complete Your Rental{% endif %}
+        </h1>
 
-        <form id="paymentForm">
+        <form id="paymentForm" action="{% if order %}{% url 'process_payment' order.id %}{% else %}#{% endif %}" method="POST" data-has-order="{% if order %}true{% else %}false{% endif %}" data-home-url="{% url 'home' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="success">
             <div class="checkout-grid">
                 
                 <div class="checkout-card">
@@ -310,13 +314,17 @@
 
             // Simulate processing
             const btn = document.querySelector('button[type="submit"]');
-            const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             btn.style.opacity = "0.7";
 
             setTimeout(() => {
-                alert("Payment Successful! Your books will be delivered soon.");
-                window.location.href = "index.html"; // Redirect to home
+                const form = document.getElementById("paymentForm");
+                if (form.getAttribute("data-has-order") === "true") {
+                    form.submit();
+                } else {
+                    alert("Payment Successful! Your books will be delivered soon.");
+                    window.location.href = form.getAttribute("data-home-url");
+                }
             }, 2000);
         });
     </script>

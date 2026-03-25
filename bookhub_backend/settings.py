@@ -83,7 +83,7 @@ WSGI_APPLICATION = 'bookhub_backend.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 # Use SQLite for development if MySQL is not available or desired
-USE_SQLITE = False # Set to False to use MySQL
+USE_SQLITE = True # Set to False to use MySQL
 
 if USE_SQLITE:
     DATABASES = {
@@ -126,6 +126,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+LOGIN_URL = 'login'
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/

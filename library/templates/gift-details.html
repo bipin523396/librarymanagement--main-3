@@ -92,12 +92,11 @@
 
     function proceedPayment(e) {
         e.preventDefault();
-        alert("Payment successful! Gift card sent 🎉");
-        localStorage.removeItem("giftPlan");
-        window.location.href = "index.html";
+        setTimeout(() => {
+            alert("Payment Successful! The Gift Card has been sent.");
+            window.location.href = "{% url 'home' %}";
+        }, 2000);
     }
-</script>
-
-
+    </script>
 </body>
 </html>
