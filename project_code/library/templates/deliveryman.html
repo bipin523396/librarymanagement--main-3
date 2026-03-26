@@ -1,0 +1,344 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Partner Portal | BOOK HUB</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+    <style>
+        :root {
+            --primary-orange: #ea580c;
+            --dark-orange: #c2410c;
+            --bg-gray: #f9fafb;
+            --white: #ffffff;
+            --text-dark: #1f2937;
+            --text-gray: #6b7280;
+            --success-green: #10b981;
+            --danger-red: #ef4444;
+            --border-color: #e5e7eb;
+            --font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-family); background-color: var(--bg-gray); color: var(--text-dark); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+        /* --- SIDEBAR --- */
+        .sidebar { width: 260px; background-color: var(--white); border-right: 1px solid var(--border-color); position: fixed; height: 100%; display: flex; flex-direction: column; z-index: 10; }
+        .brand { padding: 24px; font-size: 24px; font-weight: 800; color: var(--primary-orange); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; }
+        .nav-links { list-style: none; padding: 20px 0; flex: 1; }
+        .nav-item { padding: 14px 24px; cursor: pointer; color: var(--text-gray); font-weight: 500; display: flex; align-items: center; transition: 0.3s; }
+        .nav-item i { width: 25px; font-size: 18px; }
+        .nav-item:hover, .nav-item.active { color: var(--primary-orange); background-color: #fff7ed; border-right: 3px solid var(--primary-orange); }
+        .logout-item { border-top: 1px solid var(--border-color); color: var(--danger-red); }
+        .logout-item:hover { background-color: #fef2f2; border-right: 3px solid var(--danger-red); color: var(--danger-red); }
+
+        /* --- MAIN CONTENT --- */
+        .main-content { margin-left: 260px; flex: 1; padding: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .status-toggle { display: flex; align-items: center; gap: 10px; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: 700; font-size: 14px; transition: 0.3s; }
+        .status-toggle.online { background-color: #d1fae5; color: #065f46; border: 1px solid #34d399; }
+        .status-toggle.offline { background-color: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
+        .toggle-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .online .toggle-dot { background-color: #10b981; }
+        .offline .toggle-dot { background-color: #9ca3af; }
+
+        /* --- TABLES & BADGES --- */
+        .table-container { background: var(--white); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .data-table th { padding: 16px 24px; background-color: #f9fafb; color: var(--text-gray); font-weight: 600; font-size: 13px; text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
+        .data-table td { padding: 16px 24px; border-bottom: 1px solid var(--border-color); font-size: 14px; }
+        
+        .badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block;}
+        .badge-pending { background: #fff7ed; color: #c2410c; }
+        .badge-out { background: #e0f2fe; color: #0369a1; }
+        .badge-success { background: #ecfdf5; color: #047857; }
+        .badge-failed { background: #fef2f2; color: #b91c1c; }
+
+        /* --- PROFILE STYLES --- */
+        .profile-grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: stretch; }
+        .profile-card { background: var(--white); padding: 30px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; display: flex; flex-direction: column; justify-content: center; }
+        .details-card { background: var(--white); padding: 30px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; }
+        .profile-img { width: 120px; height: 120px; border-radius: 50%; border: 4px solid var(--primary-orange); margin: 0 auto 15px; }
+        .detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-row span:first-child { color: var(--text-gray); }
+        .detail-row span:last-child { font-weight: 600; }
+
+        /* --- BUTTONS --- */
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; margin-right: 5px; }
+        .btn-primary { background-color: var(--primary-orange); color: white; }
+        .btn-success { background-color: var(--success-green); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-dark); }
+        .btn-map { background-color: #3b82f6; color: white; margin-top: 5px; width: 100%;}
+        .btn-call { color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 4px; font-size: 12px; text-decoration: none; display: inline-block; margin-top: 5px;}
+
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+
+        /* --- MAP MODAL --- */
+        #mapModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; backdrop-filter: blur(4px); }
+        .map-container { background: white; width: 90%; height: 90%; margin: 2% auto; border-radius: 12px; padding: 20px; position: relative; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        #map { flex: 1; width: 100%; border-radius: 8px; margin-top: 10px; border: 2px solid var(--border-color); }
+        .close-btn { position: absolute; right: 20px; top: 20px; background: var(--danger-red); color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; font-weight: bold; font-size: 16px; z-index: 2000; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .close-btn:hover { background: #b91c1c; }
+        .bike-icon-wrapper { background-color: white; border: 2px solid var(--primary-orange); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 6px rgba(0,0,0,0.4); }
+        .bike-icon-wrapper i { color: var(--primary-orange); font-size: 18px; }
+    </style>
+</head>
+<body>
+
+    {% csrf_token %}
+
+    <aside class="sidebar">
+        <div class="brand"><i class="fas fa-truck-fast"></i> BOOK HUB</div>
+        <ul class="nav-links">
+            <li class="nav-item active" onclick="switchView('orders', this)"><i class="fas fa-clipboard-list"></i> Assigned Orders</li>
+            <li class="nav-item" onclick="switchView('history', this)"><i class="fas fa-history"></i> Delivery History</li>
+            <li class="nav-item" onclick="switchView('profile', this)"><i class="fas fa-user-circle"></i> My Profile</li>
+            <a href="{% url 'home' %}" style="text-decoration:none;"><li class="nav-item logout-item"><i class="fas fa-power-off"></i> Logout</li></a>
+        </ul>
+        <div style="padding: 20px; border-top: 1px solid var(--border-color);">
+            {% if rider %}
+                <div style="font-weight: 700; font-size: 14px;">{{ rider.user.get_full_name|default:rider.user.username }}</div>
+                <div style="font-size: 11px; color: var(--text-gray);">{{ rider.vehicle_details }}</div>
+            {% else %}
+                <div style="font-weight: 700; font-size: 14px; color: var(--primary-orange);">Test Mode Active</div>
+                <div style="font-size: 11px; color: var(--text-gray);">Viewing as Guest</div>
+            {% endif %}
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="header">
+            <div class="page-title">
+                <h1 id="page-heading">Assigned Orders</h1>
+                <p style="color: var(--text-gray); margin-top: 5px;">{% now "l, M d, Y" %}</p>
+            </div>
+            <div id="statusToggle" class="status-toggle online" onclick="toggleStatus()">
+                <div class="toggle-dot"></div>
+                <span id="statusText">YOU ARE ONLINE</span>
+            </div>
+        </header>
+
+        <section id="view-orders" class="view-section active">
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer & Address</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in assigned_orders %}
+                        <tr>
+                            <td><strong>#{{ order.order_id }}</strong></td>
+                            <td>
+                                <div style="font-weight: 600;">{{ order.customer.user.get_full_name|default:order.customer.user.username }}</div>
+                                <div style="font-size:12px; color:var(--text-gray); margin-top:2px;">{{ order.customer.address }}, {{ order.customer.pincode }}</div>
+                                <a href="tel:{{ order.customer.phone }}" class="btn-call"><i class="fas fa-phone"></i> Call</a>
+                            </td>
+                            <td>{{ order.order_type }}</td>
+                            <td>
+                                {% if order.status == 'Pending' %}
+                                    <span class="badge badge-pending">{{ order.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge badge-out">{{ order.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.status == 'Pending' %}
+                                    <button class="btn btn-primary" onclick="updateStatus('{{ order.order_id }}', 'Out for Delivery')">Accept</button>
+                                    <button class="btn btn-outline" style="color:var(--danger-red)" onclick="updateStatus('{{ order.order_id }}', 'Cancelled')">Reject</button>
+                                {% elif order.status == 'Out for Delivery' or order.status == 'Assigned' %}
+                                    <button class="btn btn-success" onclick="updateStatus('{{ order.order_id }}', 'Completed')" style="width: 100%;">Mark Delivered</button>
+                                    <button class="btn btn-map" onclick="openMap('{{ order.customer.address }}')"><i class="fas fa-motorcycle"></i> Live Route</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" style="text-align: center; padding: 30px; color: gray;">No active orders currently.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="view-history" class="view-section">
+            <div class="table-container">
+                <table class="data-table">
+                    <thead><tr><th>Order ID</th><th>Customer</th><th>Location</th><th>Outcome</th></tr></thead>
+                    <tbody>
+                        {% for order in history_orders %}
+                        <tr>
+                            <td>#{{ order.order_id }}</td>
+                            <td>{{ order.customer.user.get_full_name|default:order.customer.user.username }}</td>
+                            <td>{{ order.customer.address }}</td>
+                            <td>
+                                {% if order.status == 'Completed' %}
+                                    <span class="badge badge-success">Delivered Successfully</span>
+                                {% else %}
+                                    <span class="badge badge-failed">Cancelled</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" style="text-align: center; padding: 30px; color: gray;">No delivery history.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="view-profile" class="view-section">
+            <div class="profile-grid">
+                <div class="profile-card">
+                    {% if rider %}
+                        <img src="https://ui-avatars.com/api/?name={{ rider.user.first_name }}+{{ rider.user.last_name }}&background=ea580c&color=fff&size=150" class="profile-img">
+                        <h2>{{ rider.user.get_full_name|default:rider.user.username }}</h2>
+                        <p style="color: var(--text-gray); margin-bottom: 20px;">ID: JB-DL-{{ rider.id }}</p>
+                    {% else %}
+                        <img src="https://ui-avatars.com/api/?name=Test+Rider&background=ea580c&color=fff&size=150" class="profile-img">
+                        <h2>Test Rider</h2>
+                        <p style="color: var(--text-gray); margin-bottom: 20px;">ID: JB-DL-TEST</p>
+                    {% endif %}
+                    
+                    <div style="background: #f9fafb; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--primary-orange);">5.0/5</div>
+                        <div style="font-size: 12px; color: var(--text-gray);">Average Rating</div>
+                    </div>
+                </div>
+
+                <div class="details-card">
+                    <h3 style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">Personal & Vehicle Details</h3>
+                    {% if rider %}
+                        <div class="detail-row"><span>Phone Number</span><span>{{ rider.phone }}</span></div>
+                        <div class="detail-row"><span>Email Address</span><span>{{ rider.user.email }}</span></div>
+                        <div class="detail-row"><span>Status</span><span>{{ rider.status }}</span></div>
+                        <div class="detail-row"><span>Vehicle Details</span><span>{{ rider.vehicle_details }}</span></div>
+                    {% else %}
+                        <div class="detail-row"><span>Phone Number</span><span>+91 98765 43210</span></div>
+                        <div class="detail-row"><span>Email Address</span><span>rider@bookhub.com</span></div>
+                        <div class="detail-row"><span>Status</span><span>Active (Test)</span></div>
+                        <div class="detail-row"><span>Vehicle Details</span><span>Honda Activa (Test)</span></div>
+                    {% endif %}
+                    <div class="detail-row"><span>Operating City</span><span>Salem, Tamil Nadu</span></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="mapModal">
+        <div class="map-container">
+            <button class="close-btn" onclick="closeMap()">X</button>
+            <h2 id="mapTitle" style="color: var(--text-dark); margin-bottom: 5px;">Live Navigation</h2>
+            <p id="mapStatus" style="color: var(--primary-orange); font-size: 14px; font-weight: bold;">Connecting to GPS...</p>
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+    <script>
+        // Tab Switcher
+        function switchView(viewName, navItem) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + viewName).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            navItem.classList.add('active');
+            
+            const titles = { 'orders': 'Assigned Orders', 'history': 'Delivery History', 'profile': 'My Profile' };
+            document.getElementById('page-heading').textContent = titles[viewName];
+        }
+
+        // Online Toggle
+        function toggleStatus() {
+            const toggle = document.getElementById('statusToggle');
+            const isOnline = toggle.classList.contains('online');
+            toggle.className = isOnline ? 'status-toggle offline' : 'status-toggle online';
+            document.getElementById('statusText').textContent = isOnline ? "YOU ARE OFFLINE" : "YOU ARE ONLINE";
+        }
+
+        // AJAX Update Status
+        function updateStatus(orderId, newStatus) {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            fetch("{% url 'update_order_status' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrfToken },
+                body: `order_id=${orderId}&status=${newStatus}`
+            }).then(response => response.json()).then(data => {
+                if (data.status === 'success') window.location.reload(); 
+            });
+        }
+
+        // --- LIVE MAP LOGIC ---
+        let map = null, routingControl = null, riderMarker = null, watchId = null; 
+
+        const bikeIcon = L.divIcon({
+            html: '<div class="bike-icon-wrapper"><i class="fas fa-motorcycle"></i></div>',
+            className: 'custom-bike-icon', iconSize: [36, 36], iconAnchor: [18, 18]
+        });
+
+        function openMap(customerAddress) {
+            document.getElementById('mapModal').style.display = 'block';
+            document.getElementById('mapStatus').innerText = "Locating your live GPS position...";
+            let routeDrawn = false; 
+
+            if (!map) {
+                map = L.map('map').setView([11.6643, 78.1460], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+            }
+            setTimeout(() => { map.invalidateSize(); }, 300);
+
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(customerAddress + ", India")}`)
+            .then(res => res.json()).then(data => {
+                if (data && data.length > 0) {
+                    const destLat = data[0].lat, destLng = data[0].lon;
+                    document.getElementById('mapStatus').innerText = "Waiting for GPS signal...";
+
+                    if ("geolocation" in navigator) {
+                        watchId = navigator.geolocation.watchPosition((position) => {
+                            const riderLat = position.coords.latitude, riderLng = position.coords.longitude;
+                            document.getElementById('mapStatus').innerText = `Live tracking active. Proceed to ${customerAddress}.`;
+
+                            if (!riderMarker) {
+                                riderMarker = L.marker([riderLat, riderLng], { icon: bikeIcon }).addTo(map).bindPopup("You are here");
+                                map.setView([riderLat, riderLng], 16); 
+                            } else { riderMarker.setLatLng([riderLat, riderLng]); }
+
+                            if (!routeDrawn) {
+                                if (routingControl) map.removeControl(routingControl);
+                                routingControl = L.Routing.control({
+                                    waypoints: [L.latLng(riderLat, riderLng), L.latLng(destLat, destLng)],
+                                    routeWhileDragging: false, addWaypoints: false, show: false,
+                                    lineOptions: { styles: [{color: '#3b82f6', opacity: 0.8, weight: 6}] }
+                                }).addTo(map);
+                                routeDrawn = true;
+                            }
+                        }, 
+                        (err) => { document.getElementById('mapStatus').innerText = "GPS Error: Please enable Location Services."; },
+                        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+                    }
+                } else { document.getElementById('mapStatus').innerText = "Could not find customer address on map."; }
+            });
+        }
+
+        function closeMap() {
+            document.getElementById('mapModal').style.display = 'none';
+            if (watchId) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+            if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+            if (riderMarker) { map.removeLayer(riderMarker); riderMarker = null; }
+        }
+    </script>
+</body>
+</html>

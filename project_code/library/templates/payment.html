@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout | BOOK HUB</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* --- 1. GLOBAL VARIABLES & RESET (From style.css) --- */
+        :root {
+            --primary-orange: #ea580c;
+            --primary-hover: #c2410c;
+            --text-dark: #111827;
+            --text-gray: #4b5563;
+            --text-light: #9ca3af;
+            --bg-light: #f9fafb;
+            --bg-white: #ffffff;
+            --border-color: #e5e7eb;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius-md: 0.375rem;
+            --radius-lg: 0.5rem;
+            --radius-xl: 0.75rem;
+            --radius-full: 9999px;
+            --font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            line-height: 1.5;
+        }
+
+        a { text-decoration: none; color: inherit; transition: color 0.2s; }
+        ul { list-style: none; }
+
+        /* --- 2. UTILITIES --- */
+        .container { max-width: 1280px; margin: 0 auto; padding: 0 1.5rem; }
+        .text-center { text-align: center; }
+        .text-dark { color: var(--text-dark); }
+        .text-gray { color: var(--text-gray); }
+        .text-orange { color: var(--primary-orange); }
+        .font-bold { font-weight: 700; }
+        .flex { display: flex; }
+        .gap-4 { gap: 1rem; }
+        .py-12 { padding-top: 3rem; padding-bottom: 3rem; }
+        .hover-underline:hover { text-decoration: underline; }
+
+        /* --- 3. COMPONENTS (Buttons & Forms) --- */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 0.5rem 1rem; font-weight: 600; border-radius: var(--radius-lg);
+            cursor: pointer; transition: all 0.2s; border: none; outline: none;
+        }
+        .btn-primary { background-color: var(--primary-orange); color: white; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-full { width: 100%; padding: 0.75rem 2rem; }
+        .btn-rounded { border-radius: var(--radius-full); }
+
+        .form-group { margin-bottom: 1.25rem; }
+        .form-label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.5rem; }
+        .input-wrapper { position: relative; }
+        .input-icon {
+            position: absolute; top: 0; bottom: 0; left: 0; padding-left: 0.75rem;
+            display: flex; align-items: center; color: var(--text-light);
+        }
+        .form-input {
+            width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border-radius: var(--radius-xl); border: 1px solid var(--border-color);
+            outline: none; transition: border 0.2s, box-shadow 0.2s; background: white;
+        }
+        .form-input:focus { border-color: var(--primary-orange); box-shadow: 0 0 0 2px #fed7aa; }
+
+        /* --- 4. NAVBAR --- */
+        .navbar { background: white; box-shadow: var(--shadow-md); position: sticky; top: 0; z-index: 50; padding: 0.75rem 0; }
+        .nav-wrapper { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
+        .nav-logo { font-size: 1.5rem; font-weight: 800; color: var(--primary-orange); white-space: nowrap; }
+        .nav-links { display: flex; gap: 2rem; font-weight: 500; }
+
+        /* --- 5. FOOTER --- */
+        .footer { background: #111827; color: #9ca3af; padding: 3rem 1.5rem; margin-top: 3rem; }
+        .footer-grid { display: grid; grid-template-columns: repeat(1, 1fr); gap: 2rem; }
+        .footer-title { color: white; font-weight: 700; margin-bottom: 1rem; }
+        .footer-links li { margin-bottom: 0.5rem; }
+        .footer-links a:hover { color: white; }
+        @media (min-width: 768px) { .footer-grid { grid-template-columns: repeat(4, 1fr); } }
+
+        /* --- 6. PAGE SPECIFIC (Checkout Layout) --- */
+        .checkout-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        .checkout-card {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-orange);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-icons img { height: 30px; opacity: 0.8; }
+
+        @media (min-width: 768px) {
+            .checkout-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-wrapper">
+            <a href="index.html" class="nav-logo">BOOK HUB</a>
+            <div class="nav-links">
+                <a href="index.html" class="hover-underline">Back to Browse</a>
+            </div>
+            <div class="nav-actions">
+                <span class="text-gray" style="font-size: 0.9rem;">Secure Checkout <i class="fas fa-lock"></i></span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-12">
+        
+        <h1 class="text-dark font-bold text-center" style="font-size: 2rem; margin-bottom: 2rem;">Complete Your Rental</h1>
+
+        <form id="paymentForm">
+            <div class="checkout-grid">
+                
+                <div class="checkout-card">
+                    <h3 class="section-title"><i class="fas fa-map-marker-alt"></i> Billing Address</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon"><i class="fas fa-user"></i></span>
+                            <input type="text" placeholder="John Doe" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon"><i class="fas fa-envelope"></i></span>
+                            <input type="email" placeholder="john@example.com" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Address</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon"><i class="fas fa-home"></i></span>
+                            <input type="text" placeholder="542 W. 15th Street" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">City</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon"><i class="fas fa-city"></i></span>
+                            <input type="text" placeholder="New York" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <div style="flex: 1;">
+                            <label class="form-label">State</label>
+                            <select class="form-input" required style="padding-left: 1rem; cursor: pointer;">
+                                <option value="">Choose...</option>
+                                <option>Tamil Nadu</option>
+                                <option>Karnataka</option>
+                                <option>Kerala</option>
+                                <option>Delhi</option>
+                                <option>Maharashtra</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label class="form-label">Zip Code</label>
+                            <input type="text" placeholder="10001" class="form-input" style="padding-left: 1rem;" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="checkout-card">
+                    <h3 class="section-title"><i class="fas fa-credit-card"></i> Payment Details</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">Accepted Cards</label>
+                        <div class="card-icons" style="margin-bottom: 1rem; font-size: 2rem; display: flex; gap: 10px;">
+    <i class="fab fa-cc-visa" style="color: #1A1F71;"></i>
+    <i class="fab fa-cc-mastercard" style="color: #EB001B;"></i>
+    <i class="fab fa-cc-amex" style="color: #006FCF;"></i>
+    <i class="fab fa-cc-discover" style="color: #F9A021;"></i>
+</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Name on Card</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon"><i class="fas fa-signature"></i></span>
+                            <input type="text" placeholder="John Doe" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Credit Card Number</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon text-orange"><i class="far fa-credit-card"></i></span>
+                            <input type="text" id="cardNumber" placeholder="1111-2222-3333-4444" maxlength="16" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Exp Month</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon"><i class="fas fa-calendar-alt"></i></span>
+                            <input type="text" placeholder="September" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <div style="flex: 1;">
+                            <label class="form-label">Exp Year</label>
+                            <select class="form-input" required style="padding-left: 1rem;">
+                                <option value="">Year</option>
+                                <option>2025</option>
+                                <option>2026</option>
+                                <option>2027</option>
+                                <option>2028</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label class="form-label">CVV</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon"><i class="fas fa-lock"></i></span>
+                                <input type="password" placeholder="123" maxlength="3" class="form-input" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 2rem;">
+                        <button type="submit" class="btn btn-primary btn-full btn-rounded" style="font-size: 1.1rem; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.4);">
+                            Proceed to Checkout <i class="fas fa-arrow-right" style="margin-left: 0.5rem;"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </form>
+    </div>
+
+    <footer class="bg-gray-900 text-gray-400 py-12 px-6">
+        <div class="container mx-auto grid md:grid-cols-4 gap-8">
+            <div>
+                <h4 class="text-white font-bold mb-4">BookHub</h4>
+                <p class="text-sm leading-relaxed">The largest community library chain in India with over 1 million books and 40+ branches.</p>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-4">Quick Links</h4>
+                <ul class="text-sm space-y-2">
+                    <li><a href="#" class="hover:text-white">About Us</a></li>
+                    <li><a href="#" class="hover:text-white">Franchise</a></li>
+                    <li><a href="#" class="hover:text-white">Terms of Use</a></li>
+                    <li><a href="#" class="hover:text-white">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-4">Support</h4>
+                <p class="text-sm">Email: care@bookhub.in</p>
+                <p class="text-sm mt-2">Call: 1800-XXX-XXXX</p>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-4">Newsletter</h4>
+                <div class="flex">
+                    <input type="text" placeholder="Email" class="bg-gray-800 px-3 py-2 rounded-l-md w-full focus:outline-none">
+                    <button class="bg-orange-600 text-white px-4 py-2 rounded-r-md"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById("paymentForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+
+            const cardNumber = document.getElementById("cardNumber").value;
+
+            // Simple validation logic
+            if (cardNumber.length !== 16 || isNaN(cardNumber)) {
+                alert("Please enter a valid 16-digit card number (numbers only).");
+                return;
+            }
+
+            // Simulate processing
+            const btn = document.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.style.opacity = "0.7";
+
+            setTimeout(() => {
+                alert("Payment Successful! Your books will be delivered soon.");
+                window.location.href = "index.html"; // Redirect to home
+            }, 2000);
+        });
+    </script>
+
+</body>
+</html>

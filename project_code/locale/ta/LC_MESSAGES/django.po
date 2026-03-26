@@ -1,0 +1,556 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-24 09:40+0530\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: bookhub_backend/settings.py:124
+msgid "English"
+msgstr ""
+
+#: bookhub_backend/settings.py:125
+msgid "Hindi"
+msgstr ""
+
+#: bookhub_backend/settings.py:126
+msgid "Tamil"
+msgstr ""
+
+#: bookhub_backend/settings.py:127
+msgid "Telugu"
+msgstr ""
+
+#: bookhub_backend/settings.py:128
+msgid "Kannada"
+msgstr ""
+
+#: bookhub_backend/settings.py:129
+msgid "Malayalam"
+msgstr ""
+
+#: bookhub_backend/settings.py:130
+msgid "Marathi"
+msgstr ""
+
+#: bookhub_backend/settings.py:131
+msgid "Bengali"
+msgstr ""
+
+#: bookhub_backend/settings.py:132
+msgid "Urdu"
+msgstr ""
+
+#: bookhub_backend/settings.py:133
+msgid "Punjabi"
+msgstr ""
+
+#: bookhub_backend/settings.py:134
+msgid "Nepali"
+msgstr ""
+
+#: library/templates/base.html:46
+msgid "Normal"
+msgstr ""
+
+#: library/templates/base.html:51
+msgid "LANGUAGE:"
+msgstr ""
+
+#: library/templates/base.html:75
+msgid "Impact"
+msgstr ""
+
+#: library/templates/base.html:76
+msgid "About"
+msgstr ""
+
+#: library/templates/base.html:77
+msgid "Contact"
+msgstr ""
+
+#: library/templates/base.html:95
+#, fuzzy
+#| msgid "Over 1 million books across 38 categories."
+msgid "Search books, authors, categories..."
+msgstr "38 பிரிவுகளில் 1 மில்லியனுக்கும் அதிகமான புத்தகங்கள்."
+
+#: library/templates/base.html:98
+msgid "Search"
+msgstr ""
+
+#: library/templates/base.html:105
+msgid "Browse"
+msgstr "உலாவவும்"
+
+#: library/templates/base.html:106 library/templates/index.html:247
+msgid "Premium"
+msgstr "பிரீமியம்"
+
+#: library/templates/base.html:107
+msgid "Branches"
+msgstr "கிளைகள்"
+
+#: library/templates/base.html:108
+msgid "Gift a Card"
+msgstr "அட்டை பரிசு அளிக்கவும்"
+
+#: library/templates/base.html:114 library/templates/login.html:59
+#: library/templates/signup.html:107
+msgid "Login"
+msgstr "உள்நுழை"
+
+#: library/templates/base.html:117
+msgid "or"
+msgstr "அல்லது"
+
+#: library/templates/base.html:120 library/templates/index.html:16
+msgid "Join Now"
+msgstr "இப்போது இணையுங்கள்"
+
+#: library/templates/base.html:142
+msgid "Synergy AI Assistant"
+msgstr ""
+
+#: library/templates/base.html:145
+msgid "Online & Ready to Help"
+msgstr ""
+
+#: library/templates/base.html:162
+msgid "Hello! I'm your real-time AI assistant for"
+msgstr ""
+
+#: library/templates/base.html:163
+msgid "You can ask me to:"
+msgstr ""
+
+#: library/templates/base.html:165
+msgid "Find information about books and authors"
+msgstr ""
+
+#: library/templates/base.html:166
+msgid "Check live stock prices (e.g. 'stock AAPL')"
+msgstr ""
+
+#: library/templates/base.html:167
+msgid "Check weather updates (e.g. 'weather London')"
+msgstr ""
+
+#: library/templates/base.html:168
+msgid "Summarize Wikipedia topics"
+msgstr ""
+
+#: library/templates/base.html:193
+msgid "Type your question..."
+msgstr ""
+
+#: library/templates/base.html:199
+msgid "Ask"
+msgstr ""
+
+#: library/templates/base.html:205
+msgid "Voice Output is Enabled • 24/7 Smart Assistance"
+msgstr ""
+
+#: library/templates/base.html:217
+msgid ""
+"The largest community library chain in India with over 1 million books and "
+"40+ branches."
+msgstr ""
+"இந்தியாவில் 1 மில்லியனுக்கும் அதிகமான புத்தகங்கள் மற்றும் 40+ கிளைகளைக் கொண்ட மிகப்பெரிய "
+"சமூக நூலகத் தொடர்."
+
+#: library/templates/base.html:220
+msgid "Quick Links"
+msgstr "விரைவு இணைப்புகள்"
+
+#: library/templates/base.html:222
+msgid "About Us"
+msgstr "எங்களைப் பற்றி"
+
+#: library/templates/base.html:223
+msgid "Franchise"
+msgstr "கிளை உரிமை"
+
+#: library/templates/base.html:224
+msgid "Terms of Use"
+msgstr "பயன்பாட்டு விதிமுறைகள்"
+
+#: library/templates/base.html:225 library/templates/signup.html:78
+msgid "Privacy Policy"
+msgstr "தனியுரிமைக் கொள்கை"
+
+#: library/templates/base.html:229
+msgid "Support"
+msgstr "ஆதரவு"
+
+#: library/templates/base.html:230 library/templates/base.html:236
+msgid "Email"
+msgstr "மின்னஞ்சல்"
+
+#: library/templates/base.html:231
+msgid "Call"
+msgstr "அழைக்கவும்"
+
+#: library/templates/base.html:234
+msgid "Newsletter"
+msgstr "செய்திமடல்"
+
+#: library/templates/base.html:335
+msgid "Sorry, I encountered an error answering your request."
+msgstr ""
+
+#: library/templates/base.html:339
+msgid "Connection error. Please try again."
+msgstr ""
+
+#: library/templates/categories.html:5
+msgid "Browse Categories | BOOK HUB"
+msgstr ""
+
+#: library/templates/categories.html:9
+msgid "Browse Categories"
+msgstr ""
+
+#: library/templates/categories.html:22
+msgid "Showing"
+msgstr ""
+
+#: library/templates/categories.html:22
+msgid "Books"
+msgstr ""
+
+#: library/templates/index.html:5
+msgid "BOOK HUB"
+msgstr "புக் ஹப்"
+
+#: library/templates/index.html:14
+msgid "Read Unlimited. Delivered Home."
+msgstr "வரம்பற்ற வாசிப்பு. வீட்டு விநியோகம்."
+
+#: library/templates/index.html:15
+msgid "Over 1 million books across 38 categories."
+msgstr "38 பிரிவுகளில் 1 மில்லியனுக்கும் அதிகமான புத்தகங்கள்."
+
+#: library/templates/index.html:23
+msgid "Ignite Their Imagination"
+msgstr "அவர்களின் கற்பனையைத் தூண்டுங்கள்"
+
+#: library/templates/index.html:24
+msgid "Special reading plans for Toddlers and Teens."
+msgstr "குழந்தைகள் மற்றும் பதின்ம வயதினருக்கான சிறப்பு வாசிப்புத் திட்டங்கள்."
+
+#: library/templates/index.html:25
+msgid "Explore Kids Store"
+msgstr "குழந்தைகள் கடையை ஆராயுங்கள்"
+
+#: library/templates/index.html:32
+msgid "Start Your Own Library"
+msgstr "உங்கள் சொந்த நூலகத்தைத் தொடங்குங்கள்"
+
+#: library/templates/index.html:33
+msgid "Become a BookHub Franchise partner today."
+msgstr "இன்றே புக்ஹப் கிளை உரிமை கூட்டாளராகுங்கள்."
+
+#: library/templates/index.html:34
+msgid "Learn More"
+msgstr "மேலும் அறிய"
+
+#: library/templates/index.html:54
+msgid "Popular Categories"
+msgstr "பிரபலமான பிரிவுகள்"
+
+#: library/templates/index.html:58
+msgid "Toddlers"
+msgstr "குழந்தைகள்"
+
+#: library/templates/index.html:63 library/templates/index.html:123
+#: library/templates/index.html:137
+msgid "Fiction"
+msgstr "கற்பனை"
+
+#: library/templates/index.html:68
+msgid "Business"
+msgstr "வணிகம்"
+
+#: library/templates/index.html:72
+msgid "Biographies"
+msgstr "சுயசரிதைகள்"
+
+#: library/templates/index.html:76
+msgid "Regional"
+msgstr "வட்டார"
+
+#: library/templates/index.html:80 library/templates/index.html:220
+msgid "Self-Help"
+msgstr "சுய முன்னேற்றம்"
+
+#: library/templates/index.html:87
+msgid "Trending Books"
+msgstr "பிரபலமான புத்தகங்கள்"
+
+#: library/templates/index.html:88
+msgid "View All"
+msgstr "அனைத்தையும் காண்க"
+
+#: library/templates/index.html:95
+msgid "Autobiography"
+msgstr "சுயசரிதை"
+
+#: library/templates/index.html:96
+msgid "One Day, Everyone Will Have Always Been Against This"
+msgstr "ஒரு நாள், அனைவரும் இதற்கு எதிராகவே இருந்திருப்பார்கள்"
+
+#: library/templates/index.html:100 library/templates/index.html:114
+#: library/templates/index.html:128 library/templates/index.html:142
+msgid "Rent / Details"
+msgstr "வாடகை / விவரங்கள்"
+
+#: library/templates/index.html:109
+msgid "Animation"
+msgstr "அனிமேஷன்"
+
+#: library/templates/index.html:110
+msgid "KPop Demon Hunters"
+msgstr "கே-பாப் அரக்க வேட்டையர்கள்"
+
+#: library/templates/index.html:124
+msgid "The Book of Lost Friends"
+msgstr "இழந்த நண்பர்களின் புத்தகம்"
+
+#: library/templates/index.html:138
+msgid "The God of Small Things"
+msgstr "தி காட் ஆஃப் ஸ்மால் திங்ஸ்"
+
+#: library/templates/index.html:153
+msgid "Meet the Authors"
+msgstr "ஆசிரியர்களைச் சந்திக்கவும்"
+
+#: library/templates/index.html:154
+msgid "Explore works from your favorite writers"
+msgstr "உங்களுக்குப் பிடித்த எழுத்தாளர்களின் படைப்புகளை ஆராயுங்கள்"
+
+#: library/templates/index.html:157
+msgid "All Authors"
+msgstr "அனைத்து எழுத்தாளர்கள்"
+
+#: library/templates/index.html:169
+msgid "Sudha Murty"
+msgstr "சுதா மூர்த்தி"
+
+#: library/templates/index.html:170
+msgid "Indian Literature"
+msgstr "இந்திய இலக்கியம்"
+
+#: library/templates/index.html:179
+msgid "Ruskin Bond"
+msgstr "ரஸ்கின் பாண்ட்"
+
+#: library/templates/index.html:180
+msgid "Children's Fiction"
+msgstr "குழந்தைகள் கற்பனை"
+
+#: library/templates/index.html:189
+msgid "J.K. Rowling"
+msgstr "ஜே.கே. ரவுலிங்"
+
+#: library/templates/index.html:190
+msgid "Fantasy"
+msgstr "பேண்டஸி"
+
+#: library/templates/index.html:199
+msgid "Amish Tripathi"
+msgstr "அமிஷ் திரிபாதி"
+
+#: library/templates/index.html:200
+msgid "Mythology"
+msgstr "புராணம்"
+
+#: library/templates/index.html:209
+msgid "Arundhati Roy"
+msgstr "அருந்ததி ராய்"
+
+#: library/templates/index.html:210
+msgid "Contemporary"
+msgstr "சமகால"
+
+#: library/templates/index.html:219
+msgid "James Clear"
+msgstr "ஜேம்ஸ் கிளியர்"
+
+#: library/templates/index.html:227
+msgid "Choose Your Reading Plan"
+msgstr "உங்கள் வாசிப்புத் திட்டத்தைத் தேர்ந்தெடுக்கவும்"
+
+#: library/templates/index.html:228
+msgid "No due dates. No late fees. Free doorstep delivery."
+msgstr "காலக்கெடு இல்லை. தாமதக் கட்டணம் இல்லை. இலவச வீட்டு விநியோகம்."
+
+#: library/templates/index.html:234
+msgid "Basic"
+msgstr "அடிப்படை"
+
+#: library/templates/index.html:235
+msgid "Free"
+msgstr "இலவசம்"
+
+#: library/templates/index.html:239
+msgid "(50–200) rs per week per book"
+msgstr "வாரத்திற்கு ஒரு புத்தகத்திற்கு (50–200) ரூபாய்"
+
+#: library/templates/index.html:240
+msgid "Delivery charges extra"
+msgstr "விநியோகக் கட்டணம் கூடுதல்"
+
+#: library/templates/index.html:241
+msgid "No digital library"
+msgstr "டிஜிட்டல் நூலகம் இல்லை"
+
+#: library/templates/index.html:243 library/templates/index.html:256
+msgid "Select Plan"
+msgstr "திட்டத்தைத் தேர்ந்தெடுக்கவும்"
+
+#: library/templates/index.html:252
+msgid "Any number of books"
+msgstr "எத்தனை புத்தகங்களும்"
+
+#: library/templates/index.html:253
+msgid "Free delivery"
+msgstr "இலவச விநியோகம்"
+
+#: library/templates/index.html:254
+msgid "Digital library included"
+msgstr "டிஜிட்டல் நூலகம் சேர்க்கப்பட்டுள்ளது"
+
+#: library/templates/login.html:5
+msgid "Login | BOOK HUB"
+msgstr "உள்நுழை | புக் ஹப்"
+
+#: library/templates/login.html:14
+msgid "Back to Home"
+msgstr "முகப்புக்குத் திரும்பு"
+
+#: library/templates/login.html:21
+msgid "Welcome Back"
+msgstr "மீண்டும் வருக"
+
+#: library/templates/login.html:22
+msgid "Please enter your details to sign in"
+msgstr "உள்நுழைய உங்கள் விவரங்களை உள்ளிடவும்"
+
+#: library/templates/login.html:29
+msgid "Username or Email"
+msgstr "பயனர் பெயர் அல்லது மின்னஞ்சல்"
+
+#: library/templates/login.html:34
+msgid "e.g. reader@email.com"
+msgstr "உதாரணமாக: reader@email.com"
+
+#: library/templates/login.html:40
+msgid "Password"
+msgstr "கடவுச்சொல்"
+
+#: library/templates/login.html:53
+msgid "Remember me?"
+msgstr "என்னை நினைவில் கொள்க?"
+
+#: library/templates/login.html:55
+msgid "Forgot Password?"
+msgstr "கடவுச்சொல்லை மறந்துவிட்டீர்களா?"
+
+#: library/templates/login.html:66
+msgid "Staff Access"
+msgstr "ஊழியர் அணுகல்"
+
+#: library/templates/login.html:72
+msgid "Admin"
+msgstr "நிர்வாகி"
+
+#: library/templates/login.html:75
+msgid "Delivery"
+msgstr "விநியோகம்"
+
+#: library/templates/login.html:81
+msgid "Don't have an account?"
+msgstr "கணக்கு இல்லையா?"
+
+#: library/templates/login.html:82
+msgid "Sign Up!"
+msgstr "பதிவு செய்க!"
+
+#: library/templates/signup.html:5
+msgid "Sign Up | BOOK HUB"
+msgstr ""
+
+#: library/templates/signup.html:14
+msgid "Back to Login"
+msgstr ""
+
+#: library/templates/signup.html:21 library/templates/signup.html:83
+msgid "Create Account"
+msgstr ""
+
+#: library/templates/signup.html:22
+msgid "Join the community of 1 million+ readers."
+msgstr ""
+
+#: library/templates/signup.html:30
+msgid "First Name"
+msgstr ""
+
+#: library/templates/signup.html:35
+msgid "Last Name"
+msgstr ""
+
+#: library/templates/signup.html:42
+msgid "Email Address"
+msgstr ""
+
+#: library/templates/signup.html:54
+msgid "Phone Number"
+msgstr ""
+
+#: library/templates/signup.html:64
+msgid "Pincode"
+msgstr ""
+
+#: library/templates/signup.html:78
+msgid "I agree to the"
+msgstr ""
+
+#: library/templates/signup.html:78
+msgid "Terms of Service"
+msgstr ""
+
+#: library/templates/signup.html:78
+msgid "and"
+msgstr ""
+
+#: library/templates/signup.html:92
+msgid "Or continue with"
+msgstr "அல்லது இதனுடன் தொடரவும்"
+
+#: library/templates/signup.html:98
+msgid "Google"
+msgstr "கூகுள்"
+
+#: library/templates/signup.html:101
+msgid "Facebook"
+msgstr "பேஸ்புக்"
+
+#: library/templates/signup.html:106
+msgid "Already have an account?"
+msgstr ""
