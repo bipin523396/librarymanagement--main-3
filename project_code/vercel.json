@@ -1,7 +1,8 @@
 {
+  "version": 2,
   "builds": [
     {
-      "src": "manage.py",
+      "src": "bookhub_backend/wsgi.py",
       "use": "@vercel/python"
     }
   ],

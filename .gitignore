@@ -1,3 +1,4 @@
 .vercel
 .venv/
 .venv312/
+.env*.local
