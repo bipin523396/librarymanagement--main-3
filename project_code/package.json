@@ -7,6 +7,9 @@
     "dev:css": "npx @tailwindcss/cli -i ./library/static/src/input.css -o ./library/static/style.css --watch",
     "build:css": "npx @tailwindcss/cli -i ./library/static/src/input.css -o ./library/static/style.css --minify"
   },
+  "devDependencies": {
+    "@vercel/docker": "^1.2.0"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
