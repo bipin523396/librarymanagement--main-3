@@ -16,17 +16,19 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 5. Copy the entire project
 COPY . .
 
-# 5.5 Copy production environment file
+# 5.5 Copy production environment file and database
 COPY .env.production /app/project_code/.env
+COPY project_code/db.sqlite3 /app/project_code/db.sqlite3
 
 # 6. Set environment variables for Django
 ENV DJANGO_SETTINGS_MODULE=bookhub_backend.settings
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app/project_code
 
-# 7. Collect static files (optional)
+# 7. Run migrations and collect static files
 WORKDIR /app/project_code
-RUN python manage.py collectstatic --noinput || true
+RUN python manage.py migrate --noinput || echo "Migrations failed, continuing..."
+RUN python manage.py collectstatic --noinput || echo "Collectstatic failed, continuing..."
 
 # 8. Expose port Vercel expects for containers
 EXPOSE 8080
