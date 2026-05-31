@@ -105,8 +105,8 @@
         </ul>
         <div style="padding: 20px; border-top: 1px solid var(--border-color);">
             {% if rider %}
-                <div style="font-weight: 700; font-size: 14px;">{{ rider.user.get_full_name|default:rider.user.username }}</div>
-                <div style="font-size: 11px; color: var(--text-gray);">{{ rider.vehicle_details }}</div>
+                <div style="font-weight: 700; font-size: 14px;">{{ rider.user.first_name|default:rider.user.username }}</div>
+                <div style="font-size: 11px; color: var(--text-gray);">{{ rider.vehicle_number }}</div>
             {% else %}
                 <div style="font-weight: 700; font-size: 14px; color: var(--primary-orange);">Test Mode Active</div>
                 <div style="font-size: 11px; color: var(--text-gray);">Viewing as Guest</div>
@@ -141,32 +141,45 @@
                     <tbody>
                         {% for order in assigned_orders %}
                         <tr>
-                            <td><strong>#{{ order.order_id }}</strong></td>
+                            <td><strong>#{{ order.tracking_id|default:order.id }}</strong></td>
                             <td>
-                                <div style="font-weight: 600;">{{ order.customer.user.get_full_name|default:order.customer.user.username }}</div>
-                                <div style="font-size:12px; color:var(--text-gray); margin-top:2px;">{{ order.customer.address }}, {{ order.customer.pincode }}</div>
-                                <a href="tel:{{ order.customer.phone }}" class="btn-call"><i class="fas fa-phone"></i> Call</a>
+                                <div style="font-weight: 600;">{{ order.rental.user.first_name|default:order.rental.user.username }}</div>
+                                <div style="font-size:12px; color:var(--text-gray); margin-top:2px;">{{ order.rental.user.userprofile.address|default:"N/A" }}, {{ order.rental.user.userprofile.pincode|default:"N/A" }}</div>
+                                <a href="tel:{{ order.rental.user.userprofile.phone }}" class="btn-call"><i class="fas fa-phone"></i> Call</a>
                             </td>
-                            <td>{{ order.order_type }}</td>
+                            <td>{{ order.rental.book.title }}</td>
                             <td>
-                                {% if order.status == 'Pending' %}
-                                    <span class="badge badge-pending">{{ order.get_status_display }}</span>
+                                {% if order.status == 'Pending' or order.status == 'Assigned' %}
+                                    <span class="badge badge-pending">{{ order.status }}</span>
                                 {% else %}
-                                    <span class="badge badge-out">{{ order.get_status_display }}</span>
+                                    <span class="badge badge-out">{{ order.status }}</span>
                                 {% endif %}
                             </td>
                             <td>
-                                {% if order.status == 'Pending' %}
-                                    <button class="btn btn-primary" onclick="updateStatus('{{ order.order_id }}', 'Out for Delivery')">Accept</button>
-                                    <button class="btn btn-outline" style="color:var(--danger-red)" onclick="updateStatus('{{ order.order_id }}', 'Cancelled')">Reject</button>
-                                {% elif order.status == 'Out for Delivery' or order.status == 'Assigned' %}
-                                    <button class="btn btn-success" onclick="updateStatus('{{ order.order_id }}', 'Completed')" style="width: 100%;">Mark Delivered</button>
-                                    <button class="btn btn-map" onclick="openMap('{{ order.customer.address }}')"><i class="fas fa-motorcycle"></i> Live Route</button>
+                                {% if order.status == 'Assigned' %}
+                                    <form method="POST" action="{% url 'update_delivery_status' order.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="status" value="Picked Up">
+                                        <button type="submit" class="btn btn-primary" style="width:100%; margin-bottom: 5px;">Mark Picked Up</button>
+                                    </form>
+                                {% elif order.status == 'Picked Up' %}
+                                    <form method="POST" action="{% url 'update_delivery_status' order.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="status" value="Out For Delivery">
+                                        <button type="submit" class="btn btn-primary" style="width:100%; margin-bottom: 5px;">Mark Out for Delivery</button>
+                                    </form>
+                                {% elif order.status == 'Out For Delivery' %}
+                                    <form method="POST" action="{% url 'update_delivery_status' order.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="status" value="Delivered">
+                                        <button type="submit" class="btn btn-success" style="width:100%; margin-bottom: 5px;">Mark Delivered</button>
+                                    </form>
+                                    <button class="btn btn-map" onclick="openMap('{{ order.rental.user.userprofile.address|default:"New Delhi" }}')"><i class="fas fa-motorcycle"></i> Live Route</button>
                                 {% endif %}
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="5" style="text-align: center; padding: 30px; color: gray;">No active orders currently.</td></tr>
+                        <tr><td colspan="5" style="text-align: center; padding: 30px; color: gray;">No active deliveries assigned to you.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -176,18 +189,18 @@
         <section id="view-history" class="view-section">
             <div class="table-container">
                 <table class="data-table">
-                    <thead><tr><th>Order ID</th><th>Customer</th><th>Location</th><th>Outcome</th></tr></thead>
+                    <thead><tr><th>Tracking ID</th><th>Customer</th><th>Location</th><th>Outcome</th></tr></thead>
                     <tbody>
                         {% for order in history_orders %}
                         <tr>
-                            <td>#{{ order.order_id }}</td>
-                            <td>{{ order.customer.user.get_full_name|default:order.customer.user.username }}</td>
-                            <td>{{ order.customer.address }}</td>
+                            <td>#{{ order.tracking_id|default:order.id }}</td>
+                            <td>{{ order.rental.user.first_name|default:order.rental.user.username }}</td>
+                            <td>{{ order.rental.user.userprofile.address|default:"N/A" }}</td>
                             <td>
-                                {% if order.status == 'Completed' %}
+                                {% if order.status == 'Delivered' %}
                                     <span class="badge badge-success">Delivered Successfully</span>
                                 {% else %}
-                                    <span class="badge badge-failed">Cancelled</span>
+                                    <span class="badge badge-failed">{{ order.status }}</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -203,8 +216,8 @@
             <div class="profile-grid">
                 <div class="profile-card">
                     {% if rider %}
-                        <img src="https://ui-avatars.com/api/?name={{ rider.user.first_name }}+{{ rider.user.last_name }}&background=ea580c&color=fff&size=150" class="profile-img">
-                        <h2>{{ rider.user.get_full_name|default:rider.user.username }}</h2>
+                        <img src="https://ui-avatars.com/api/?name={{ rider.user.first_name|default:rider.user.username }}&background=ea580c&color=fff&size=150" class="profile-img">
+                        <h2>{{ rider.user.first_name|default:rider.user.username }}</h2>
                         <p style="color: var(--text-gray); margin-bottom: 20px;">ID: JB-DL-{{ rider.id }}</p>
                     {% else %}
                         <img src="https://ui-avatars.com/api/?name=Test+Rider&background=ea580c&color=fff&size=150" class="profile-img">
@@ -223,8 +236,8 @@
                     {% if rider %}
                         <div class="detail-row"><span>Phone Number</span><span>{{ rider.phone }}</span></div>
                         <div class="detail-row"><span>Email Address</span><span>{{ rider.user.email }}</span></div>
-                        <div class="detail-row"><span>Status</span><span>{{ rider.status }}</span></div>
-                        <div class="detail-row"><span>Vehicle Details</span><span>{{ rider.vehicle_details }}</span></div>
+                        <div class="detail-row"><span>Status</span><span>Active</span></div>
+                        <div class="detail-row"><span>Vehicle Details</span><span>{{ rider.vehicle_number }}</span></div>
                     {% else %}
                         <div class="detail-row"><span>Phone Number</span><span>+91 98765 43210</span></div>
                         <div class="detail-row"><span>Email Address</span><span>rider@bookhub.com</span></div>

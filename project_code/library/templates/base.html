@@ -136,9 +136,9 @@
             </div>
             
             <div class="hidden lg:flex items-center space-x-6 text-sm font-medium">
-                <a href="#" class="hover:underline">{% trans "Impact" %}</a>
-                <a href="#" class="hover:underline">{% trans "About" %}</a>
-                <a href="#" class="hover:underline">{% trans "Contact" %}</a>
+                <a href="{% url 'impact' %}" class="hover:underline">{% trans "Impact" %}</a>
+                <a href="{% url 'about' %}" class="hover:underline">{% trans "About" %}</a>
+                <a href="{% url 'contact' %}" class="hover:underline">{% trans "Contact" %}</a>
             </div>
         </div>
     </div>
@@ -166,10 +166,10 @@
             </div>
 
             <div class="hidden md:flex space-x-8 font-medium">
-                <a href="#services-section" class="hover:text-orange-600">{% trans "Services" %}</a>
-                <a href="#plans-section" class="hover:text-orange-600">{% trans "Premium" %}</a>
-                <a href="#" class="hover:text-orange-600">{% trans "Branches" %}</a>
-                <a href="#" class="hover:text-orange-600">{% trans "Gift a Card" %}</a>
+                <a href="{% url 'services' %}" class="hover:text-orange-600 transition">{% trans "Services" %}</a>
+                <a href="{% url 'home' %}#plans-section" class="hover:text-orange-600 transition">{% trans "Premium" %}</a>
+                <a href="{% url 'branches' %}" class="hover:text-orange-600 transition">{% trans "Branches" %}</a>
+                <a href="{% url 'gift_card' %}" class="hover:text-orange-600 transition">{% trans "Gift a Card" %}</a>
             </div>
 
             <div class="flex items-center space-x-4">
@@ -181,7 +181,7 @@
                         <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-orange-400 to-orange-600 text-white flex items-center justify-center font-bold uppercase shadow-sm">
                             {% if user.first_name %}{{ user.first_name|first }}{% else %}{{ user.username|first }}{% endif %}
                         </div>
-                        <span class="text-gray-800 font-bold hidden md:block pl-1">Hi, {{ user.first_name|default:user.username }}</span>
+                        <span class="text-gray-800 font-bold hidden md:block pl-1">{{ user.first_name|default:user.username }}</span>
                         <i class="fas fa-chevron-down text-gray-500 text-xs ml-1 transition-transform group-hover:rotate-180"></i>
                     </button>
                     
@@ -194,18 +194,18 @@
                         
                         <div class="py-2">
                             <a href="{% url 'dashboard' %}" class="flex items-center px-5 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition font-medium">
-                                <i class="fas fa-layer-group w-5 text-center mr-3 opacity-70"></i> {% trans "Dashboard" %}
+                                <i class="fas fa-layer-group w-5 text-center mr-3 opacity-70"></i> {% trans "My Rentals" %}
+                            </a>
+                            <a href="{% url 'view_wishlist' %}" class="flex items-center px-5 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition font-medium">
+                                <i class="fas fa-heart w-5 text-center mr-3 opacity-70"></i> {% trans "Wishlist" %}
                             </a>
                             <a href="{% url 'profile' %}" class="flex items-center px-5 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition font-medium">
-                                <i class="fas fa-user-circle w-5 text-center mr-3 opacity-70"></i> {% trans "My Profile" %}
-                            </a>
-                            <a href="{% url 'settings' %}" class="flex items-center px-5 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition font-medium">
-                                <i class="fas fa-cog w-5 text-center mr-3 opacity-70"></i> {% trans "Settings" %}
+                                <i class="fas fa-user-circle w-5 text-center mr-3 opacity-70"></i> {% trans "Profile" %}
                             </a>
                         </div>
                         
                         <div class="border-t border-gray-100 py-1">
-                            <form action="{% url 'account_logout' %}" method="post">
+                            <form action="{% url 'logout' %}" method="post">
                                 {% csrf_token %}
                                 <button type="submit" class="w-full flex items-center text-left px-5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 transition">
                                     <i class="fas fa-sign-out-alt w-5 text-center mr-3 opacity-80"></i> {% trans "Logout" %}
@@ -255,7 +255,7 @@
             <div>
                 <h4 class="text-white font-bold mb-4">{% trans "Quick Links" %}</h4>
                 <ul class="text-sm space-y-2">
-                    <li><a href="#" class="hover:text-white">{% trans "About Us" %}</a></li>
+                    <li><a href="{% url 'about' %}" class="hover:text-white">{% trans "About Us" %}</a></li>
                     <li><a href="#" class="hover:text-white">{% trans "Franchise" %}</a></li>
                     <li><a href="#" class="hover:text-white">{% trans "Terms of Use" %}</a></li>
                     <li><a href="#" class="hover:text-white">{% trans "Privacy Policy" %}</a></li>

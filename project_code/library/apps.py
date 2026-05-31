@@ -6,4 +6,73 @@ class LibraryConfig(AppConfig):
     name = 'library'
 
     def ready(self):
-        import library.signals
+        from django.contrib.auth.models import update_last_login
+        from django.contrib.auth.signals import user_logged_in
+
+        user_logged_in.disconnect(update_last_login)
+
+        # Patch Django's AutoField to support MongoDB ObjectIds
+        from django.db.models import AutoField, BigAutoField
+        def auto_field_get_prep_value(self, value):
+            return value
+        AutoField.get_prep_value = auto_field_get_prep_value
+        BigAutoField.get_prep_value = auto_field_get_prep_value
+
+        # Patch djongo to not close the PyMongo client per request
+        try:
+            from djongo.base import DatabaseWrapper
+            DatabaseWrapper._close = lambda self: None
+        except ImportError:
+            pass
+
+        # Patch PyMongo 4.x Collection class for legacy methods used by Djongo
+        try:
+            from pymongo.collection import Collection
+            if not hasattr(Collection, 'update'):
+                def legacy_update(self, spec, document, multi=False, **kwargs):
+                    if multi:
+                        return self.update_many(spec, document, **kwargs)
+                    else:
+                        return self.update_one(spec, document, **kwargs)
+                Collection.update = legacy_update
+                print("✅ Patched PyMongo Collection.update")
+
+            if not hasattr(Collection, 'insert'):
+                def legacy_insert(self, doc_or_docs, **kwargs):
+                    if isinstance(doc_or_docs, list):
+                        return self.insert_many(doc_or_docs, **kwargs)
+                    else:
+                        return self.insert_one(doc_or_docs, **kwargs)
+                Collection.insert = legacy_insert
+                print("✅ Patched PyMongo Collection.insert")
+
+            if not hasattr(Collection, 'remove'):
+                def legacy_remove(self, spec_or_id=None, **kwargs):
+                    if spec_or_id is None:
+                        spec_or_id = {}
+                    if isinstance(spec_or_id, dict):
+                        return self.delete_many(spec_or_id, **kwargs)
+                    else:
+                        return self.delete_one({'_id': spec_or_id}, **kwargs)
+                Collection.remove = legacy_remove
+                print("✅ Patched PyMongo Collection.remove")
+        except Exception as e:
+            print("⚠️ Failed to patch PyMongo Collection:", e)
+
+        # Patch MongoClient.close to prevent closure of connections
+        try:
+            from pymongo import MongoClient
+            MongoClient.close = lambda self: None
+            print("✅ Patched PyMongo MongoClient.close")
+        except Exception as e:
+            print("⚠️ Failed to patch PyMongo MongoClient:", e)
+
+        try:
+            from pymongo.synchronous.mongo_client import MongoClient as SyncMongoClient
+            SyncMongoClient.close = lambda self: None
+            print("✅ Patched PyMongo SyncMongoClient.close")
+        except Exception as e:
+            pass
+
+        print("✅ LibraryConfig ready() executed – signal disconnected & AutoField patched")
+

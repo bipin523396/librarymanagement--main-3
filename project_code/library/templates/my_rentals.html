@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}My Rentals | BOOK HUB{% endblock %}
+
+{% block content %}
+<div class="container mx-auto max-w-6xl px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">My Rentals</h1>
+    
+    <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-gray-50 border-b border-gray-100">
+                    <th class="py-4 px-6 font-semibold text-gray-700">Book</th>
+                    <th class="py-4 px-6 font-semibold text-gray-700">Rented On</th>
+                    <th class="py-4 px-6 font-semibold text-gray-700">Due Date</th>
+                    <th class="py-4 px-6 font-semibold text-gray-700">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rental in rentals %}
+                <tr class="border-b border-gray-50 hover:bg-gray-50 transition">
+                    <td class="py-4 px-6 font-medium">{{ rental.book.title }}</td>
+                    <td class="py-4 px-6 text-gray-600">{{ rental.rented_at|date:"M d, Y" }}</td>
+                    <td class="py-4 px-6 text-gray-600">{{ rental.due_date|date:"M d, Y" }}</td>
+                    <td class="py-4 px-6">
+                        <span class="px-3 py-1 text-sm rounded-full {% if rental.rental_status == 'Delivered' %}bg-green-100 text-green-700{% elif rental.rental_status == 'Pending' %}bg-yellow-100 text-yellow-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                            {{ rental.rental_status }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="py-12 text-center text-gray-500">
+                        You haven't rented any books yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

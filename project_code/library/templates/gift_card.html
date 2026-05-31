@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Send a Gift Card" %} | BOOK HUB{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="bg-gradient-to-tr from-rose-50 to-orange-50/60 py-16 px-6 text-center">
+    <div class="container mx-auto max-w-2xl">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+            {% trans "Share the Joy of Reading" %} 🎁
+        </h1>
+        <p class="text-gray-600 font-medium leading-relaxed">
+            {% trans "Surprise friends, family, or colleagues with a BookHub digital gift card. Choose an amount, write a personal message, and we'll deliver it instantly!" %}
+        </p>
+    </div>
+</section>
+
+<!-- Gift Card Section -->
+<section class="container mx-auto py-16 px-6 max-w-6xl">
+    <div class="flex flex-col lg:flex-row gap-12">
+        
+        <!-- Gift Card Form (Left) -->
+        <div class="w-full lg:w-1/2 bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
+            <h2 class="text-2xl font-extrabold text-gray-900 mb-8">{% trans "Gift Card Details" %}</h2>
+            
+            <form onsubmit="handleGiftSubmit(event)">
+                <!-- Amount Selection -->
+                <div class="mb-6">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{% trans "Select Gift Amount" %}</label>
+                    <div class="grid grid-cols-4 gap-3">
+                        <button type="button" onclick="setAmount(100)" id="amount-100" class="amount-btn py-3 rounded-2xl border-2 border-gray-200 font-black text-gray-700 hover:border-orange-500 hover:text-orange-600 text-center transition">₹100</button>
+                        <button type="button" onclick="setAmount(500)" id="amount-500" class="amount-btn py-3 rounded-2xl border-2 border-orange-500 font-black text-orange-600 bg-orange-50/50 hover:border-orange-500 hover:text-orange-600 text-center transition">₹500</button>
+                        <button type="button" onclick="setAmount(1000)" id="amount-1000" class="amount-btn py-3 rounded-2xl border-2 border-gray-200 font-black text-gray-700 hover:border-orange-500 hover:text-orange-600 text-center transition">₹1000</button>
+                        <button type="button" onclick="setAmount(2000)" id="amount-2000" class="amount-btn py-3 rounded-2xl border-2 border-gray-200 font-black text-gray-700 hover:border-orange-500 hover:text-orange-600 text-center transition">₹2000</button>
+                    </div>
+                </div>
+
+                <!-- Recipient Name -->
+                <div class="mb-6">
+                    <label for="receiverName" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Recipient Name" %}</label>
+                    <input type="text" id="receiverName" oninput="updatePreview()" placeholder="{% trans 'Who is this special gift for?' %}" required
+                        class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm text-gray-800 font-medium">
+                </div>
+
+                <!-- Recipient Email -->
+                <div class="mb-6">
+                    <label for="receiverEmail" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Recipient Email" %}</label>
+                    <input type="email" id="receiverEmail" placeholder="{% trans 'Enter recipient\'s email address' %}" required
+                        class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm text-gray-800 font-medium">
+                </div>
+
+                <!-- Personal Message -->
+                <div class="mb-8">
+                    <label for="giftMessage" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Personalized Message" %}</label>
+                    <textarea id="giftMessage" oninput="updatePreview()" rows="4" placeholder="{% trans 'Write a lovely note to go along with the card...' %}"
+                        class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm text-gray-800 font-medium"></textarea>
+                </div>
+
+                <!-- Send Action Button -->
+                <button type="submit" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-extrabold py-4 px-6 rounded-2xl shadow-lg shadow-orange-500/20 text-center transition transform active:scale-95">
+                    {% trans "Send Gift Card" %}
+                </button>
+            </form>
+        </div>
+        
+        <!-- Live Card Preview (Right) -->
+        <div class="w-full lg:w-1/2 flex flex-col justify-center items-center">
+            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6">{% trans "Live Digital Card Preview" %}</h3>
+            
+            <!-- Glassmorphic Premium Digital Gift Card -->
+            <div class="relative w-full max-w-md aspect-[1.58/1] rounded-3xl overflow-hidden shadow-2xl p-8 text-white flex flex-col justify-between transform transition-all duration-300 hover:scale-105 border border-white/20 bg-gradient-to-tr from-red-500 via-orange-500 to-amber-400">
+                <!-- Decorative background elements -->
+                <div class="absolute inset-0 bg-black/5 backdrop-blur-[1px] z-0"></div>
+                <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-2xl z-0"></div>
+                <div class="absolute -bottom-16 -left-16 w-60 h-60 rounded-full bg-yellow-400/20 blur-3xl z-0"></div>
+                
+                <div class="relative z-10 flex justify-between items-start">
+                    <div>
+                        <span class="text-xs font-black uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full border border-white/10 backdrop-blur-md">
+                            {% trans "GIFT CARD" %}
+                        </span>
+                        <div class="text-2xl font-black mt-4">BOOK HUB</div>
+                    </div>
+                    <div class="text-right">
+                        <i class="fas fa-gift text-3xl opacity-90 drop-shadow-md"></i>
+                    </div>
+                </div>
+                
+                <div class="relative z-10">
+                    <p class="text-xs uppercase tracking-wider text-orange-100 font-bold">{% trans "TO" %}</p>
+                    <p id="previewName" class="text-xl font-extrabold truncate">Your Friend</p>
+                    
+                    <p id="previewMessage" class="text-xs text-orange-55/80 line-clamp-2 mt-2 leading-relaxed italic">"Have a wonderful reading experience!"</p>
+                </div>
+                
+                <div class="relative z-10 flex justify-between items-end pt-4 border-t border-white/20">
+                    <div>
+                        <p class="text-[9px] uppercase tracking-widest text-orange-100 font-bold">{% trans "CARD VALUE" %}</p>
+                        <p class="text-3xl font-black tracking-tight" id="previewAmount">₹500</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] tracking-widest font-black uppercase opacity-60">LIB.IO-GIFT</span>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="text-xs text-gray-400 font-bold mt-6 text-center max-w-sm leading-relaxed">
+                <i class="fas fa-info-circle mr-1"></i> {% trans "Previews update instantly. The digital card will be sent directly to the recipient's inbox upon checkout." %}
+            </p>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let giftAmount = 500;
+    
+    function setAmount(amount) {
+        giftAmount = amount;
+        
+        // Revert styling of all buttons
+        document.querySelectorAll(".amount-btn").forEach(btn => {
+            btn.className = "amount-btn py-3 rounded-2xl border-2 border-gray-200 font-black text-gray-700 hover:border-orange-500 hover:text-orange-600 text-center transition";
+        });
+        
+        // Add active style to selected button
+        const activeBtn = document.getElementById("amount-" + amount);
+        if (activeBtn) {
+            activeBtn.className = "amount-btn py-3 rounded-2xl border-2 border-orange-500 font-black text-orange-600 bg-orange-50/50 hover:border-orange-500 hover:text-orange-600 text-center transition";
+        }
+        
+        // Update live preview values
+        document.getElementById("previewAmount").innerText = "₹" + amount;
+    }
+    
+    function updatePreview() {
+        const nameVal = document.getElementById("receiverName").value;
+        const msgVal = document.getElementById("giftMessage").value;
+        
+        document.getElementById("previewName").innerText = nameVal.trim() ? nameVal : "Your Friend";
+        document.getElementById("previewMessage").innerText = msgVal.trim() ? `"${msgVal}"` : '"Have a wonderful reading experience!"';
+    }
+    
+    function handleGiftSubmit(e) {
+        e.preventDefault();
+        const name = document.getElementById("receiverName").value;
+        const email = document.getElementById("receiverEmail").value;
+        const msg = document.getElementById("giftMessage").value;
+        
+        // Dynamic success alert and redirection to payment page
+        alert(`🎉 Gift card of ₹${giftAmount} successfully prepared for ${name} (${email})! Redirecting to checkout...`);
+        
+        // Redirect to standard backend checkout/payment
+        window.location.href = `/en/library/payment/`;
+    }
+</script>
+{% endblock %}

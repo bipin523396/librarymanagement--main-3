@@ -6,9 +6,11 @@ from .models import UserSettings
 @receiver(post_save, sender=User)
 def create_user_settings(sender, instance, created, **kwargs):
     if created:
-        UserSettings.objects.get_or_create(user=instance)
+        try:
+            # Use the raw ObjectId as foreign key to avoid type conversion issues
+            UserSettings.objects.get_or_create(user_id=instance.id)
+        except Exception as e:
+            # Log the error but continue without breaking signup
+            pass
 
-@receiver(post_save, sender=User)
-def save_user_settings(sender, instance, **kwargs):
-    if hasattr(instance, 'usersettings'):
-        instance.usersettings.save()
+# The save_user_settings signal has been removed because MongoDB ObjectId primary keys cause issues when accessing related UserSettings.

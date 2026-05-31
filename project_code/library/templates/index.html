@@ -53,32 +53,37 @@
     <section class="container mx-auto py-12 px-6">
         <h2 class="text-2xl font-bold mb-8">{% trans "Popular Categories" %}</h2>
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition">
+            
+            <div id="cat-All" onclick="openCategory('All')" class="category-card bg-orange-600 text-white p-6 rounded-xl border border-orange-600 shadow-lg text-center cursor-pointer transition transform scale-105 duration-300">
+                <div class="text-3xl mb-2"><i class="fas fa-book-open"></i></div>
+                <p class="font-semibold text-sm">{% trans "All Books" %}</p>
+            </div>
+
+            <div id="cat-Toddlers" onclick="openCategory('Toddlers')" class="category-card bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition duration-300">
                 <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-child"></i></div>
                 <p class="font-semibold text-sm">{% trans "Toddlers" %}</p>
             </div>
-            <a href="{% url 'categories' %}?type=fiction" class="block">
-                <div class="bg-white p-6 rounded-xl border hover:shadow-md text-center cursor-pointer">
-                    <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-dragon"></i></div>
-                    <p class="font-semibold text-sm">{% trans "Fiction" %}</p>
-                </div>
-            </a>
-            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition">
+
+            <div id="cat-Fiction" onclick="openCategory('Fiction')" class="category-card bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition duration-300">
+                <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-dragon"></i></div>
+                <p class="font-semibold text-sm">{% trans "Fiction" %}</p>
+            </div>
+
+            <div id="cat-Business" onclick="openCategory('Business')" class="category-card bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition duration-300">
                 <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-briefcase"></i></div>
                 <p class="font-semibold text-sm">{% trans "Business" %}</p>
             </div>
-            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition">
+
+            <div id="cat-Biographies" onclick="openCategory('Biographies')" class="category-card bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition duration-300">
                 <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-user-tie"></i></div>
                 <p class="font-semibold text-sm">{% trans "Biographies" %}</p>
             </div>
-            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition">
-                <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-language"></i></div>
-                <p class="font-semibold text-sm">{% trans "Regional" %}</p>
+
+            <div id="cat-Academic" onclick="openCategory('Academic')" class="category-card bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition duration-300">
+                <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-graduation-cap"></i></div>
+                <p class="font-semibold text-sm">{% trans "Academic" %}</p>
             </div>
-            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md text-center cursor-pointer transition">
-                <div class="text-orange-600 text-3xl mb-2"><i class="fas fa-brain"></i></div>
-                <p class="font-semibold text-sm">{% trans "Self-Help" %}</p>
-            </div>
+            
         </div>
     </section>
 
@@ -88,64 +93,94 @@
             <a href="{% url 'categories' %}" class="text-orange-600 font-semibold hover:underline">{% trans "View All" %}</a>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div class="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm">
-                <img src="https://images3.penguinrandomhouse.com/cover/9780593804148" alt="Book" class="w-full h-64 object-cover">
-                <div class="p-4">
-                    <p class="text-xs text-orange-600 font-bold uppercase tracking-wide">{% trans "Autobiography" %}</p>
-                    <h3 class="font-bold text-lg leading-tight mt-1">{% trans "One Day, Everyone Will Have Always Been Against This" %}</h3>
-                    <p class="text-sm text-gray-500 mt-1">Omar El Akkad</p>
-                    <a href="#">
-                        <button class="w-full mt-4 border border-orange-600 text-orange-600 py-2 rounded-md hover:bg-orange-600 hover:text-white transition">
-                            {% trans "Rent / Details" %}
-                        </button>
-                    </a>
+        <div id="trendingBooks" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 min-h-[300px] transition-all duration-300">
+            <!-- Dynamic Books Will Go Here -->
+        </div>
+
+        <div class="mt-12 text-center">
+            <a href="{% url 'categories' %}" class="inline-block bg-white text-orange-600 border-2 border-orange-600 hover:bg-orange-600 hover:text-white px-8 py-3 rounded-full font-bold transition-colors duration-300 shadow-md">
+                {% trans "Show All Books" %}
+            </a>
+        </div>
+    </section>
+
+    <!-- Book Details & Rental Modal -->
+    <div id="bookModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm items-center justify-center p-4 transition-all duration-300">
+        <div class="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-2xl w-full transform scale-95 opacity-0 transition-all duration-300 flex flex-col md:flex-row relative">
+            
+            <!-- Close Button -->
+            <button onclick="closeModal()" class="absolute top-4 right-4 z-10 bg-white/80 hover:bg-white text-gray-800 w-10 h-10 rounded-full flex items-center justify-center shadow-md transition">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+
+            <!-- Book Cover -->
+            <div class="md:w-1/2 bg-gray-100 relative min-h-[300px]">
+                <img id="modalBookImage" src="" alt="Book Cover" class="w-full h-full object-cover">
+                <div class="absolute top-4 left-4">
+                    <span id="modalBookStatus" class="px-3 py-1 text-xs font-black uppercase rounded-full shadow-md text-white"></span>
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm">
-                <img src="https://images3.penguinrandomhouse.com/cover/9798217233977" alt="Book" class="w-full h-64 object-cover">
-                <div class="p-4">
-                    <p class="text-xs text-orange-600 font-bold uppercase tracking-wide">{% trans "Animation" %}</p>
-                    <h3 class="font-bold text-lg leading-tight mt-1">{% trans "KPop Demon Hunters" %}</h3>
-                    <p class="text-sm text-gray-500 mt-1">Golden Books</p>
-                    <a href="#">
-                        <button class="w-full mt-4 border border-orange-600 text-orange-600 py-2 rounded-md hover:bg-orange-600 hover:text-white transition">
-                            {% trans "Rent / Details" %}
-                        </button>
-                    </a>
-                </div>
-            </div>
+            <!-- Details -->
+            <div class="md:w-1/2 p-8 flex flex-col justify-between">
+                <div>
+                    <span id="modalBookCategory" class="text-xs font-bold text-orange-600 uppercase tracking-widest"></span>
+                    <h3 id="modalBookTitle" class="text-2xl font-extrabold text-gray-900 mt-1 mb-2 leading-tight"></h3>
+                    <p id="modalBookAuthor" class="text-sm text-gray-500 mb-6 font-medium"></p>
+                    
+                    <div class="bg-orange-50/50 rounded-2xl p-4 mb-6 border border-orange-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-orange-600 font-bold uppercase tracking-wider">{% trans "Daily Rent" %}</p>
+                            <p class="text-2xl font-black text-gray-900 mt-0.5">₹<span id="modalBookPrice"></span></p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-400 font-semibold">{% trans "Availability" %}</p>
+                            <p id="modalBookCopies" class="text-sm font-bold text-gray-700 mt-0.5"></p>
+                        </div>
+                    </div>
 
-            <div class="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm">
-                <img src="https://images4.penguinrandomhouse.com/cover/9781984819901" alt="Book" class="w-full h-64 object-cover">
-                <div class="p-4">
-                    <p class="text-xs text-orange-600 font-bold uppercase tracking-wide">{% trans "Fiction" %}</p>
-                    <h3 class="font-bold text-lg leading-tight mt-1">{% trans "The Book of Lost Friends" %}</h3>
-                    <p class="text-sm text-gray-500 mt-1">Lisa Wingate</p>
-                    <a href="#">
-                        <button class="w-full mt-4 border border-orange-600 text-orange-600 py-2 rounded-md hover:bg-orange-600 hover:text-white transition">
-                            {% trans "Rent / Details" %}
-                        </button>
-                    </a>
-                </div>
-            </div>
+                    <div class="mb-6">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Rent Duration" %}</label>
+                        <div class="flex items-center space-x-3 bg-gray-50 p-1.5 rounded-xl border border-gray-200">
+                            <button onclick="changeDuration(-1)" class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center font-bold hover:bg-orange-50 hover:border-orange-200 transition text-gray-700">-</button>
+                            <input type="number" id="rentDuration" value="7" min="1" max="90" oninput="calculateTotal()" class="w-full text-center bg-transparent border-0 font-bold text-gray-900 focus:ring-0">
+                            <button onclick="changeDuration(1)" class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center font-bold hover:bg-orange-50 hover:border-orange-200 transition text-gray-700">+</button>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-400 mt-1 px-1">
+                            <span>7 Days Minimum</span>
+                            <span>Max 90 Days</span>
+                        </div>
+                    </div>
 
-            <div class="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm">
-                <img src="https://images4.penguinrandomhouse.com/cover/9780812979657" alt="Book" class="w-full h-64 object-cover">
-                <div class="p-4">
-                    <p class="text-xs text-orange-600 font-bold uppercase tracking-wide">{% trans "Fiction" %}</p>
-                    <h3 class="font-bold text-lg leading-tight mt-1">{% trans "The God of Small Things" %}</h3>
-                    <p class="text-sm text-gray-500 mt-1">Arundhati Roy</p>
-                    <a href="#">
-                        <button class="w-full mt-4 border border-orange-600 text-orange-600 py-2 rounded-md hover:bg-orange-600 hover:text-white transition">
-                            {% trans "Rent / Details" %}
-                        </button>
-                    </a>
+                    <div class="mb-6">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Payment Option" %}</label>
+                        <select id="paymentMethod" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 font-semibold text-sm text-gray-800 focus:ring-orange-500 focus:border-orange-500">
+                            <option value="online">{% trans "Pay Online (Cards/UPI)" %}</option>
+                            <option value="cod">{% trans "Cash on Delivery" %}</option>
+                            <option value="wallet">{% trans "BookHub Wallet" %}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-sm font-bold text-gray-500">{% trans "Total Amount" %}</span>
+                        <span class="text-2xl font-black text-orange-600">₹<span id="modalTotalAmount">0.00</span></span>
+                    </div>
+                    
+                    <div class="flex space-x-3">
+                    <button id="modalRentBtn" onclick="goToCheckout()" class="flex-grow bg-orange-600 hover:bg-orange-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-orange-500/20 text-center transition transform hover:-translate-y-0.5">
+                        {% trans "Rent Now" %}
+                    </button>
+                        <a id="modalWishlistBtn" href="" class="bg-gray-100 hover:bg-gray-200 text-gray-700 w-12 h-12 rounded-xl flex items-center justify-center transition border border-gray-200">
+                            <i class="fas fa-heart text-lg"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+
 
     <section class="container mx-auto py-16 px-6">
         <div class="flex justify-between items-center mb-10">
@@ -153,14 +188,14 @@
                 <h2 class="text-3xl font-bold text-gray-900">{% trans "Meet the Authors" %}</h2>
                 <p class="text-gray-600 mt-1">{% trans "Explore works from your favorite writers" %}</p>
             </div>
-            <a href="#" class="text-orange-600 font-semibold hover:underline flex items-center">
+            <a href="{% url 'author_list' %}" class="text-orange-600 font-semibold hover:underline flex items-center">
                 {% trans "All Authors" %} <i class="fas fa-arrow-right ml-2 text-sm"></i>
             </a>
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
-            <!-- Author cards... keeping them for now -->
-            <div class="group text-center cursor-pointer">
+            <!-- Author cards -->
+            <a href="{% url 'books_by_author' slug='sudha-murty' %}" class="group text-center cursor-pointer block">
                 <div class="relative mb-4 inline-block">
                     <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJ0lgzb4bFBgYW0QfEWddlpyKFp7j5sHqCdO1NCLkzldGMnn3SHWAAxwczDPqp4aI279lecZy6atiN4ek9Dwf4NGc67mSgihhQuutGLc2vWQ&s=10" 
                         alt="Author" 
@@ -168,9 +203,9 @@
                 </div>
                 <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">{% trans "Sudha Murty" %}</h3>
                 <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">{% trans "Indian Literature" %}</p>
-            </div>
+            </a>
 
-            <div class="group text-center cursor-pointer">
+            <a href="{% url 'books_by_author' slug='ruskin-bond' %}" class="group text-center cursor-pointer block">
                 <div class="relative mb-4 inline-block">
                     <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRM8sRqfFMLdFYHVVIvUlMIJ0yjwik98ze7WFlL3zHfpA&s" 
                         alt="Author" 
@@ -178,9 +213,9 @@
                 </div>
                 <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">{% trans "Ruskin Bond" %}</h3>
                 <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">{% trans "Children's Fiction" %}</p>
-            </div>
+            </a>
 
-            <div class="group text-center cursor-pointer">
+            <a href="{% url 'books_by_author' slug='jk-rowling' %}" class="group text-center cursor-pointer block">
                 <div class="relative mb-4 inline-block">
                     <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQiW9wNKQPmx8ufqxuKQ4CKg0Rrw8KC4D8Qog&s" 
                         alt="Author" 
@@ -188,9 +223,9 @@
                 </div>
                 <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">{% trans "J.K. Rowling" %}</h3>
                 <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">{% trans "Fantasy" %}</p>
-            </div>
+            </a>
 
-            <div class="group text-center cursor-pointer">
+            <a href="{% url 'books_by_author' slug='amish-tripathi' %}" class="group text-center cursor-pointer block">
                 <div class="relative mb-4 inline-block">
                     <img src="https://images.moneycontrol.com/static-mcnews/2022/10/amish-tripathi-author.jpg?impolicy=website&width=1600&height=900" 
                         alt="Author" 
@@ -198,9 +233,9 @@
                 </div>
                 <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">{% trans "Amish Tripathi" %}</h3>
                 <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">{% trans "Mythology" %}</p>
-            </div>
+            </a>
 
-            <div class="group text-center cursor-pointer">
+            <a href="{% url 'books_by_author' slug='arundhati-roy' %}" class="group text-center cursor-pointer block">
                 <div class="relative mb-4 inline-block">
                     <img src="https://i.guim.co.uk/img/media/993e587413d93ed0797dcfa550d143a19e87cd44/627_444_4277_3031/master/4277.jpg?width=480&dpr=1&s=none&crop=none" 
                         alt="Author" 
@@ -208,9 +243,9 @@
                 </div>
                 <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">{% trans "Arundhati Roy" %}</h3>
                 <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">{% trans "Contemporary" %}</p>
-            </div>
+            </a>
 
-            <div class="group text-center cursor-pointer">
+            <a href="{% url 'books_by_author' slug='james-clear' %}" class="group text-center cursor-pointer block">
                 <div class="relative mb-4 inline-block">
                     <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&h=300&q=80" 
                         alt="Author" 
@@ -218,7 +253,7 @@
                 </div>
                 <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">{% trans "James Clear" %}</h3>
                 <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">{% trans "Self-Help" %}</p>
-            </div>
+            </a>
         </div>
     </section>
 
@@ -240,7 +275,7 @@
                             <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Delivery charges extra" %}</li>
                             <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "No digital library" %}</li>
                         </ul>
-                        <button class="w-full bg-gray-800 text-white py-2 rounded-lg">{% trans "Select Plan" %}</button>
+                        <button onclick="selectPlan('Basic', 0)" class="w-full bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-700 transition font-semibold">{% trans "Select Plan" %}</button>
                     </div>
 
                     <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
@@ -253,7 +288,7 @@
                             <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Free delivery" %}</li>
                             <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Digital library included" %}</li>
                         </ul>
-                        <button class="w-full bg-gray-800 text-white py-2 rounded-lg">{% trans "Select Plan" %}</button>
+                        <button onclick="selectPlan('Premium', 500)" class="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition font-semibold">{% trans "Select Plan" %}</button>
                     </div>
 
                 </div>
@@ -264,6 +299,14 @@
 
 {% block extra_js %}
     <script>
+        // Premium Plan Selection
+        function selectPlan(plan, price) {
+            localStorage.setItem('selectedPlan', plan);
+            localStorage.setItem('selectedPlanPrice', price);
+            window.location.href = "{% url 'premium_checkout' %}";
+        }
+
+        // 1. Carousel Slider Controller
         let currentSlide = 0;
         const slides = document.querySelectorAll('#carouselInner > div');
         const totalSlides = slides.length;
@@ -297,5 +340,212 @@
 
         setInterval(nextSlide, 5000);
         updateCarousel();
+
+        // 2. High-Res Cover Images Map for Seeded Books
+        const coverImages = {
+            "The God of Small Things": "https://images4.penguinrandomhouse.com/cover/9780812979657",
+            "The Book of Lost Friends": "https://images4.penguinrandomhouse.com/cover/9781984819901",
+            "Midnight's Children": "https://images4.penguinrandomhouse.com/cover/9780812976533",
+            "Rich Dad Poor Dad": "https://images-na.ssl-images-amazon.com/images/I/81bwtQdkWGL.jpg",
+            "Atomic Habits": "https://images-na.ssl-images-amazon.com/images/I/91bYsX41hL.jpg",
+            "Wings of Fire": "https://images-na.ssl-images-amazon.com/images/I/81dDw1YqByL.jpg",
+            "Steve Jobs": "https://images-na.ssl-images-amazon.com/images/I/41dKpzcoamL._SX323_BO1,204,203,200_.jpg",
+            "KPop Demon Hunters": "https://images3.penguinrandomhouse.com/cover/9798217233977",
+            "The Very Hungry Caterpillar": "https://images-na.ssl-images-amazon.com/images/I/71Koy6rWv7L.jpg",
+            "Introduction to Algorithms": "https://images-na.ssl-images-amazon.com/images/I/61Mw352+WPL.jpg"
+        };
+
+        // 3. Dynamic Book Data Array populated by Django Template Engine
+        const books = [
+            {% for book in books %}
+            {
+                id: {{ book.id }},
+                title: "{{ book.title|escapejs }}",
+                author: "{{ book.author|escapejs }}",
+                category: "{{ book.category|escapejs }}",
+                price: {{ book.price_per_day|floatformat:2 }},
+                copies_available: {{ book.copies_available }},
+                status: "{{ book.status|escapejs }}",
+                image: "{% if book.image %}{{ book.image.url }}{% else %}https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=400&q=80{% endif %}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        // 4. Render Books Dynamically in HTML
+        function displayBooks(bookArray) {
+            const container = document.getElementById("trendingBooks");
+            if (!container) return;
+            
+            // Trigger exit transition
+            container.classList.add("opacity-0", "scale-95");
+            
+            setTimeout(() => {
+                container.innerHTML = "";
+                
+                if (bookArray.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full bg-white rounded-3xl p-16 text-center shadow-sm border border-dashed border-gray-300">
+                            <div class="max-w-xs mx-auto">
+                                <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <i class="fas fa-search text-3xl text-gray-300"></i>
+                                </div>
+                                <h4 class="text-xl font-bold text-gray-900 mb-2">{% trans "No books found" %}</h4>
+                                <p class="text-gray-500 text-sm">{% trans "We couldn't find any books in this category right now." %}</p>
+                            </div>
+                        </div>
+                    `;
+                    container.classList.remove("opacity-0", "scale-95");
+                    return;
+                }
+                
+                bookArray.forEach(book => {
+                    const resolvedImage = coverImages[book.title] || book.image;
+                    
+                    let badgeColor = "bg-green-500 text-white";
+                    if (book.status === "Low Stock") badgeColor = "bg-yellow-400 text-gray-900";
+                    else if (book.status === "Out of Stock") badgeColor = "bg-red-500 text-white";
+
+                    container.innerHTML += `
+                        <div class="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full transform hover:-translate-y-1">
+                            <div class="relative aspect-[3/4] overflow-hidden bg-gray-100">
+                                <img src="${resolvedImage}" alt="${book.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                                <div class="absolute top-3 right-3">
+                                    <span class="px-3 py-1 text-[10px] font-black uppercase rounded-full shadow-sm ${badgeColor}">
+                                        ${book.status}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="p-5 flex-grow flex flex-col">
+                                <div class="mb-1 text-[10px] font-bold text-orange-600 uppercase tracking-widest">${book.category}</div>
+                                <h4 class="text-lg font-bold text-gray-900 mb-1 line-clamp-1 truncate" title="${book.title}">${book.title}</h4>
+                                <p class="text-sm text-gray-500 mb-4 line-clamp-1">by <a href="/en/library/author/${book.author.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}/" class="hover:text-orange-600 hover:underline transition">${book.author}</a></p>
+                                
+                                <div class="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <span class="text-xl font-black text-gray-900">₹${book.price}<span class="text-xs font-normal text-gray-400">/day</span></span>
+                                    <button onclick="openBookModal(${book.id})" class="bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-all transform active:scale-95">
+                                        {% trans "Rent / Details" %}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                // Trigger entry transition
+                container.classList.remove("opacity-0", "scale-95");
+            }, 200);
+        }
+
+        // 5. Dynamic Category Filter with Button Style Toggle (Replaced by Redirect)
+        function openCategory(category) {
+            window.location.href = "{% url 'categories' %}?category=" + encodeURIComponent(category);
+        }
+
+        // 6. Interactive Modal Management & Price Calculator
+        let currentSelectedBook = null;
+
+        function openBookModal(bookId) {
+            const book = books.find(b => b.id === bookId);
+            if (!book) return;
+            
+            currentSelectedBook = book;
+            
+            // Populate modal values
+            document.getElementById("modalBookImage").src = coverImages[book.title] || book.image;
+            document.getElementById("modalBookTitle").innerText = book.title;
+            document.getElementById("modalBookAuthor").innerText = "by " + book.author;
+            document.getElementById("modalBookCategory").innerText = book.category;
+            document.getElementById("modalBookPrice").innerText = book.price.toFixed(2);
+            document.getElementById("modalBookCopies").innerText = book.copies_available + " copies left";
+            
+            const statusBadge = document.getElementById("modalBookStatus");
+            statusBadge.innerText = book.status;
+            statusBadge.className = "px-3 py-1 text-xs font-black uppercase rounded-full shadow-md text-white ";
+            if (book.status === "Available") {
+                statusBadge.className += "bg-green-500";
+            } else if (book.status === "Low Stock") {
+                statusBadge.className += "bg-yellow-400 text-gray-900";
+            } else {
+                statusBadge.className += "bg-red-500";
+            }
+            
+            // Reset duration and payment inputs
+            document.getElementById("rentDuration").value = 7;
+            document.getElementById("paymentMethod").value = "online";
+            
+            // Hook up backend checkout/wishlist URLs dynamically
+            // (Rent button now uses goToCheckout())
+            document.getElementById("modalWishlistBtn").href = `/en/library/wishlist/add/${book.id}/`;
+            
+            calculateTotal();
+            
+            // Reveal modal with premium transitions
+            const modal = document.getElementById("bookModal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+            setTimeout(() => {
+                modal.firstElementChild.classList.remove("scale-95", "opacity-0");
+                modal.firstElementChild.classList.add("scale-100", "opacity-100");
+            }, 50);
+        }
+
+        function goToCheckout() {
+            if (!currentSelectedBook) return;
+            
+            const duration = parseInt(document.getElementById("rentDuration").value) || 7;
+            const total = currentSelectedBook.price * duration;
+            
+            const checkoutData = {
+                book: currentSelectedBook,
+                duration: duration,
+                total: total
+            };
+            
+            localStorage.setItem("checkoutData", JSON.stringify(checkoutData));
+            window.location.href = "{% url 'checkout' %}";
+        }
+
+        function closeModal() {
+            const modal = document.getElementById("bookModal");
+            if (!modal) return;
+            modal.firstElementChild.classList.remove("scale-100", "opacity-100");
+            modal.firstElementChild.classList.add("scale-95", "opacity-0");
+            setTimeout(() => {
+                modal.classList.add("hidden");
+                modal.classList.remove("flex");
+            }, 300);
+        }
+
+        function changeDuration(delta) {
+            const input = document.getElementById("rentDuration");
+            let val = parseInt(input.value) || 7;
+            val += delta;
+            if (val < 1) val = 1;
+            if (val > 90) val = 90;
+            input.value = val;
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            if (!currentSelectedBook) return;
+            const duration = parseInt(document.getElementById("rentDuration").value) || 7;
+            const total = currentSelectedBook.price * duration;
+            document.getElementById("modalTotalAmount").innerText = total.toFixed(2);
+        }
+
+        // Close modal when user clicks outside the modal box
+        window.addEventListener('click', function(e) {
+            const modal = document.getElementById("bookModal");
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        // 7. Initial Dynamic Render on Page Load (Limit to 4 books)
+        displayBooks(books.slice(0, 4));
+
+        function openAuthor(slug) {
+            window.location.href = `/en/library/author/${slug}/`;
+        }
     </script>
 {% endblock %}

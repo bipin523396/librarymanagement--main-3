@@ -1,98 +1,206 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "My Dashboard | BOOK HUB" %}{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-    <!-- Dashboard Header -->
-    <div class="mb-8">
-        <h1 class="text-3xl font-extrabold text-gray-900">{% trans "User Dashboard" %}</h1>
-        <p class="mt-2 text-sm text-gray-600">{% trans "Welcome back," %} <span class="font-semibold text-orange-600">{{ user.first_name|default:user.username }}</span>! {% trans "Explore our collection." %}</p>
-    </div>
+<div class="bg-gray-50 min-h-screen py-10">
+    <div class="container mx-auto px-4 max-w-6xl">
 
-    <!-- Category Filter -->
-    <div class="mb-10">
-        <h3 class="text-lg font-bold text-gray-800 mb-4 uppercase tracking-wider">{% trans "Browse by Category" %}</h3>
-        <div class="flex flex-wrap gap-3">
-            <a href="{% url 'dashboard' %}" 
-               class="px-6 py-2 rounded-full border-2 font-bold transition-all {% if not selected_category %}bg-orange-600 border-orange-600 text-white shadow-lg scale-105{% else %}border-gray-200 text-gray-600 hover:border-orange-400 hover:text-orange-500{% endif %}">
-                {% trans "All Books" %}
-            </a>
-            {% for category in categories %}
-                <a href="{% url 'dashboard' %}?category={{ category }}" 
-                   class="px-6 py-2 rounded-full border-2 font-bold transition-all {% if selected_category == category %}bg-orange-600 border-orange-600 text-white shadow-lg scale-105{% else %}border-gray-200 text-gray-600 hover:border-orange-400 hover:text-orange-500{% endif %}">
-                    {{ category }}
-                </a>
-            {% endfor %}
-        </div>
-    </div>
-
-    <!-- Books Grid -->
-    <div>
-        <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-bold text-gray-900">
-                {% if selected_category %}{{ selected_category }} {% trans "Books" %}{% else %}{% trans "All Collection" %}{% endif %}
-            </h3>
-            <span class="text-sm text-gray-500">{{ books.count }} {% trans "books found" %}</span>
-        </div>
-
-        {% if books %}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                {% for book in books %}
-                    <div class="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full transform hover:-translate-y-1">
-                        <!-- Book Image -->
-                        <div class="relative aspect-[3/4] overflow-hidden bg-gray-200">
-                            {% if book.image %}
-                                <img src="{{ book.image.url }}" alt="{{ book.title }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
-                            {% else %}
-                                <div class="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50 p-6 text-center">
-                                    <i class="fas fa-book text-4xl mb-2 opacity-20"></i>
-                                    <span class="text-xs font-medium px-4">{{ book.title }}</span>
-                                </div>
-                            {% endif %}
-                            
-                            <!-- Status Badge -->
-                            <div class="absolute top-3 right-3">
-                                <span class="px-3 py-1 text-[10px] font-black uppercase rounded-full shadow-sm
-                                    {% if book.status == 'Available' %}bg-green-500 text-white
-                                    {% elif book.status == 'Low Stock' %}bg-yellow-400 text-gray-900
-                                    {% else %}bg-red-500 text-white{% endif %}">
-                                    {{ book.status }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Book Info -->
-                        <div class="p-5 flex-grow flex flex-col">
-                            <div class="mb-1 text-[10px] font-bold text-orange-600 uppercase tracking-widest">{{ book.category }}</div>
-                            <h4 class="text-lg font-bold text-gray-900 mb-1 line-clamp-1 truncate" title="{{ book.title }}">{{ book.title }}</h4>
-                            <p class="text-sm text-gray-500 mb-4 line-clamp-1">{% trans "by" %} {{ book.author }}</p>
-                            
-                            <div class="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
-                                <span class="text-xs font-medium text-gray-400">
-                                    <i class="fas fa-layer-group mr-1 opacity-50"></i> {{ book.copies_available }} {% trans "copies left" %}
-                                </span>
-                                <button class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors" title="{% trans 'View Details' %}">
-                                    <i class="fas fa-chevron-right text-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-gray-900">
+                    {% trans "Welcome back," %} {{ user.first_name|default:user.username }}! 👋
+                </h1>
+                <p class="text-gray-500 mt-1">{% trans "Here's a summary of your rentals and activity." %}</p>
             </div>
-        {% else %}
-            <div class="bg-white rounded-3xl p-16 text-center shadow-sm border border-dashed border-gray-300">
-                <div class="max-w-xs mx-auto">
-                    <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <i class="fas fa-search text-3xl text-gray-300"></i>
+            <a href="{% url 'categories' %}" class="flex-shrink-0 inline-flex items-center bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-orange-500/20 transition transform hover:-translate-y-0.5">
+                <i class="fas fa-book mr-2"></i> {% trans "Browse Books" %}
+            </a>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-sm font-semibold text-gray-500">{% trans "Total Rented" %}</span>
+                    <div class="w-9 h-9 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center"><i class="fas fa-books text-sm"></i></div>
+                </div>
+                <p class="text-3xl font-black text-gray-900">{{ total_rented }}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-sm font-semibold text-gray-500">{% trans "Active Rentals" %}</span>
+                    <div class="w-9 h-9 bg-green-100 text-green-600 rounded-full flex items-center justify-center"><i class="fas fa-clock text-sm"></i></div>
+                </div>
+                <p class="text-3xl font-black text-gray-900">{{ active_orders|length }}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-sm font-semibold text-gray-500">{% trans "Wishlist" %}</span>
+                    <div class="w-9 h-9 bg-red-100 text-red-500 rounded-full flex items-center justify-center"><i class="fas fa-heart text-sm"></i></div>
+                </div>
+                <p class="text-3xl font-black text-gray-900">{{ wishlist_books|length }}</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-sm font-semibold text-gray-500">{% trans "Completed" %}</span>
+                    <div class="w-9 h-9 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center"><i class="fas fa-check-circle text-sm"></i></div>
+                </div>
+                <p class="text-3xl font-black text-gray-900">{{ past_orders|length }}</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Active Rentals (Takes up 2 cols) -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <h2 class="text-xl font-extrabold text-gray-900 mb-5 flex items-center">
+                        <i class="fas fa-layer-group mr-3 text-orange-500"></i> {% trans "Active Rentals" %}
+                    </h2>
+                    
+                    {% if active_orders %}
+                    <div class="space-y-4">
+                        {% for order in active_orders %}
+                        <div class="flex items-center gap-4 bg-orange-50 p-4 rounded-2xl border border-orange-100">
+                            <div class="w-12 h-16 bg-orange-200 rounded-lg flex-shrink-0 flex items-center justify-center text-orange-600">
+                                {% if order.book.image %}
+                                <img src="{{ order.book.image.url }}" alt="{{ order.book.title }}" class="w-full h-full object-cover rounded-lg">
+                                {% else %}
+                                <i class="fas fa-book text-xl"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-bold text-gray-900 truncate">{{ order.book.title }}</h3>
+                                <p class="text-sm text-gray-500">{{ order.book.author }}</p>
+                                <div class="flex items-center gap-3 mt-1.5">
+                                    <span class="text-xs font-bold bg-orange-200 text-orange-800 px-2.5 py-1 rounded-full">{{ order.status }}</span>
+                                    <span class="text-xs text-gray-500">{% trans "Order:" %} {{ order.order_id }}</span>
+                                </div>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <p class="text-xs text-gray-400">{% trans "Rented On" %}</p>
+                                <p class="text-sm font-bold text-gray-700">{{ order.created_at|date:"M d, Y" }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
                     </div>
-                    <h4 class="text-xl font-bold text-gray-900 mb-2">{% trans "No books found" %}</h4>
-                    <p class="text-gray-500 text-sm mb-6">{% trans "We couldn't find any books in this category right now." %}</p>
-                    <a href="{% url 'dashboard' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full text-white bg-orange-600 hover:bg-orange-700 transition-colors shadow-lg">
-                        {% trans "View all books" %}
-                    </a>
+                    {% else %}
+                    <div class="text-center py-12">
+                        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-book-open text-3xl text-gray-300"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-600 mb-2">{% trans "No Active Rentals" %}</h3>
+                        <p class="text-gray-400 text-sm mb-6">{% trans "You haven't rented any books yet. Let's change that!" %}</p>
+                        <a href="{% url 'categories' %}" class="inline-block bg-orange-600 text-white font-bold py-2.5 px-6 rounded-xl hover:bg-orange-700 transition">
+                            {% trans "Browse Books" %}
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Past Rentals -->
+                {% if past_orders %}
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <h2 class="text-xl font-extrabold text-gray-900 mb-5 flex items-center">
+                        <i class="fas fa-history mr-3 text-gray-400"></i> {% trans "Rental History" %}
+                    </h2>
+                    <div class="space-y-3">
+                        {% for order in past_orders %}
+                        <div class="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition">
+                            <div class="w-10 h-10 bg-gray-100 rounded-full flex-shrink-0 flex items-center justify-center text-gray-400">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-semibold text-gray-700 truncate">{{ order.book.title }}</h3>
+                                <p class="text-xs text-gray-400">{% trans "Order" %} {{ order.order_id }}</p>
+                            </div>
+                            <span class="text-xs font-bold {% if order.status == 'Completed' %}text-green-600 bg-green-50{% else %}text-red-500 bg-red-50{% endif %} px-2.5 py-1 rounded-full flex-shrink-0">{{ order.status }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Right Sidebar: Wishlist + Payments -->
+            <div class="space-y-6">
+                <!-- Wishlist -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <h2 class="text-lg font-extrabold text-gray-900 mb-4 flex items-center justify-between">
+                        <span><i class="fas fa-heart mr-2 text-red-400"></i> {% trans "Wishlist" %}</span>
+                        <a href="{% url 'view_wishlist' %}" class="text-orange-500 text-sm font-semibold hover:underline">{% trans "View All" %}</a>
+                    </h2>
+                    {% if wishlist_books %}
+                    <div class="space-y-3">
+                        {% for book in wishlist_books|slice:":4" %}
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-12 bg-orange-50 rounded-lg flex items-center justify-center text-orange-400 flex-shrink-0 text-xs">
+                                <i class="fas fa-book"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-gray-800 truncate">{{ book.title }}</p>
+                                <p class="text-xs text-gray-400">{{ book.author }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-6">
+                        <i class="fas fa-heart text-3xl text-gray-200 mb-3"></i>
+                        <p class="text-sm text-gray-400">{% trans "Your wishlist is empty." %}</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Payment History -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <h2 class="text-lg font-extrabold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-receipt mr-2 text-blue-500"></i> {% trans "Payments" %}
+                    </h2>
+                    {% if payments %}
+                    <div class="space-y-3">
+                        {% for payment in payments %}
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-700">₹{{ payment.amount }}</p>
+                                <p class="text-xs text-gray-400">{{ payment.created_at|date:"M d, Y" }}</p>
+                            </div>
+                            <span class="text-xs font-bold {% if payment.status == 'success' %}text-green-600 bg-green-50{% else %}text-gray-500 bg-gray-100{% endif %} px-2.5 py-1 rounded-full capitalize">{{ payment.status }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-6">
+                        <i class="fas fa-credit-card text-3xl text-gray-200 mb-3"></i>
+                        <p class="text-sm text-gray-400">{% trans "No payments yet." %}</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Quick Links -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <h2 class="text-lg font-extrabold text-gray-900 mb-4">{% trans "Quick Links" %}</h2>
+                    <div class="space-y-2">
+                        <a href="{% url 'profile' %}" class="flex items-center px-3 py-2.5 text-gray-600 hover:bg-orange-50 hover:text-orange-600 rounded-xl transition text-sm font-medium">
+                            <i class="fas fa-user-circle w-5 text-center mr-2"></i> {% trans "Edit Profile" %}
+                        </a>
+                        <a href="{% url 'settings' %}" class="flex items-center px-3 py-2.5 text-gray-600 hover:bg-orange-50 hover:text-orange-600 rounded-xl transition text-sm font-medium">
+                            <i class="fas fa-cog w-5 text-center mr-2"></i> {% trans "Settings" %}
+                        </a>
+                        <a href="{% url 'view_wishlist' %}" class="flex items-center px-3 py-2.5 text-gray-600 hover:bg-orange-50 hover:text-orange-600 rounded-xl transition text-sm font-medium">
+                            <i class="fas fa-heart w-5 text-center mr-2"></i> {% trans "My Wishlist" %}
+                        </a>
+                        <a href="{% url 'categories' %}" class="flex items-center px-3 py-2.5 text-gray-600 hover:bg-orange-50 hover:text-orange-600 rounded-xl transition text-sm font-medium">
+                            <i class="fas fa-book w-5 text-center mr-2"></i> {% trans "Browse Catalog" %}
+                        </a>
+                    </div>
                 </div>
             </div>
-        {% endif %}
+        </div>
+
     </div>
 </div>
 {% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <h1 class="text-3xl font-extrabold text-gray-900 mb-6">{% trans "Your Cart" %}</h1>
+    {% if items %}
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="p-2">{% trans "Book" %}</th>
+                    <th class="p-2">{% trans "Quantity" %}</th>
+                    <th class="p-2">{% trans "Price per Day" %}</th>
+                    <th class="p-2">{% trans "Subtotal" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr class="border-b">
+                    <td class="p-2">{{ item.book.title }}</td>
+                    <td class="p-2">{{ item.quantity }}</td>
+                    <td class="p-2">{{ item.book.price_per_day }}</td>
+                    <td class="p-2">{{ item.book.price_per_day|floatformat:2|add:"0"|floatformat:2|multiply:item.quantity }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="mt-6 text-right">
+            <p class="text-xl font-bold">{% trans "Total:" %} {{ total }}</p>
+            <a href="{% url 'payment_page' %}" class="inline-block mt-4 px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition">{% trans "Proceed to Checkout" %}</a>
+        </div>
+    {% else %}
+        <p class="text-gray-600">{% trans "Your cart is empty." %}</p>
+    {% endif %}
+</div>
+{% endblock %}

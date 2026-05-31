@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{{ author_name }} — {% trans "Author" %} | BOOK HUB{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+
+    <!-- Hero Banner -->
+    <div class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white pt-16 pb-20 px-6">
+        <div class="container mx-auto max-w-5xl flex flex-col md:flex-row items-center gap-8">
+            
+            <!-- Author Image -->
+            <div class="w-36 h-36 md:w-44 md:h-44 rounded-full bg-gradient-to-tr from-orange-400 to-orange-600 flex items-center justify-center text-white text-6xl font-black shadow-2xl shadow-orange-500/30 flex-shrink-0 border-4 border-white/20">
+                {% if author_profile and author_profile.image %}
+                    <img src="{{ author_profile.image.url }}" alt="{{ author_name }}" class="w-full h-full rounded-full object-cover">
+                {% else %}
+                    {{ author_name|first }}
+                {% endif %}
+            </div>
+
+            <!-- Author Info -->
+            <div class="text-center md:text-left flex-1">
+                <span class="text-xs font-bold text-orange-400 uppercase tracking-[0.2em] mb-2 block">{% trans "Author Profile" %}</span>
+                <h1 class="text-4xl md:text-5xl font-black mb-3 leading-tight">{{ author_name }}</h1>
+                
+                {% if author_profile %}
+                <div class="flex flex-wrap items-center gap-4 text-sm text-gray-300 mb-4 justify-center md:justify-start">
+                    {% if author_profile.nationality %}
+                    <span><i class="fas fa-globe mr-1.5 text-orange-400"></i>{{ author_profile.nationality }}</span>
+                    {% endif %}
+                    {% if author_profile.born %}
+                    <span><i class="fas fa-birthday-cake mr-1.5 text-orange-400"></i>{{ author_profile.born }}</span>
+                    {% endif %}
+                    <span><i class="fas fa-book mr-1.5 text-orange-400"></i>{{ books|length }} {% trans "Books" %}</span>
+                </div>
+                
+                {% if author_profile.genres %}
+                <div class="flex flex-wrap gap-2 justify-center md:justify-start">
+                    {% for genre in author_profile.get_genres_list %}
+                    <span class="bg-white/10 text-white px-3 py-1 rounded-full text-xs font-bold border border-white/10">{{ genre }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% else %}
+                <p class="text-gray-400">{{ books|length }} {% trans "books available for rent" %}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto max-w-5xl px-6 -mt-10">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Main Content: Books -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-6">
+                    <h2 class="text-xl font-extrabold text-gray-900 mb-5 flex items-center">
+                        <i class="fas fa-book-open mr-3 text-orange-500"></i> {% trans "Books by" %} {{ author_name }}
+                    </h2>
+
+                    {% if books %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {% for book in books %}
+                        <div class="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:shadow-md hover:border-orange-200 transition-all group">
+                            <div class="w-20 h-28 bg-orange-100 rounded-xl flex-shrink-0 overflow-hidden">
+                                {% if book.image %}
+                                <img src="{{ book.image.url }}" alt="{{ book.title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                                {% else %}
+                                <div class="w-full h-full flex items-center justify-center text-orange-400"><i class="fas fa-book text-2xl"></i></div>
+                                {% endif %}
+                            </div>
+                            <div class="flex flex-col justify-between flex-1 min-w-0">
+                                <div>
+                                    <span class="text-[10px] font-bold text-orange-600 uppercase tracking-widest">{{ book.category }}</span>
+                                    <h3 class="font-bold text-gray-900 truncate mt-0.5">{{ book.title }}</h3>
+                                    <p class="text-sm text-gray-500">₹{{ book.price_per_day }}/day</p>
+                                </div>
+                                <div class="flex gap-2 mt-2">
+                                    <a href="{% url 'categories' %}?q={{ book.title|urlencode }}" class="text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition">
+                                        {% trans "Rent" %}
+                                    </a>
+                                    <span class="text-xs font-semibold {% if book.copies_available > 0 %}text-green-600 bg-green-50{% else %}text-red-500 bg-red-50{% endif %} px-3 py-1.5 rounded-lg">
+                                        {% if book.copies_available > 0 %}{% trans "Available" %}{% else %}{% trans "Out of Stock" %}{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-12">
+                        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-book text-3xl text-gray-300"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-600 mb-2">{% trans "No Books Found" %}</h3>
+                        <p class="text-gray-400 text-sm">{% trans "We don't have any books by this author yet." %}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                {% if author_profile and author_profile.bio %}
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-extrabold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-info-circle mr-2 text-blue-500"></i> {% trans "Biography" %}
+                    </h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">{{ author_profile.bio }}</p>
+                </div>
+                {% endif %}
+
+                {% if author_profile and author_profile.awards %}
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-extrabold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-trophy mr-2 text-yellow-500"></i> {% trans "Awards" %}
+                    </h3>
+                    <ul class="space-y-2">
+                        {% for award in author_profile.get_awards_list %}
+                        <li class="flex items-start text-sm text-gray-600">
+                            <i class="fas fa-medal text-yellow-400 mr-2 mt-0.5 flex-shrink-0"></i>
+                            {{ award }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if author_profile and author_profile.website %}
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-extrabold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-link mr-2 text-green-500"></i> {% trans "Links" %}
+                    </h3>
+                    <a href="{{ author_profile.website }}" target="_blank" rel="noopener" class="text-sm text-orange-600 font-semibold hover:underline flex items-center">
+                        <i class="fas fa-external-link-alt mr-2"></i> {{ author_profile.website }}
+                    </a>
+                </div>
+                {% endif %}
+
+                <!-- Back Link -->
+                <a href="{% url 'categories' %}" class="flex items-center justify-center bg-white rounded-3xl p-4 shadow-sm border border-gray-100 text-gray-600 hover:text-orange-600 hover:border-orange-200 transition font-semibold text-sm">
+                    <i class="fas fa-arrow-left mr-2"></i> {% trans "Back to All Books" %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

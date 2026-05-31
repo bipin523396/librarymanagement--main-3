@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Our Branches" %} | BOOK HUB{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="bg-gradient-to-r from-orange-50 to-orange-100/50 py-16 px-6 text-center">
+    <div class="container mx-auto max-w-2xl">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+            {% trans "Find a Branch Near You" %} 📍
+        </h1>
+        <p class="text-gray-600 font-medium mb-8">
+            {% trans "Locate the nearest BookHub to borrow or drop off books in person. Easily explore collections and details." %}
+        </p>
+        
+        <!-- Live Search Input -->
+        <div class="relative max-w-md mx-auto shadow-sm">
+            <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                <i class="fas fa-search"></i>
+            </span>
+            <input type="text" id="branchSearch" onkeyup="filterBranches()" placeholder="{% trans 'Search by city, address or timing...' %}"
+                class="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm text-gray-800 font-medium shadow-sm transition">
+        </div>
+    </div>
+</section>
+
+<!-- Branches List -->
+<section class="container mx-auto py-16 px-6">
+    <div id="branchesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        
+        <!-- Salem Branch -->
+        <div class="branch-card bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full transform hover:-translate-y-1">
+            <!-- Map Iframe -->
+            <div class="h-48 bg-gray-200">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d62512.44199923835!2d78.1132644!3d11.66110825!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3babf04e76a6cf49%3A0xe54e3d37a8581!2sSalem%2C%20Tamil%20Nadu!5e0!3m2!1sen!2sin!4v1689000000000!5m2!1sen!2sin"
+                    class="w-full h-full border-0 brightness-95" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+            
+            <div class="p-6 flex-grow flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2 branch-name">Salem Branch</h3>
+                    <p class="text-xs font-bold text-orange-600 uppercase tracking-widest mb-4"><i class="fas fa-map-marker-alt mr-1"></i> Salem, Tamil Nadu</p>
+                    
+                    <p class="text-gray-500 text-sm mb-4 leading-relaxed branch-address">Main Road, Salem, Tamil Nadu - 636001</p>
+                    
+                    <div class="space-y-2 text-xs font-bold text-gray-600 mb-6">
+                        <p class="branch-timing"><i class="far fa-clock w-4 text-center mr-2 text-orange-600"></i>9:00 AM - 8:00 PM</p>
+                        <p><i class="fas fa-phone-alt w-4 text-center mr-2 text-orange-600"></i>+91 98765 43210</p>
+                        <p><i class="fas fa-layer-group w-4 text-center mr-2 text-orange-600"></i>450+ {% trans "Books Available" %}</p>
+                    </div>
+                </div>
+                
+                <a href="{% url 'categories' %}" class="w-full">
+                    <button class="w-full bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white font-bold py-3.5 px-4 rounded-2xl text-sm transition transform active:scale-95">
+                        {% trans "View Available Books" %}
+                    </button>
+                </a>
+            </div>
+        </div>
+
+        <!-- Chennai Branch -->
+        <div class="branch-card bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full transform hover:-translate-y-1">
+            <!-- Map Iframe -->
+            <div class="h-48 bg-gray-200">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d124403.49391036035!2d80.14113035!3d13.01174625!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a5267da34440c95%3A0xe54e3d37a8581!2sAdyar%2C%20Chennai%2C%20Tamil%20Nadu!5e0!3m2!1sen!2sin!4v1689000000000!5m2!1sen!2sin"
+                    class="w-full h-full border-0 brightness-95" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+            
+            <div class="p-6 flex-grow flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2 branch-name">Chennai Branch</h3>
+                    <p class="text-xs font-bold text-orange-600 uppercase tracking-widest mb-4"><i class="fas fa-map-marker-alt mr-1"></i> Chennai, Tamil Nadu</p>
+                    
+                    <p class="text-gray-500 text-sm mb-4 leading-relaxed branch-address">Adyar Beach Road, Adyar, Chennai - 600020</p>
+                    
+                    <div class="space-y-2 text-xs font-bold text-gray-600 mb-6">
+                        <p class="branch-timing"><i class="far fa-clock w-4 text-center mr-2 text-orange-600"></i>8:00 AM - 9:00 PM</p>
+                        <p><i class="fas fa-phone-alt w-4 text-center mr-2 text-orange-600"></i>+91 87654 32109</p>
+                        <p><i class="fas fa-layer-group w-4 text-center mr-2 text-orange-600"></i>800+ {% trans "Books Available" %}</p>
+                    </div>
+                </div>
+                
+                <a href="{% url 'categories' %}" class="w-full">
+                    <button class="w-full bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white font-bold py-3.5 px-4 rounded-2xl text-sm transition transform active:scale-95">
+                        {% trans "View Available Books" %}
+                    </button>
+                </a>
+            </div>
+        </div>
+
+        <!-- Bengaluru Branch -->
+        <div class="branch-card bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full transform hover:-translate-y-1">
+            <!-- Map Iframe -->
+            <div class="h-48 bg-gray-200">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d62226.74441584989!2d77.59600125!3d12.97159825!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae1670ce1d4915%3A0xe54e3d37a8581!2sIndiranagar%2C%20Bengaluru%2C%20Karnataka!5e0!3m2!1sen!2sin!4v1689000000000!5m2!1sen!2sin"
+                    class="w-full h-full border-0 brightness-95" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+            
+            <div class="p-6 flex-grow flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2 branch-name">Bengaluru Branch</h3>
+                    <p class="text-xs font-bold text-orange-600 uppercase tracking-widest mb-4"><i class="fas fa-map-marker-alt mr-1"></i> Bengaluru, Karnataka</p>
+                    
+                    <p class="text-gray-500 text-sm mb-4 leading-relaxed branch-address">100 Feet Road, Indiranagar, Bengaluru - 560038</p>
+                    
+                    <div class="space-y-2 text-xs font-bold text-gray-600 mb-6">
+                        <p class="branch-timing"><i class="far fa-clock w-4 text-center mr-2 text-orange-600"></i>9:00 AM - 9:00 PM</p>
+                        <p><i class="fas fa-phone-alt w-4 text-center mr-2 text-orange-600"></i>+91 76543 21098</p>
+                        <p><i class="fas fa-layer-group w-4 text-center mr-2 text-orange-600"></i>1,200+ {% trans "Books Available" %}</p>
+                    </div>
+                </div>
+                
+                <a href="{% url 'categories' %}" class="w-full">
+                    <button class="w-full bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white font-bold py-3.5 px-4 rounded-2xl text-sm transition transform active:scale-95">
+                        {% trans "View Available Books" %}
+                    </button>
+                </a>
+            </div>
+        </div>
+
+    </div>
+    
+    <!-- Empty Search State -->
+    <div id="emptySearch" class="hidden text-center py-20">
+        <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-map-marked-alt text-3xl text-gray-300"></i>
+        </div>
+        <h4 class="text-xl font-bold text-gray-900 mb-2">{% trans "No branches matched your query" %}</h4>
+        <p class="text-gray-500 text-sm">{% trans "Try searching for a different city or region." %}</p>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function filterBranches() {
+        const query = document.getElementById("branchSearch").value.toLowerCase();
+        const cards = document.querySelectorAll(".branch-card");
+        let visibleCount = 0;
+        
+        cards.forEach(card => {
+            const name = card.querySelector(".branch-name").innerText.toLowerCase();
+            const address = card.querySelector(".branch-address").innerText.toLowerCase();
+            const timing = card.querySelector(".branch-timing").innerText.toLowerCase();
+            
+            if (name.includes(query) || address.includes(query) || timing.includes(query)) {
+                card.style.display = "flex";
+                visibleCount++;
+            } else {
+                card.style.display = "none";
+            }
+        });
+        
+        const emptyState = document.getElementById("emptySearch");
+        if (visibleCount === 0) {
+            emptyState.classList.remove("hidden");
+        } else {
+            emptyState.classList.add("hidden");
+        }
+    }
+</script>
+{% endblock %}

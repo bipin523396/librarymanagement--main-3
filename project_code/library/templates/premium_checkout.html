@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Premium Membership Checkout | BOOK HUB" %}{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen py-12">
+    <div class="container mx-auto px-4 max-w-5xl">
+        <h1 class="text-3xl font-extrabold text-gray-900 mb-8 text-center">{% trans "Activate Your Membership" %}</h1>
+
+        <div class="flex flex-col md:flex-row gap-8">
+            <!-- LEFT: Plan Summary -->
+            <div class="w-full md:w-2/5">
+                <div class="bg-white rounded-3xl p-7 shadow-sm border border-gray-100 sticky top-24">
+                    <div id="planBadge" class="inline-block text-xs font-bold text-orange-600 bg-orange-100 px-3 py-1 rounded-full uppercase tracking-widest mb-4">Loading...</div>
+                    <h2 id="planTitle" class="text-3xl font-black text-gray-900 mb-1">--</h2>
+                    <p id="planPrice" class="text-5xl font-black text-orange-600 my-4">₹--<span class="text-lg text-gray-400 font-medium">/mo</span></p>
+
+                    <ul id="planFeatures" class="space-y-3 text-sm text-gray-600 mb-6 border-t border-gray-100 pt-5">
+                        <!-- Populated by JS -->
+                    </ul>
+
+                    <div class="bg-orange-50 rounded-2xl p-4 border border-orange-100 text-sm text-orange-700 font-medium">
+                        <i class="fas fa-shield-alt mr-2"></i>
+                        {% trans "Secure payment. Cancel anytime. No hidden charges." %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Checkout Form -->
+            <div class="w-full md:w-3/5">
+                <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+
+                    <div id="premiumError" class="hidden bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm font-semibold"></div>
+
+                    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <div class="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mr-3 text-sm font-black">1</div>
+                        {% trans "Your Details" %}
+                    </h2>
+
+                    <div class="space-y-5 mb-8">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Full Name" %}</label>
+                                <input id="premFullName" type="text" value="{{ request.user.get_full_name|default:request.user.username }}"
+                                       class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Phone" %}</label>
+                                <input id="premPhone" type="tel" value="{{ request.user.userprofile.phone }}"
+                                       class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Email" %}</label>
+                            <input type="email" value="{{ request.user.email }}" disabled
+                                   class="w-full bg-gray-100 border border-gray-200 rounded-xl p-3.5 text-gray-400 cursor-not-allowed">
+                        </div>
+                    </div>
+
+                    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center border-t border-gray-100 pt-6">
+                        <div class="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mr-3 text-sm font-black">2</div>
+                        {% trans "Payment Method" %}
+                    </h2>
+
+                    <div class="grid grid-cols-2 gap-4 mb-8">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="premPayment" value="mock_upi" class="peer hidden" checked>
+                            <div class="border-2 border-gray-200 rounded-xl p-4 peer-checked:border-orange-500 peer-checked:bg-orange-50 transition-all text-center">
+                                <i class="fas fa-mobile-alt text-2xl text-gray-500 mb-2"></i>
+                                <h4 class="font-bold text-gray-800 text-sm">{% trans "UPI / GPay" %}</h4>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="premPayment" value="mock_card" class="peer hidden">
+                            <div class="border-2 border-gray-200 rounded-xl p-4 peer-checked:border-orange-500 peer-checked:bg-orange-50 transition-all text-center">
+                                <i class="fas fa-credit-card text-2xl text-gray-500 mb-2"></i>
+                                <h4 class="font-bold text-gray-800 text-sm">{% trans "Debit / Credit Card" %}</h4>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Summary line -->
+                    <div class="flex justify-between items-center border-t border-gray-100 pt-5 mb-6">
+                        <span class="text-gray-700 font-semibold">{% trans "Total Due Today" %}</span>
+                        <span class="text-3xl font-black text-orange-600">₹<span id="summaryPrice">--</span></span>
+                    </div>
+
+                    <button id="premPayBtn" onclick="activatePremium()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-orange-500/20 transition transform hover:-translate-y-0.5 text-lg flex items-center justify-center">
+                        <span>{% trans "Proceed To Pay" %} <i class="fas fa-arrow-right ml-2"></i></span>
+                    </button>
+
+                    <!-- Mock Razorpay Notice -->
+                    <p class="text-center text-xs text-gray-400 mt-4">
+                        <i class="fas fa-lock mr-1"></i>
+                        {% trans "Payment is simulated for demo. Integrate Razorpay key to go live." %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div id="premSuccessModal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center px-4 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl p-10 max-w-sm w-full text-center shadow-2xl">
+        <div class="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-crown text-4xl text-yellow-500"></i>
+        </div>
+        <h2 class="text-2xl font-black text-gray-900 mb-2">{% trans "Welcome to Premium!" %}</h2>
+        <p class="text-gray-500 mb-4">{% trans "Your membership is now active." %}</p>
+        <div class="bg-gray-50 rounded-2xl p-4 mb-6 border border-gray-200 text-left space-y-2">
+            <div class="flex justify-between text-sm"><span class="text-gray-500">{% trans "Plan" %}</span><span class="font-bold text-gray-800" id="successPlan"></span></div>
+            <div class="flex justify-between text-sm"><span class="text-gray-500">{% trans "Valid Until" %}</span><span class="font-bold text-orange-600" id="successExpiry"></span></div>
+        </div>
+        <a href="{% url 'dashboard' %}" class="block w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl transition">{% trans "Go to Dashboard" %}</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const PLAN_FEATURES = {
+        'Basic':   ['(50–200) ₹ per week per book', 'Delivery charges extra', 'No digital library', 'Up to 2 books at a time'],
+        'Premium': ['Unlimited books', 'Free doorstep delivery', 'Digital library included', 'Priority support'],
+    };
+
+    window.onload = function() {
+        const plan  = localStorage.getItem('selectedPlan')  || 'Premium';
+        const price = localStorage.getItem('selectedPlanPrice') || 500;
+
+        document.getElementById('planBadge').innerText = plan + ' Plan';
+        document.getElementById('planTitle').innerText = plan;
+        document.getElementById('planPrice').innerHTML = '₹' + price + '<span class="text-lg text-gray-400 font-medium">/mo</span>';
+        document.getElementById('summaryPrice').innerText = price;
+
+        const featureList = document.getElementById('planFeatures');
+        (PLAN_FEATURES[plan] || PLAN_FEATURES['Premium']).forEach(f => {
+            const li = document.createElement('li');
+            li.className = 'flex items-center';
+            li.innerHTML = `<i class="fas fa-check-circle text-green-500 mr-3 flex-shrink-0"></i>${f}`;
+            featureList.appendChild(li);
+        });
+    };
+
+    async function activatePremium() {
+        const btn = document.getElementById('premPayBtn');
+        const errorDiv = document.getElementById('premiumError');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+        errorDiv.classList.add('hidden');
+
+        const plan  = localStorage.getItem('selectedPlan')  || 'Premium';
+        const price = localStorage.getItem('selectedPlanPrice') || 500;
+
+        try {
+            const response = await fetch("{% url 'activate_premium' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ plan: plan, amount: parseInt(price) })
+            });
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                localStorage.removeItem('selectedPlan');
+                localStorage.removeItem('selectedPlanPrice');
+                document.getElementById('successPlan').innerText = result.plan;
+                document.getElementById('successExpiry').innerText = result.expiry;
+                document.getElementById('premSuccessModal').classList.remove('hidden');
+            } else {
+                throw new Error(result.message || 'Activation failed.');
+            }
+        } catch (err) {
+            errorDiv.innerText = err.message;
+            errorDiv.classList.remove('hidden');
+            btn.disabled = false;
+            btn.innerHTML = '<span>{% trans "Proceed To Pay" %} <i class="fas fa-arrow-right ml-2"></i></span>';
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Our Services" %} | BOOK HUB{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="relative bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 py-20 px-6 text-center text-white overflow-hidden">
+    <div class="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white via-gray-900 to-black"></div>
+    <div class="relative container mx-auto max-w-4xl z-10">
+        <h1 class="text-4xl md:text-5xl font-black mb-6 tracking-tight animate-fade-in">
+            {% trans "Tailored Services for Every Reader" %} 📚
+        </h1>
+        <p class="text-lg md:text-xl text-orange-50/90 font-medium leading-relaxed max-w-2xl mx-auto">
+            {% trans "Explore our range of premium reading services designed to bring knowledge directly to your screen and doorstep." %}
+        </p>
+    </div>
+</section>
+
+<!-- Services Grid -->
+<section class="container mx-auto py-20 px-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        
+        <!-- Book Rental -->
+        <div class="group bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="w-16 h-16 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl font-black mb-6 group-hover:bg-orange-600 group-hover:text-white transition-all duration-300">
+                <i class="fas fa-book-open"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-orange-600 transition-colors">{% trans "Book Rental" %}</h3>
+            <p class="text-gray-500 text-sm leading-relaxed mb-6">
+                {% trans "Rent standard or premium hardcovers online. Choose customizable rental durations and enjoy doorstep delivery and pickup." %}
+            </p>
+            <ul class="text-xs font-bold text-gray-600 space-y-2">
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Rent books online" %}</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Choose rental duration" %}</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Home delivery" %}</li>
+            </ul>
+        </div>
+
+        <!-- E-Books -->
+        <div class="group bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-2xl font-black mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+                <i class="fas fa-tablet-alt"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">{% trans "E-Books & Audiobooks" %}</h3>
+            <p class="text-gray-500 text-sm leading-relaxed mb-6">
+                {% trans "Access millions of books digitially on any mobile phone, tablet, or web browser. Save bookmarks and download offline." %}
+            </p>
+            <ul class="text-xs font-bold text-gray-600 space-y-2">
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Read books online" %}</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Download secure PDF" %}</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Save cloud bookmarks" %}</li>
+            </ul>
+        </div>
+
+        <!-- Book Delivery -->
+        <div class="group bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="w-16 h-16 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-2xl font-black mb-6 group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
+                <i class="fas fa-shipping-fast"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-purple-600 transition-colors">{% trans "Doorstep Delivery" %}</h3>
+            <p class="text-gray-500 text-sm leading-relaxed mb-6">
+                {% trans "Our dedicated rider network ensures fast deliver, interactive tracking, and effortless doorstep return collection." %}
+            </p>
+            <ul class="text-xs font-bold text-gray-600 space-y-2">
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Superfast delivery" %}</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Real-time track order" %}</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Return pickup" %}</li>
+            </ul>
+        </div>
+
+        <!-- Student Membership -->
+        <div class="group bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="w-16 h-16 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center text-2xl font-black mb-6 group-hover:bg-green-600 group-hover:text-white transition-all duration-300">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">{% trans "Student Membership" %}</h3>
+            <p class="text-gray-500 text-sm leading-relaxed mb-6">
+                {% trans "Affordable packages tailored specifically for pupils and academics. Submit student ID and unlock endless learning." %}
+            </p>
+            <ul class="text-xs font-bold text-gray-600 space-y-2">
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Flat discount for students" %}</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Custom monthly plans" %}</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Unlimited rentals" %}</li>
+            </ul>
+        </div>
+
+        <!-- AI Recommendation -->
+        <div class="group bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="w-16 h-16 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center text-2xl font-black mb-6 group-hover:bg-pink-600 group-hover:text-white transition-all duration-300">
+                <i class="fas fa-robot"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-pink-600 transition-colors">{% trans "AI Recommendation" %}</h3>
+            <p class="text-gray-500 text-sm leading-relaxed mb-6">
+                {% trans "Confused what to read next? Let SuperAI suggest you trending matches and personalized books according to your genre interests." %}
+            </p>
+            <ul class="text-xs font-bold text-gray-600 space-y-2">
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Interest-based matching" %}</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Trending books feed" %}</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Personalized suggestions" %}</li>
+            </ul>
+        </div>
+
+        <!-- Notification Service -->
+        <div class="group bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="w-16 h-16 rounded-2xl bg-yellow-100 text-yellow-600 flex items-center justify-center text-2xl font-black mb-6 group-hover:bg-yellow-600 group-hover:text-white transition-all duration-300">
+                <i class="fas fa-bell"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-yellow-600 transition-colors">{% trans "Notification Alerts" %}</h3>
+            <p class="text-gray-500 text-sm leading-relaxed mb-6">
+                {% trans "Never miss a due date. Get real-time SMS and email reminders, hot alerts on fresh new book arrivals, and exclusive offers." %}
+            </p>
+            <ul class="text-xs font-bold text-gray-600 space-y-2">
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Due date reminders" %}</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "New book alerts" %}</li>
+                <li><i class="fas fa-check text-green-500 mr-2"></i>{% trans "Offer notifications" %}</li>
+            </ul>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

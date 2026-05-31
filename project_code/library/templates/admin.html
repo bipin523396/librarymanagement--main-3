@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | BOOK HUB</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         /* --- CSS VARIABLES & RESET --- */
         :root {
@@ -185,11 +186,33 @@
             <li class="nav-item" onclick="showSection('book-management', this)">
                 <i class="fas fa-book"></i> <span class="text">Books & Inventory</span>
             </li>
+            <li class="nav-item" onclick="showSection('author-management', this)">
+                <i class="fas fa-pen-nib"></i> <span class="text">Authors</span>
+            </li>
+
+            <li class="nav-item" onclick="showSection('user-management', this)">
+                <i class="fas fa-users"></i> <span class="text">Members</span>
+            </li>
+            <li class="nav-item" onclick="showSection('live-rental-management', this)">
+                <i class="fas fa-handshake"></i> <span class="text">Live Rentals</span>
+            </li>
+            <li class="nav-item" onclick="showSection('history-rental-management', this)">
+                <i class="fas fa-history"></i> <span class="text">Rental History</span>
+            </li>
+            <li class="nav-item" onclick="showSection('payment-management', this)">
+                <i class="fas fa-credit-card"></i> <span class="text">Payments</span>
+            </li>
             <li class="nav-item" onclick="showSection('delivery-management', this)">
                 <i class="fas fa-truck"></i> <span class="text">Delivery Logistics</span>
             </li>
-            <li class="nav-item" onclick="showSection('user-management', this)">
-                <i class="fas fa-users"></i> <span class="text">Members</span>
+            <li class="nav-item" onclick="showSection('delivery-staff-management', this)">
+                <i class="fas fa-motorcycle"></i> <span class="text">Delivery Staff</span>
+            </li>
+            <li class="nav-item" onclick="showSection('contact-management', this)">
+                <i class="fas fa-envelope"></i> <span class="text">Messages</span>
+            </li>
+            <li class="nav-item" onclick="showSection('settings-management', this)">
+                <i class="fas fa-cog"></i> <span class="text">Settings</span>
             </li>
             <li class="nav-item" style="margin-top: auto; border-top: 1px solid #eee;">
                 <a href="{% url 'login' %}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
@@ -204,8 +227,8 @@
             <h1 class="page-title">Dashboard</h1>
             <div style="display: flex; gap: 20px; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <img src="https://ui-avatars.com/api/?name=Admin+User&background=ea580c&color=fff" style="width: 36px; height: 36px; border-radius: 50%;">
-                    <span style="font-weight: 600; font-size: 14px;">Admin</span>
+                    <img src="https://ui-avatars.com/api/?name={{ request.user.first_name|default:request.user.username }}&background=ea580c&color=fff" style="width: 36px; height: 36px; border-radius: 50%;">
+                    <span style="font-weight: 600; font-size: 14px;">Welcome, {{ request.user.first_name|default:request.user.username }}</span>
                 </div>
             </div>
         </header>
@@ -271,7 +294,7 @@
                     <tr>
                         <td>
                             <div style="font-weight: bold;">{{ book.title }}</div>
-                            <div style="font-size: 12px; color: #888;">{{ book.author }}</div>
+                            <div style="font-size: 12px; color: #888;">{{ book.author.name }}</div>
                         </td>
                         <td>{{ book.category }}</td>
                         <td>{{ book.isbn }}</td>
@@ -283,7 +306,7 @@
                         </td>
                         <td>
                             <button class="btn btn-sm btn-outline" 
-                                onclick="openBookModal('{{ book.id }}', '{{ book.title|escapejs }}', '{{ book.author|escapejs }}', '{{ book.category }}', '{{ book.isbn }}', '{{ book.copies_total }}')">
+                                onclick="openBookModal('{{ book.id }}', '{{ book.title|escapejs }}', '{{ book.author.id }}', '{{ book.category }}', '{{ book.isbn }}', '{{ book.copies_total }}')">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <a href="{% url 'delete_book' book.id %}" onclick="return confirm('Delete this book permanently?')">
@@ -298,46 +321,141 @@
             </table>
         </section>
 
-        <section id="delivery-management" class="content-section">
+        <section id="author-management" class="content-section">
             <div class="section-header">
-                <h2>Delivery Logistics</h2>
-                <button class="btn btn-primary" onclick="openModal('addRiderModal')">
-                    <i class="fas fa-user-plus"></i> Add Delivery Man
+                <h2>Author Management</h2>
+                <button class="btn btn-primary" onclick="openModal('addAuthorModal')">
+                    <i class="fas fa-plus"></i> Add New Author
                 </button>
             </div>
-            <table class="data-table" id="riderTable">
+            <table class="data-table" id="authorTable">
                 <thead>
                     <tr>
-                        <th>Rider Name</th>
-                        <th>Vehicle Details</th>
-                        <th>Status</th>
-                        <th>Assign</th>
+                        <th>Author Name</th>
+                        <th>Genre</th>
+                        <th>Nationality</th>
+                        <th>Books</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for rider in riders %}
+                    {% for author in authors %}
                     <tr>
                         <td>
                             <div class="avatar-group">
-                                <img src="https://ui-avatars.com/api/?name={{ rider.user.username }}&background=ea580c&color=fff" class="avatar-circle">
-                                <div>
-                                    <div style="font-weight: 600;">{{ rider.user.get_full_name|default:rider.user.username }}</div>
-                                    <div style="font-size: 11px;">{{ rider.phone }}</div>
-                                </div>
+                                {% if author.image %}
+                                <img src="{{ author.image.url }}" class="avatar-circle">
+                                {% else %}
+                                <img src="https://ui-avatars.com/api/?name={{ author.name }}&background=ea580c&color=fff" class="avatar-circle">
+                                {% endif %}
+                                <div style="font-weight: bold;">{{ author.name }}</div>
                             </div>
                         </td>
-                        <td>{{ rider.vehicle_details }}</td>
+                        <td>{{ author.genres }}</td>
+                        <td>{{ author.nationality }}</td>
+                        <td>{{ author.book_set.count }}</td>
                         <td>
-                            <span class="badge {% if rider.status == 'Online' %}badge-success{% else %}badge-gray{% endif %}">
-                                {{ rider.status }}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-outline" onclick="openModal('assignOrderModal')">Assign Order</button>
+                            <button class="btn btn-sm btn-outline">
+                                <i class="fas fa-edit"></i>
+                            </button>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;">No delivery riders registered.</td></tr>
+                    <tr><td colspan="5" style="text-align: center; padding: 20px; color: #999;">No authors found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section id="delivery-management" class="content-section">
+            <div class="section-header">
+                <h2>Delivery Logistics</h2>
+                <button class="btn btn-primary" onclick="openFleetMap()">
+                    <i class="fas fa-map-marked-alt"></i> View Fleet Map
+                </button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Tracking ID</th>
+                        <th>Book</th>
+                        <th>Customer</th>
+                        <th>Address</th>
+                        <th>Delivery Boy</th>
+                        <th>Status</th>
+                        <th>Track</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for delivery in assigned_deliveries %}
+                    <tr>
+                        <td>{{ delivery.tracking_id|default:"N/A" }}</td>
+                        <td>{{ delivery.rental.book.title }}</td>
+                        <td>{{ delivery.rental.user.username }}</td>
+                        <td>{{ delivery.rental.user.userprofile.address|default:"N/A" }}</td>
+                        <td>{{ delivery.delivery_person.username|default:"Unassigned" }}</td>
+                        <td>
+                            <span class="badge {% if delivery.status == 'Delivered' %}badge-success{% else %}badge-warning{% endif %}">
+                                {{ delivery.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <div style="display:flex; flex-direction:column; gap:5px;">
+                                <form method="POST" action="{% url 'update_delivery_status' delivery.id %}" style="display:flex; gap:10px;">
+                                    {% csrf_token %}
+                                    <select name="status" class="form-input" style="padding:4px; font-size:12px;">
+                                        <option value="Assigned" {% if delivery.status == 'Assigned' %}selected{% endif %}>Assigned</option>
+                                        <option value="Picked Up" {% if delivery.status == 'Picked Up' %}selected{% endif %}>Picked Up</option>
+                                        <option value="Out For Delivery" {% if delivery.status == 'Out For Delivery' %}selected{% endif %}>Out For Delivery</option>
+                                        <option value="Delivered" {% if delivery.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-primary" style="padding:4px 8px; font-size:12px;">Update</button>
+                                </form>
+                                {% if delivery.delivery_person and delivery.delivery_person.deliverystaff %}
+                                <button class="btn btn-sm btn-outline" style="font-size:12px; padding:4px 8px;" onclick="viewLiveLocation('{{ delivery.delivery_person.username }}', {{ delivery.delivery_person.deliverystaff.current_latitude }}, {{ delivery.delivery_person.deliverystaff.current_longitude }})">
+                                    <i class="fas fa-map-marker-alt"></i> View Live Location
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" style="text-align: center; padding: 20px; color: #999;">No active deliveries.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section id="delivery-staff-management" class="content-section">
+            <div class="section-header">
+                <h2>Delivery Staff</h2>
+                <button class="btn btn-primary" onclick="openModal('addStaffModal')">
+                    <i class="fas fa-user-plus"></i> Add Staff
+                </button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Vehicle</th>
+                        <th>Active</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for staff in delivery_staff %}
+                    <tr>
+                        <td>{{ staff.user.username }}</td>
+                        <td>{{ staff.phone }}</td>
+                        <td>{{ staff.vehicle_number }}</td>
+                        <td>
+                            <span class="badge {% if staff.active %}badge-success{% else %}badge-gray{% endif %}">
+                                {% if staff.active %}Yes{% else %}No{% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;">No delivery staff registered.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -380,6 +498,197 @@
                 </tbody>
             </table>
         </section>
+
+        <section id="live-rental-management" class="content-section">
+            <div class="section-header">
+                <h2>Live Rentals</h2>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Book</th>
+                        <th>Address</th>
+                        <th>Phone</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th>Assign Delivery</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rental in live_rentals %}
+                    <tr>
+                        <td>{{ rental.user.username }}</td>
+                        <td>{{ rental.book.title }}</td>
+                        <td>{{ rental.user.userprofile.address|default:"N/A" }}</td>
+                        <td>{{ rental.user.userprofile.phone|default:"N/A" }}</td>
+                        <td>{{ rental.payment_status }}</td>
+                        <td>
+                            <span class="badge {% if rental.rental_status == 'Assigned' or rental.rental_status == 'Out For Delivery' %}badge-success{% else %}badge-warning{% endif %}">
+                                {{ rental.rental_status }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if rental.rental_status == 'Pending' %}
+                            <a href="{% url 'assign_delivery' rental.id %}" class="btn btn-sm btn-outline">
+                                Assign Delivery
+                            </a>
+                            {% else %}
+                            <span class="text-gray-500 text-sm">Assigned</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" style="text-align: center; padding: 20px; color: #999;">No live rentals found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section id="history-rental-management" class="content-section">
+            <div class="section-header">
+                <h2>Rental History</h2>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Book</th>
+                        <th>Rent Date</th>
+                        <th>Return Date</th>
+                        <th>Payment</th>
+                        <th>Delivery Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rental in history_rentals %}
+                    <tr>
+                        <td>{{ rental.user.username }}</td>
+                        <td>{{ rental.book.title }}</td>
+                        <td>{{ rental.rented_at|date:"M d, Y" }}</td>
+                        <td>{{ rental.due_date }}</td>
+                        <td>{{ rental.total_amount }}</td>
+                        <td>
+                            <span class="badge badge-success">
+                                {{ rental.rental_status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" style="text-align: center; padding: 20px; color: #999;">No rental history found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section id="payment-management" class="content-section">
+            <div class="section-header">
+                <h2>Payments History</h2>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Transaction ID</th>
+                        <th>User</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td>{{ payment.reference_id }}</td>
+                        <td>{{ payment.user.username }}</td>
+                        <td>₹{{ payment.amount }}</td>
+                        <td>{{ payment.payment_type }}</td>
+                        <td>
+                            <span class="badge {% if payment.status == 'success' %}badge-success{% elif payment.status == 'failed' %}badge-danger{% else %}badge-warning{% endif %}">
+                                {{ payment.status|title }}
+                            </span>
+                        </td>
+                        <td>{{ payment.created_at|date:"M d, Y" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" style="text-align: center; padding: 20px; color: #999;">No payments found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section id="contact-management" class="content-section">
+            <div class="section-header">
+                <h2>Contact Messages</h2>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Subject</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for msg in messages %}
+                    <tr>
+                        <td>{{ msg.name }}</td>
+                        <td>{{ msg.email }}</td>
+                        <td>{{ msg.subject }}</td>
+                        <td>{{ msg.created_at|date:"M d, Y" }}</td>
+                        <td>
+                            <span class="badge {% if msg.status == 'Resolved' %}badge-success{% else %}badge-warning{% endif %}">
+                                {{ msg.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 5px;">
+                                <a href="mailto:{{ msg.email }}?subject=Re: {{ msg.subject }}&body=Hi {{ msg.name }},%0D%0A%0D%0A" class="btn btn-sm btn-outline" style="text-decoration:none;">Reply</a>
+                                {% if msg.status != 'Resolved' %}
+                                <form method="POST" action="{% url 'resolve_message' msg.id %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success">Resolve</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" style="text-align: center; padding: 20px; color: #999;">No messages found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section id="settings-management" class="content-section">
+            <div class="section-header">
+                <h2>System Settings</h2>
+                <button class="btn btn-outline" style="border-color: var(--danger-red); color: var(--danger-red);" onclick="openModal('addAdminModal')">
+                    <i class="fas fa-user-shield"></i> Add System Admin
+                </button>
+            </div>
+            <div style="max-width: 600px; background: white; padding: 20px; border-radius: 8px; border: 1px solid #eee;">
+                <form action="#" method="POST">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label class="form-label">Delivery Charge (₹)</label>
+                        <input type="number" class="form-input" value="{{ settings.delivery_charge|default:'50.00' }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Late Fee Per Day (₹)</label>
+                        <input type="number" class="form-input" value="{{ settings.late_fee_per_day|default:'10.00' }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rental Limit (Books)</label>
+                        <input type="number" class="form-input" value="{{ settings.rental_limit|default:'3' }}">
+                    </div>
+                    <button class="btn btn-primary">Save Settings</button>
+                </form>
+            </div>
+        </section>
     </main>
 
     <div class="modal-overlay" id="addBookModal">
@@ -404,7 +713,12 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Author</label>
-                    <input type="text" name="author" id="bookAuthor" class="form-input" required>
+                    <select name="author" id="bookAuthor" class="form-input" required>
+                        <option value="">Select Author...</option>
+                        {% for author in authors %}
+                            <option value="{{ author.id }}">{{ author.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Category</label>
@@ -425,6 +739,39 @@
                     <input type="number" name="copies" id="bookCopies" class="form-input" value="1" required>
                 </div>
                 <button type="submit" id="bookSubmitBtn" class="btn btn-primary" style="width: 100%;">Add to Inventory</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addAuthorModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Author</h3>
+                <button class="close-modal" onclick="closeModal('addAuthorModal')">&times;</button>
+            </div>
+            <form action="{% url 'add_author' %}" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label">Author Name</label>
+                    <input type="text" name="name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Photo</label>
+                    <input type="file" name="image" class="form-input" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Bio</label>
+                    <textarea name="bio" class="form-input" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Genre</label>
+                    <input type="text" name="genres" class="form-input" placeholder="Fiction, Thriller">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nationality</label>
+                    <input type="text" name="nationality" class="form-input">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Add Author</button>
             </form>
         </div>
     </div>
@@ -489,21 +836,105 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="addStaffModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Delivery Staff</h3>
+                <button class="close-modal" onclick="closeModal('addStaffModal')">&times;</button>
+            </div>
+            <form action="{% url 'add_delivery_staff' %}" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    <input type="text" name="phone" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Vehicle Details</label>
+                    <input type="text" name="vehicle" class="form-input" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Staff Account</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addAdminModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Add System Admin</h3>
+                <button class="close-modal" onclick="closeModal('addAdminModal')">&times;</button>
+            </div>
+            <form action="{% url 'add_admin' %}" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label">First Name</label>
+                    <input type="text" name="first_name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Last Name</label>
+                    <input type="text" name="last_name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Admin Email</label>
+                    <input type="email" name="email" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Admin Password</label>
+                    <input type="password" name="password" class="form-input" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; background: var(--danger-red);">Create Admin Account</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="liveLocationModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Live Tracking: <span id="trackingRiderName"></span></h3>
+                <button class="close-modal" onclick="closeModal('liveLocationModal')">&times;</button>
+            </div>
+            <div style="margin-top: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd;">
+                <iframe id="mapFrame" width="100%" height="400" frameborder="0" style="border:0" allowfullscreen></iframe>
+            </div>
+            <p style="text-align: center; font-size: 12px; color: gray; margin-top: 10px;">Location updates automatically every 30 seconds.</p>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="fleetMapModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Live Fleet Tracking</h3>
+                <button class="close-modal" onclick="closeModal('fleetMapModal')">&times;</button>
+            </div>
+            <div style="margin-top: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; height: 500px;" id="fleetMapContainer">
+            </div>
+            <p style="text-align: center; font-size: 12px; color: gray; margin-top: 10px;">Shows all active delivery personnel currently online.</p>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="viewMemberModal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3 class="modal-title">Member Profile</h3>
                 <button class="close-modal" onclick="closeModal('viewMemberModal')">&times;</button>
             </div>
-            
-            <div style="text-align: center; margin-bottom: 20px;">
-                <img id="detailAvatar" src="" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px;">
-                <h2 id="detailName" style="margin: 0; font-size: 20px; color: var(--text-dark);"></h2>
-                <p id="detailEmail" style="color: gray; margin: 5px 0 0 0; font-size: 14px;"></p>
+            <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+                <img id="detailAvatar" src="" style="width: 80px; height: 80px; border-radius: 50%;">
+                <div>
+                    <h2 id="detailName" style="margin: 0;"></h2>
+                    <p id="detailEmail" style="margin: 5px 0 0 0; color: gray;"></p>
+                </div>
             </div>
 
-            <table class="detail-table">
-                <tr><td>Phone</td><td id="detailPhone"></td></tr>
+            <table class="data-table" style="box-shadow: none; border: 1px solid #eee;">
+                <tr><td style="width: 150px;">Phone</td><td id="detailPhone" style="font-weight: 600;"></td></tr>
                 <tr><td>Address</td><td id="detailAddress"></td></tr>
                 <tr><td>Pincode</td><td id="detailPincode"></td></tr>
                 <tr><td>Membership Plan</td><td><span class="badge badge-warning" id="detailPlan"></span></td></tr>
@@ -572,6 +1003,52 @@
 
             openModal('viewMemberModal');
         }
+
+        function viewLiveLocation(name, lat, lng) {
+            document.getElementById('trackingRiderName').innerText = name;
+            // Using OSM / Leaflet style simple embed for live location
+            const mapUrl = `https://maps.google.com/maps?q=${lat},${lng}&hl=es;z=14&output=embed`;
+            document.getElementById('mapFrame').src = mapUrl;
+            openModal('liveLocationModal');
+        }
+        function openFleetMap() {
+            openModal('fleetMapModal');
+            
+            // Wait for modal to render then init map
+            setTimeout(() => {
+                if (window.fleetMap) {
+                    window.fleetMap.remove();
+                }
+                
+                // Initialize map centered roughly on New Delhi
+                window.fleetMap = L.map('fleetMapContainer').setView([28.6139, 77.2090], 11);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                }).addTo(window.fleetMap);
+
+                // Add pins for all delivery staff
+                const staffData = [
+                    {% for staff in delivery_staff %}
+                    {
+                        name: "{{ staff.user.first_name|default:staff.user.username }}",
+                        phone: "{{ staff.phone }}",
+                        vehicle: "{{ staff.vehicle_number }}",
+                        lat: {{ staff.current_latitude|default:"28.6139" }},
+                        lng: {{ staff.current_longitude|default:"77.2090" }}
+                    }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ];
+
+                staffData.forEach(staff => {
+                    const marker = L.marker([staff.lat, staff.lng]).addTo(window.fleetMap);
+                    marker.bindPopup(`<b>${staff.name}</b><br>Phone: ${staff.phone}<br>Vehicle: ${staff.vehicle}`);
+                });
+
+            }, 200); // slight delay for modal CSS transition
+        }
     </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
 </html>

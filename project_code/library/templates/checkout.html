@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Checkout" %}{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen py-12">
+    <div class="container mx-auto px-6 max-w-6xl">
+        <h1 class="text-3xl font-extrabold text-gray-900 mb-8 text-center md:text-left">{% trans "Complete Your Rental" %}</h1>
+
+        <div class="flex flex-col md:flex-row gap-8">
+            
+            <!-- LEFT: Book Summary -->
+            <div class="w-full md:w-2/5">
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 sticky top-24">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6 border-b pb-4">{% trans "Order Summary" %}</h2>
+                    
+                    <div class="flex gap-4 mb-6">
+                        <div class="w-1/3 bg-gray-100 rounded-xl overflow-hidden aspect-[3/4]">
+                            <img id="chkImage" src="" alt="Book Cover" class="w-full h-full object-cover">
+                        </div>
+                        <div class="w-2/3 flex flex-col justify-center">
+                            <span id="chkCategory" class="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1"></span>
+                            <h3 id="chkTitle" class="text-lg font-bold text-gray-900 mb-1 leading-tight"></h3>
+                            <p id="chkAuthor" class="text-sm text-gray-500 font-medium"></p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 text-sm text-gray-600 mb-6">
+                        <div class="flex justify-between">
+                            <span>{% trans "Daily Rent" %}</span>
+                            <span class="font-bold text-gray-900">₹<span id="chkDailyRent"></span></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>{% trans "Rental Duration" %}</span>
+                            <span class="font-bold text-gray-900"><span id="chkDuration"></span> {% trans "Days" %}</span>
+                        </div>
+                        <div class="flex justify-between text-green-600">
+                            <span>{% trans "Delivery Fee" %}</span>
+                            <span class="font-bold">{% trans "FREE" %}</span>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-4 flex justify-between items-center">
+                        <span class="text-lg font-bold text-gray-800">{% trans "Total Amount" %}</span>
+                        <span class="text-3xl font-black text-orange-600">₹<span id="chkTotal"></span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Checkout Form -->
+            <div class="w-full md:w-3/5">
+                <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                    
+                    <!-- Form Errors / Messages -->
+                    <div id="checkoutError" class="hidden bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm font-semibold"></div>
+
+                    <!-- User Details Section -->
+                    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <div class="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mr-3 text-sm">1</div>
+                        {% trans "Delivery Details" %}
+                    </h2>
+
+                    <form id="checkoutForm" onsubmit="processCheckout(event)">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Full Name" %}</label>
+                                <input type="text" id="fullName" value="{{ request.user.get_full_name|default:request.user.username }}" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Phone Number" %}</label>
+                                <input type="tel" id="phone" value="{{ request.user.userprofile.phone }}" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition-colors">
+                            </div>
+                        </div>
+
+                        <div class="mb-6 relative">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Delivery Address" %}</label>
+                            <textarea id="address" required rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition-colors">{{ request.user.userprofile.address }}</textarea>
+                            
+                            <button type="button" onclick="detectLocation()" class="absolute right-3 top-9 text-orange-600 hover:bg-orange-50 p-2 rounded-lg text-sm font-bold flex items-center transition-colors">
+                                <i class="fas fa-crosshairs mr-2"></i> {% trans "Detect" %}
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "City" %}</label>
+                                <input type="text" id="city" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Pincode" %}</label>
+                                <input type="text" id="pincode" value="{{ request.user.userprofile.pincode }}" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition-colors">
+                            </div>
+                        </div>
+
+                        <!-- Payment Section -->
+                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center border-t border-gray-100 pt-8">
+                            <div class="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mr-3 text-sm">2</div>
+                            {% trans "Payment Method" %}
+                        </h2>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="paymentMethod" value="razorpay" class="peer hidden" checked>
+                                <div class="border-2 border-gray-200 rounded-xl p-4 peer-checked:border-orange-500 peer-checked:bg-orange-50 transition-all text-center">
+                                    <i class="fas fa-credit-card text-2xl text-gray-600 mb-2 peer-checked:text-orange-600"></i>
+                                    <h4 class="font-bold text-gray-800">{% trans "Razorpay / UPI" %}</h4>
+                                </div>
+                            </label>
+                            
+                            <label class="cursor-pointer">
+                                <input type="radio" name="paymentMethod" value="cod" class="peer hidden">
+                                <div class="border-2 border-gray-200 rounded-xl p-4 peer-checked:border-orange-500 peer-checked:bg-orange-50 transition-all text-center">
+                                    <i class="fas fa-money-bill-wave text-2xl text-gray-600 mb-2 peer-checked:text-orange-600"></i>
+                                    <h4 class="font-bold text-gray-800">{% trans "Cash on Delivery" %}</h4>
+                                </div>
+                            </label>
+                        </div>
+
+                        <button type="submit" id="submitBtn" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-orange-500/20 text-center transition transform hover:-translate-y-0.5 text-lg flex items-center justify-center">
+                            <span>{% trans "Proceed To Pay" %} <i class="fas fa-arrow-right ml-2"></i></span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let checkoutData = null;
+
+    window.onload = function() {
+        const dataStr = localStorage.getItem("checkoutData");
+        if (!dataStr) {
+            window.location.href = "{% url 'home' %}";
+            return;
+        }
+
+        checkoutData = JSON.parse(dataStr);
+        
+        // Populate Summary
+        const resolvedImage = checkoutData.book.image || "https://images.unsplash.com/photo-1543002588-bfa74002ed7e";
+        document.getElementById("chkImage").src = resolvedImage;
+        document.getElementById("chkCategory").innerText = checkoutData.book.category;
+        document.getElementById("chkTitle").innerText = checkoutData.book.title;
+        document.getElementById("chkAuthor").innerText = "by " + checkoutData.book.author;
+        
+        document.getElementById("chkDailyRent").innerText = parseFloat(checkoutData.book.price).toFixed(2);
+        document.getElementById("chkDuration").innerText = checkoutData.duration;
+        document.getElementById("chkTotal").innerText = parseFloat(checkoutData.total).toFixed(2);
+    };
+
+    function detectLocation() {
+        const btn = event.currentTarget;
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Locating...';
+        
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                // In a real app, use a Geocoding API to convert lat/lng to an address
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                document.getElementById('address').value = `Auto-detected location (Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)})`;
+                document.getElementById('city').value = "Auto-detected City";
+                btn.innerHTML = originalContent;
+            }, (error) => {
+                alert("Location access denied or unavailable.");
+                btn.innerHTML = originalContent;
+            });
+        } else {
+            alert("Geolocation is not supported by this browser.");
+            btn.innerHTML = originalContent;
+        }
+    }
+
+    async function processCheckout(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+        
+        const errorDiv = document.getElementById('checkoutError');
+        errorDiv.classList.add('hidden');
+
+        const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+
+        try {
+            const response = await fetch("{% url 'process_checkout' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({
+                    book_id: checkoutData.book.id,
+                    duration: checkoutData.duration,
+                    total: checkoutData.total,
+                    payment_method: paymentMethod,
+                    name: document.getElementById('fullName').value,
+                    phone: document.getElementById('phone').value,
+                    address: document.getElementById('address').value,
+                    city: document.getElementById('city').value,
+                    pincode: document.getElementById('pincode').value
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                // Clear localStorage
+                localStorage.removeItem("checkoutData");
+                // Redirect to success
+                window.location.href = `{% url 'checkout_success' %}?order_id=${result.order_id}&return_date=${result.return_date}`;
+            } else {
+                throw new Error(result.message || "An error occurred during checkout.");
+            }
+        } catch (error) {
+            errorDiv.innerText = error.message;
+            errorDiv.classList.remove('hidden');
+            btn.disabled = false;
+            btn.innerHTML = '<span>{% trans "Proceed To Pay" %} <i class="fas fa-arrow-right ml-2"></i></span>';
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Contact Us" %} | BOOK HUB{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen py-16">
+    <div class="container mx-auto max-w-5xl px-6">
+        
+        <div class="text-center mb-16">
+            <h1 class="text-4xl md:text-5xl font-black mb-4 text-gray-900">{% trans "Get in Touch" %}</h1>
+            <p class="text-gray-600">{% trans "Have questions? We'd love to hear from you." %}</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-12 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+            
+            <!-- Contact Info -->
+            <div class="bg-gray-900 text-white p-10 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold mb-6">{% trans "Contact Information" %}</h2>
+                    <p class="text-gray-400 mb-10 text-sm leading-relaxed">
+                        {% trans "Whether you're curious about features, a free trial, or even press, we're ready to answer any and all questions." %}
+                    </p>
+
+                    <div class="space-y-6">
+                        <div class="flex items-start">
+                            <i class="fas fa-map-marker-alt text-orange-500 mt-1 mr-4 text-xl w-6 text-center"></i>
+                            <div>
+                                <h4 class="font-bold text-gray-200">{% trans "Headquarters" %}</h4>
+                                <p class="text-gray-400 text-sm">123 Library Street, Sector 15<br>New Delhi, 110001, India</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-phone-alt text-orange-500 mt-1 mr-4 text-xl w-6 text-center"></i>
+                            <div>
+                                <h4 class="font-bold text-gray-200">{% trans "Phone" %}</h4>
+                                <p class="text-gray-400 text-sm">1800-BOOK-HUB</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-envelope text-orange-500 mt-1 mr-4 text-xl w-6 text-center"></i>
+                            <div>
+                                <h4 class="font-bold text-gray-200">{% trans "Email" %}</h4>
+                                <p class="text-gray-400 text-sm">hello@bookhub.io</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 mt-12">
+                    <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-orange-500 transition"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-orange-500 transition"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-orange-500 transition"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+
+            <!-- Contact Form -->
+            <div class="p-10">
+                {% if messages %}
+                <div class="mb-6">
+                    {% for message in messages %}
+                    <div class="p-4 rounded-xl bg-green-50 text-green-700 border border-green-200">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <form class="space-y-6" action="{% url 'submit_contact' %}" method="POST">
+                    {% csrf_token %}
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">{% trans "Full Name" %}</label>
+                        <input type="text" name="name" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition" placeholder="John Doe" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">{% trans "Email Address" %}</label>
+                        <input type="email" name="email" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition" placeholder="john@example.com" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">{% trans "Subject" %}</label>
+                        <input type="text" name="subject" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition" placeholder="How can we help?" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">{% trans "Message" %}</label>
+                        <textarea rows="4" name="message" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition" placeholder="Your message..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 rounded-xl shadow-md transition transform active:scale-95">
+                        {% trans "Send Message" %}
+                    </button>
+                </form>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}
