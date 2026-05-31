@@ -16,6 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 5. Copy the entire project
 COPY . .
 
+# 5.5 Copy production environment file
+COPY .env.production /app/project_code/.env
+
 # 6. Set environment variables for Django
 ENV DJANGO_SETTINGS_MODULE=bookhub_backend.settings
 ENV PYTHONUNBUFFERED=1
