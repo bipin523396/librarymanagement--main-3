@@ -16,9 +16,12 @@ from .models import DeliveryRider, Order, Book, UserProfile, MembershipPlan, Aut
 # ==========================================
 
 def home(request):
-    books = Book.objects.all()
-    categories = Book.objects.values_list('category', flat=True).distinct()
-    return render(request, "index.html", {"books": books, "categories": categories})
+    try:
+        books = Book.objects.all()
+        categories = Book.objects.values_list('category', flat=True).distinct()
+        return render(request, "index.html", {"books": books, "categories": categories})
+    except Exception as e:
+        return render(request, "index.html", {"books": [], "categories": [], "error": str(e)})
 
 def categories_view(request):
     # Support both '?category=' and '?type=' from the URL
