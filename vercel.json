@@ -1,15 +1,11 @@
 {
-  "version": 2,
-  "builds": [
+  "buildCommand": "cd project_code && python -m pip install -r requirements.txt",
+  "outputDirectory": "project_code",
+  "framework": null,
+  "rewrites": [
     {
-      "src": "Dockerfile",
-      "use": "@vercel/docker"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/(.*)",
+      "destination": "/project_code/bookhub_backend/wsgi.py"
     }
   ]
 }
