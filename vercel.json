@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "project_code/api/index.py",
+      "src": "project_code/bookhub_backend/wsgi.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "project_code/api/index.py"
+      "dest": "project_code/bookhub_backend/wsgi.py"
     }
   ]
 }
