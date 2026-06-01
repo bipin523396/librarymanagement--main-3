@@ -475,7 +475,7 @@
             
             // Hook up backend checkout/wishlist URLs dynamically
             // (Rent button now uses goToCheckout())
-            document.getElementById("modalWishlistBtn").href = `/en/library/wishlist/add/${book.id}/`;
+            document.getElementById("modalWishlistBtn").href = `${window.BOOKHUB_PREFIX || '/en/library'}/wishlist/add/${book.id}/`;
             
             calculateTotal();
             
@@ -545,7 +545,7 @@
         displayBooks(books.slice(0, 4));
 
         function openAuthor(slug) {
-            window.location.href = `/en/library/author/${slug}/`;
+            window.location.href = `${window.BOOKHUB_PREFIX || '/en/library'}/author/${slug}/`;
         }
     </script>
 {% endblock %}

@@ -9,7 +9,16 @@ class LibraryConfig(AppConfig):
         from django.contrib.auth.models import update_last_login
         from django.contrib.auth.signals import user_logged_in
 
-        user_logged_in.disconnect(update_last_login)
+        # MongoDB users may lack a stable PK for last_login updates — disable signal
+        try:
+            user_logged_in.disconnect(update_last_login)
+        except Exception:
+            pass
+        try:
+            user_logged_in.disconnect(dispatch_uid='update_last_login')
+        except Exception:
+            pass
+        print('✅ update_last_login disconnected for MongoDB compatibility')
 
         # Patch Django's AutoField to support MongoDB ObjectIds
         from django.db.models import AutoField, BigAutoField

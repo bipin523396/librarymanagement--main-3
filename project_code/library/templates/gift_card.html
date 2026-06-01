@@ -154,7 +154,7 @@
         alert(`🎉 Gift card of ₹${giftAmount} successfully prepared for ${name} (${email})! Redirecting to checkout...`);
         
         // Redirect to standard backend checkout/payment
-        window.location.href = `/en/library/payment/`;
+        window.location.href = `${window.BOOKHUB_PREFIX || '/en/library'}/payment/`;
     }
 </script>
 {% endblock %}

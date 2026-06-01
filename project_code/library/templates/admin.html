@@ -214,8 +214,8 @@
             <li class="nav-item" onclick="showSection('settings-management', this)">
                 <i class="fas fa-cog"></i> <span class="text">Settings</span>
             </li>
-            <li class="nav-item" style="margin-top: auto; border-top: 1px solid #eee;">
-                <a href="{% url 'login' %}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
+            <li class="nav-item logout-item" style="margin-top: auto; border-top: 1px solid #eee;">
+                <a href="{% url 'logout' %}" style="color: #ef4444; text-decoration: none; display: flex; align-items: center; width: 100%;">
                     <i class="fas fa-sign-out-alt"></i> <span class="text">Logout</span>
                 </a>
             </li>
@@ -569,9 +569,13 @@
                         <td>{{ rental.due_date }}</td>
                         <td>{{ rental.total_amount }}</td>
                         <td>
-                            <span class="badge badge-success">
-                                {{ rental.rental_status }}
-                            </span>
+                            {% if rental.rental_status == 'Completed' or rental.delivery.status == 'Delivered' %}
+                            <span class="badge badge-success">Completed</span>
+                            {% elif rental.rental_status == 'Failed' or rental.delivery.status == 'Cancelled' or rental.delivery.status == 'Failed' %}
+                            <span class="badge" style="background:#fef2f2;color:#b91c1c;">Failed</span>
+                            {% else %}
+                            <span class="badge badge-warning">{{ rental.rental_status }}</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}

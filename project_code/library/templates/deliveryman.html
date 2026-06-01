@@ -101,7 +101,7 @@
             <li class="nav-item active" onclick="switchView('orders', this)"><i class="fas fa-clipboard-list"></i> Assigned Orders</li>
             <li class="nav-item" onclick="switchView('history', this)"><i class="fas fa-history"></i> Delivery History</li>
             <li class="nav-item" onclick="switchView('profile', this)"><i class="fas fa-user-circle"></i> My Profile</li>
-            <a href="{% url 'home' %}" style="text-decoration:none;"><li class="nav-item logout-item"><i class="fas fa-power-off"></i> Logout</li></a>
+            <a href="{% url 'logout' %}" style="text-decoration:none;"><li class="nav-item logout-item"><i class="fas fa-power-off"></i> Logout</li></a>
         </ul>
         <div style="padding: 20px; border-top: 1px solid var(--border-color);">
             {% if rider %}
@@ -118,7 +118,7 @@
         <header class="header">
             <div class="page-title">
                 <h1 id="page-heading">Assigned Orders</h1>
-                <p style="color: var(--text-gray); margin-top: 5px;">{% now "l, M d, Y" %}</p>
+                <p style="color: var(--text-gray); margin-top: 5px;">{% now "l, M d, Y" %} • <span style="font-size: 10px; color: #ea580c;">{{ debug_info }}</span></p>
             </div>
             <div id="statusToggle" class="status-toggle online" onclick="toggleStatus()">
                 <div class="toggle-dot"></div>
@@ -179,17 +179,32 @@
                                             <input type="hidden" name="status" value="Picked Up">
                                             <button type="submit" class="btn btn-primary" style="width:100%; margin-bottom: 5px;">Mark Picked Up</button>
                                         </form>
+                                        <form method="POST" action="{% url 'update_delivery_status' order.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="Failed">
+                                            <button type="submit" class="btn btn-outline" style="width:100%; color: var(--danger-red); border-color: var(--danger-red);">Mark Failed</button>
+                                        </form>
                                     {% elif order.status == 'Picked Up' %}
                                         <form method="POST" action="{% url 'update_delivery_status' order.id %}">
                                             {% csrf_token %}
                                             <input type="hidden" name="status" value="Out For Delivery">
                                             <button type="submit" class="btn btn-primary" style="width:100%; margin-bottom: 5px;">Mark Out for Delivery</button>
                                         </form>
+                                        <form method="POST" action="{% url 'update_delivery_status' order.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="Failed">
+                                            <button type="submit" class="btn btn-outline" style="width:100%; color: var(--danger-red); border-color: var(--danger-red);">Mark Failed</button>
+                                        </form>
                                     {% elif order.status == 'Out For Delivery' %}
                                         <form method="POST" action="{% url 'update_delivery_status' order.id %}">
                                             {% csrf_token %}
                                             <input type="hidden" name="status" value="Delivered">
                                             <button type="submit" class="btn btn-success" style="width:100%; margin-bottom: 5px;">Mark Delivered</button>
+                                        </form>
+                                        <form method="POST" action="{% url 'update_delivery_status' order.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="Failed">
+                                            <button type="submit" class="btn btn-outline" style="width:100%; margin-bottom: 5px; color: var(--danger-red); border-color: var(--danger-red);">Mark Failed</button>
                                         </form>
                                         <button class="btn btn-map" onclick="openMap('{{ order.rental.user.userprofile.address|default:"New Delhi" }}')"><i class="fas fa-motorcycle"></i> Live Route</button>
                                     {% endif %}

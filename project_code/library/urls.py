@@ -8,6 +8,7 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
 # admin path moved to root urls, removed to avoid duplicate namespace
     path('api/chat/', views.chat_api, name='chat_api'),# Default Django admin
+    path('health/', views.health_check, name='health_check'),
     path('test-db/', views.test_db_connection, name='test_db_connection'),
     
     # Main Pages

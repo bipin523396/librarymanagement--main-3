@@ -3,6 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import uuid
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 from .bot_engine import super_ai
 from django.http import JsonResponse
 from django.utils import timezone
@@ -11,6 +12,35 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from .models import DeliveryRider, Order, Book, UserProfile, MembershipPlan, Author
+from .role_utils import (
+    ROLE_ADMIN,
+    ROLE_CUSTOMER,
+    ROLE_DELIVERY,
+    detect_login_role,
+    home_url_name_for_role,
+)
+from .decorators import admin_portal_required, delivery_portal_required, portal_login_required
+
+AUTH_BACKEND = 'library.auth_backend.MongoModelBackend'
+
+
+def _is_delivery_staff(user):
+    if not user.is_authenticated:
+        return False
+    try:
+        return user.deliverystaff.active
+    except Exception:
+        return False
+
+
+def _is_delivery_rider(user):
+    if not user.is_authenticated:
+        return False
+    try:
+        return bool(user.deliveryrider)
+    except Exception:
+        return False
+
 
 # ==========================================
 # --- 1. CUSTOMER PAGES ---
@@ -82,7 +112,7 @@ def signup_view(request):
         original_save = getattr(user, "save", None)
         try:
             user.save = lambda *args, **kwargs: None
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            login(request, user, backend=AUTH_BACKEND)
         finally:
             if original_save is not None:
                 user.save = original_save
@@ -93,6 +123,10 @@ def signup_view(request):
 
 
 def login_view(request):
+    if request.user.is_authenticated:
+        role = request.session.get('login_role') or detect_login_role(request.user)
+        return redirect(home_url_name_for_role(role))
+
     if request.method == "POST":
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -119,37 +153,31 @@ def login_view(request):
 
         if user is not None:
             print(f"DEBUG: Authentication successful for: {user.username}")
-            # Prevent Django's login() from trying to update `last_login`
-            # The MongoDB‑backed user may not have a traditional PK, so we
-            # replace `save` with a no‑op before calling `login`.
-            original_save = getattr(user, "save", None)
             try:
-                user.save = lambda *args, **kwargs: None
-                login(request, user)
+                login(request, user, backend=AUTH_BACKEND)
                 print(f"DEBUG: login() call successful for: {user.username}")
             except Exception as e:
                 print(f"DEBUG: login() call failed: {str(e)}")
                 messages.error(request, f"Login failed: {str(e)}")
-                return redirect('login')
-            finally:
-                if original_save is not None:
-                    user.save = original_save
-            
-            # SMART ROUTING
-            next_url = request.POST.get('next')
-            if next_url:
-                return redirect(next_url)
+                return render(request, 'login.html', {'username_value': username})
 
-            if user.is_superuser:
-                return redirect('admin_dashboard')
-            elif hasattr(user, 'deliverystaff') and user.deliverystaff.active:
-                return redirect('delivery_dashboard')
+            login_as = detect_login_role(user)
+            request.session['login_role'] = login_as
+            request.session['_auth_user_backend'] = AUTH_BACKEND
+            request.session['_auth_user_id'] = str(user.pk)
+            if request.POST.get('remember_me'):
+                request.session.set_expiry(60 * 60 * 24 * 14)
             else:
-                return redirect('home')
-        else:
-            print(f"DEBUG: Authentication failed for: {username}")
-            messages.error(request, "Invalid username or password.")
-            return redirect('login')
+                request.session.set_expiry(0)
+
+            next_url = request.POST.get('next') or request.session.get('last_portal_path')
+            if next_url and next_url.startswith('/'):
+                return redirect(next_url)
+            return redirect(home_url_name_for_role(login_as))
+
+        print(f"DEBUG: Authentication failed for: {username}")
+        messages.error(request, "Invalid username or password. Check email/username and password.")
+        return render(request, 'login.html', {'username_value': username})
 
     return render(request, 'login.html')
 
@@ -163,9 +191,9 @@ def logout_view(request):
 
 from django.contrib.auth.decorators import login_required, user_passes_test
 
-@login_required(login_url='login')
-@user_passes_test(lambda u: u.is_superuser, login_url='home')
+@admin_portal_required
 def admin_dashboard(request):
+    request.session['login_role'] = ROLE_ADMIN
     books = Book.objects.all().order_by('-id')
     riders = DeliveryRider.objects.all()
     orders = Order.objects.filter(status='Pending')
@@ -179,8 +207,12 @@ def admin_dashboard(request):
 
     from .models import Rental, Payment, Delivery, ContactMessage, SystemSettings, Author, DeliveryStaff
     
-    live_rentals = Rental.objects.filter(rental_status='Pending').order_by('-rented_at')
-    history_rentals = Rental.objects.exclude(rental_status='Pending').order_by('-rented_at')
+    live_rentals = Rental.objects.filter(rental_status='Pending').select_related('user', 'book').order_by('-rented_at')
+    history_rentals = (
+        Rental.objects.exclude(rental_status='Pending')
+        .select_related('user', 'book', 'delivery')
+        .order_by('-rented_at')
+    )
     assigned_deliveries = Delivery.objects.exclude(status='Pending')
     
     context = {
@@ -203,7 +235,9 @@ def admin_dashboard(request):
     }
     return render(request, 'admin.html', context)
 
+@admin_portal_required
 def assign_delivery(request, rental_id):
+    from django.urls import reverse
     from .models import Rental, Delivery, DeliveryStaff
     rental = get_object_or_404(Rental, id=rental_id)
     delivery_boys = [staff for staff in DeliveryStaff.objects.all() if staff.active]
@@ -212,53 +246,57 @@ def assign_delivery(request, rental_id):
         delivery_staff_id = request.POST.get('delivery_person')
         if delivery_staff_id:
             try:
-                delivery_staff = DeliveryStaff.objects.get(id=delivery_staff_id)
+                delivery_staff = DeliveryStaff.objects.get(id=int(delivery_staff_id))
                 
-                # Update or Create Delivery record
-                delivery, created = Delivery.objects.get_or_create(rental=rental)
-                delivery.delivery_person = delivery_staff.user
-                delivery.status = 'Assigned'
-                delivery.save()
+                delivery, _created = Delivery.objects.get_or_create(rental=rental)
+                Delivery.objects.filter(pk=delivery.pk).update(
+                    delivery_person_id=delivery_staff.user_id,
+                    status='Assigned',
+                )
 
-                # Update Rental Status
-                rental.rental_status = 'Assigned'
-                rental.save()
+                Rental.set_status(rental.id, 'Assigned')
                 
                 messages.success(request, f"Delivery assigned to {delivery_staff.user.username}")
-                print(f"DEBUG: Assigned rental {rental_id} to {delivery_staff.user.username}")
             except DeliveryStaff.DoesNotExist:
                 messages.error(request, "Selected delivery staff does not exist.")
             except Exception as e:
                 import traceback
                 print(traceback.format_exc())
                 messages.error(request, f"Error: {str(e)}")
+        else:
+            messages.error(request, "Please select a delivery person.")
                 
-        return redirect('/en/library/admin-dashboard/#live-rental-management')
+        return redirect(reverse('admin_dashboard') + '#live-rental-management')
 
     return render(request, 'assign_delivery.html', {
         'rental': rental,
         'delivery_boys': delivery_boys
     })
 
+@portal_login_required
 def update_delivery_status(request, delivery_id):
-    from .models import Delivery
+    from django.urls import reverse
+    from .models import Delivery, Rental
     if request.method == 'POST':
         delivery = get_object_or_404(Delivery, id=delivery_id)
         new_status = request.POST.get('status')
         if new_status:
             delivery.status = new_status
             delivery.save()
-            
+
+            rental_id = delivery.rental_id
             if new_status == 'Delivered':
-                delivery.rental.rental_status = 'Delivered'
-                delivery.rental.returned = True
-                delivery.rental.save()
+                Rental.set_status(rental_id, 'Completed', returned=True)
+            elif new_status in ('Cancelled', 'Failed'):
+                Rental.set_status(rental_id, 'Failed')
             else:
-                delivery.rental.rental_status = new_status
-                delivery.rental.save()
+                Rental.set_status(rental_id, new_status)
             
             messages.success(request, "Delivery status updated!")
-    return redirect('/en/library/admin-dashboard/#delivery-management')
+
+    if _is_delivery_staff(request.user):
+        return redirect('delivery_dashboard')
+    return redirect(reverse('admin_dashboard') + '#history-rental-management')
 
 def add_delivery_staff(request):
     if request.method == 'POST':
@@ -283,7 +321,7 @@ def add_delivery_staff(request):
                 vehicle_number=vehicle
             )
             messages.success(request, f'Delivery staff {username} added successfully!')
-    return redirect('/en/library/admin-dashboard/#delivery-staff-management')
+    return redirect(reverse('admin_dashboard') + '#delivery-staff-management')
 
 def add_admin(request):
     if request.method == 'POST':
@@ -310,7 +348,7 @@ def add_admin(request):
             user.last_name = last_name
             user.save()
             messages.success(request, f'New Admin {first_name} {last_name} ({email}) created successfully!')
-    return redirect('/en/library/admin-dashboard/#settings-management')
+    return redirect(reverse('admin_dashboard') + '#settings-management')
 
 def resolve_message(request, message_id):
     from .models import ContactMessage
@@ -319,7 +357,7 @@ def resolve_message(request, message_id):
         msg.status = 'Resolved'
         msg.save()
         messages.success(request, 'Message marked as resolved.')
-    return redirect('/en/library/admin-dashboard/#contact-management')
+    return redirect(reverse('admin_dashboard') + '#contact-management')
 
 def add_book(request):
     if request.method == 'POST':
@@ -466,9 +504,9 @@ def assign_order(request):
 # --- 4. DELIVERY DASHBOARD ACTIONS ---
 # ==========================================
 
-@login_required(login_url='login')
-@user_passes_test(lambda u: hasattr(u, 'deliverystaff') or hasattr(u, 'deliveryrider'), login_url='home')
+@delivery_portal_required
 def delivery_dashboard(request):
+    request.session['login_role'] = ROLE_DELIVERY
     from .models import Delivery, DeliveryStaff, DeliveryRider, Order
     
     rider = None
@@ -477,9 +515,10 @@ def delivery_dashboard(request):
 
     # 1. Modern System
     try:
-        rider = DeliveryStaff.objects.get(user=request.user)
-        # Get ALL deliveries for this person to debug
-        modern_deliveries = Delivery.objects.filter(delivery_person=request.user)
+        rider = DeliveryStaff.objects.get(user_id=request.user.pk)
+        modern_deliveries = Delivery.objects.filter(
+            delivery_person_id=request.user.pk
+        ).select_related('rental', 'rental__user', 'rental__book')
         
         for d in modern_deliveries:
             if d.status in ['Pending', 'Assigned', 'Picked Up', 'Out For Delivery']:
@@ -554,14 +593,63 @@ def update_order_status(request):
         return JsonResponse({'status': 'error', 'message': 'Invalid status.'}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=405)
     
-def test_db_connection(request):
+def health_check(request):
+    """Lightweight health check for Render / uptime monitors."""
+    from bookhub_backend.mongo_config import get_mongodb_uri, mongodb_username_from_uri
+    db_status = 'unknown'
+    uri = get_mongodb_uri()
     try:
+        from pymongo import MongoClient
+        if uri:
+            MongoClient(uri, serverSelectionTimeoutMS=8000).admin.command('ping')
+            db_status = 'connected'
+        else:
+            db_status = 'no_uri'
+    except Exception as exc:
+        msg = str(exc).lower()
+        if 'authentication failed' in msg or 'bad auth' in msg:
+            db_status = 'auth_failed'
+        else:
+            db_status = f'error: {exc.__class__.__name__}'
+    return JsonResponse({
+        'status': 'ok',
+        'database': db_status,
+        'mongo_user': mongodb_username_from_uri(uri),
+    })
+
+
+def test_db_connection(request):
+    from django.conf import settings
+    from bookhub_backend.mongo_config import get_mongodb_uri, mongodb_username_from_uri, mask_mongodb_uri
+    try:
+        from pymongo import MongoClient
+        uri = get_mongodb_uri()
+        if not uri:
+            return JsonResponse({'status': 'error', 'message': 'MONGODB_URI not set on server'}, status=500)
+        MongoClient(uri, serverSelectionTimeoutMS=10000).admin.command('ping')
         from .models import Book
         count = Book.objects.count()
-        return JsonResponse({'status': 'success', 'message': f'Connected to DB. Book count: {count}'})
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Connected to DB. Book count: {count}',
+            'mongo_user': mongodb_username_from_uri(uri),
+        })
     except Exception as e:
-        import traceback
-        return JsonResponse({'status': 'error', 'message': str(e), 'traceback': traceback.format_exc()}, status=500)
+        payload = {
+            'status': 'error',
+            'message': str(e) or 'Database connection failed',
+            'mongo_user': mongodb_username_from_uri(uri),
+            'uri_preview': mask_mongodb_uri(uri),
+        }
+        if settings.DEBUG:
+            import traceback
+            payload['traceback'] = traceback.format_exc()
+        if 'authentication failed' in str(e).lower() or 'bad auth' in str(e).lower():
+            payload['hint'] = (
+                'Atlas rejected login. On Render set MONGODB_URI and DJANGO_DATABASE_URL to the same '
+                'mongodb+srv://... string. User must be bipinsagarmatha321_db_user and @ in password → %40.'
+            )
+        return JsonResponse(payload, status=500)
 
 @csrf_exempt
 def chat_api(request):

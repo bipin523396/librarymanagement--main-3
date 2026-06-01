@@ -201,6 +201,11 @@ class Rental(models.Model):
     def __str__(self):
         return f"{self.user.username} rented {self.book.title}"
 
+    @classmethod
+    def set_status(cls, pk, status, **extra):
+        """Update status without full save (avoids MongoDB Decimal128 errors on other fields)."""
+        return cls.objects.filter(pk=pk).update(rental_status=status, **extra)
+
 
 # 11. DELIVERY STAFF
 class DeliveryStaff(models.Model):
