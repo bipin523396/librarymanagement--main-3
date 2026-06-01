@@ -166,7 +166,9 @@ def login_view(request):
             login_as = detect_login_role(user)
             request.session['login_role'] = login_as
             request.session['_auth_user_backend'] = AUTH_BACKEND
-            request.session['_auth_user_id'] = str(user.pk)
+            from library.auth_backend import session_user_id
+            request.session['_auth_user_id'] = session_user_id(user)
+            request.session.save()
             if request.POST.get('remember_me'):
                 request.session.set_expiry(60 * 60 * 24 * 14)
             else:

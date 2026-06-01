@@ -305,13 +305,17 @@
                             </span>
                         </td>
                         <td>
+                            {% if book.id %}
                             <button class="btn btn-sm btn-outline" 
-                                onclick="openBookModal('{{ book.id }}', '{{ book.title|escapejs }}', '{{ book.author.id }}', '{{ book.category }}', '{{ book.isbn }}', '{{ book.copies_total }}')">
+                                onclick="openBookModal('{{ book.id }}', '{{ book.title|escapejs }}', '{% if book.author %}{{ book.author.id }}{% endif %}', '{{ book.category }}', '{{ book.isbn }}', '{{ book.copies_total }}')">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <a href="{% url 'delete_book' book.id %}" onclick="return confirm('Delete this book permanently?')">
                                 <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
                             </a>
+                            {% else %}
+                            <span style="font-size:12px;color:#999;">—</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}

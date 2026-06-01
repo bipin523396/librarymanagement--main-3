@@ -61,16 +61,27 @@ class RolePortalMiddleware:
     def __call__(self, request):
         path = _path(request)
 
-        if request.user.is_authenticated and not _is_public(path):
+        try:
+            is_authenticated = request.user.is_authenticated
+        except Exception:
+            request.session.flush()
+            is_authenticated = False
+
+        if is_authenticated and not _is_public(path):
             request.session['last_portal_path'] = request.get_full_path()
 
         role = request.session.get('login_role')
-        if request.user.is_authenticated and role and not _is_public(path):
+        if is_authenticated and role and not _is_public(path):
             block = self._blocked_redirect(request, role, path)
             if block:
                 return block
 
-        return self.get_response(request)
+        try:
+            return self.get_response(request)
+        except Exception:
+            if not _is_public(path):
+                request.session.flush()
+            raise
 
     def _blocked_redirect(self, request, role, path):
         if role == ROLE_ADMIN:
