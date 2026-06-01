@@ -390,9 +390,9 @@
                     {% for delivery in assigned_deliveries %}
                     <tr>
                         <td>{{ delivery.tracking_id|default:"N/A" }}</td>
-                        <td>{{ delivery.rental.book.title }}</td>
-                        <td>{{ delivery.rental.user.username }}</td>
-                        <td>{{ delivery.rental.user.userprofile.address|default:"N/A" }}</td>
+                        <td>{% if delivery.rental and delivery.rental.book %}{{ delivery.rental.book.title }}{% else %}—{% endif %}</td>
+                        <td>{% if delivery.rental and delivery.rental.user %}{{ delivery.rental.user.username }}{% else %}—{% endif %}</td>
+                        <td>{% if delivery.rental and delivery.rental.user and delivery.rental.user.userprofile %}{{ delivery.rental.user.userprofile.address|default:"N/A" }}{% else %}N/A{% endif %}</td>
                         <td>{{ delivery.delivery_person.username|default:"Unassigned" }}</td>
                         <td>
                             <span class="badge {% if delivery.status == 'Delivered' %}badge-success{% else %}badge-warning{% endif %}">
@@ -518,10 +518,10 @@
                 <tbody>
                     {% for rental in live_rentals %}
                     <tr>
-                        <td>{{ rental.user.username }}</td>
-                        <td>{{ rental.book.title }}</td>
-                        <td>{{ rental.user.userprofile.address|default:"N/A" }}</td>
-                        <td>{{ rental.user.userprofile.phone|default:"N/A" }}</td>
+                        <td>{% if rental.user %}{{ rental.user.username }}{% else %}—{% endif %}</td>
+                        <td>{% if rental.book %}{{ rental.book.title }}{% else %}—{% endif %}</td>
+                        <td>{% if rental.user and rental.user.userprofile %}{{ rental.user.userprofile.address|default:"N/A" }}{% else %}N/A{% endif %}</td>
+                        <td>{% if rental.user and rental.user.userprofile %}{{ rental.user.userprofile.phone|default:"N/A" }}{% else %}N/A{% endif %}</td>
                         <td>{{ rental.payment_status }}</td>
                         <td>
                             <span class="badge {% if rental.rental_status == 'Assigned' or rental.rental_status == 'Out For Delivery' %}badge-success{% else %}badge-warning{% endif %}">

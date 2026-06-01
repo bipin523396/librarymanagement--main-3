@@ -47,12 +47,14 @@ def _is_delivery_rider(user):
 # ==========================================
 
 def home(request):
-    try:
-        books = Book.objects.all()
-        categories = Book.objects.values_list('category', flat=True).distinct()
-        return render(request, "index.html", {"books": books, "categories": categories})
-    except Exception as e:
-        return render(request, "index.html", {"books": [], "categories": [], "error": str(e)})
+    from .safe_queries import books_for_display
+    from .models import Author
+    books, categories, err = books_for_display(Book, Author)
+    return render(request, "index.html", {
+        "books": books,
+        "categories": categories,
+        "error": err,
+    })
 
 def categories_view(request):
     # Support both '?category=' and '?type=' from the URL
@@ -194,46 +196,65 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 @admin_portal_required
 def admin_dashboard(request):
     request.session['login_role'] = ROLE_ADMIN
-    books = Book.objects.all().order_by('-id')
-    riders = DeliveryRider.objects.all()
-    orders = Order.objects.filter(status='Pending')
-    
-    try:
-        members = UserProfile.objects.all()
-    except:
-        members = []
-
-    low_stock_count = books.filter(copies_available__lte=2).count()
-
     from .models import Rental, Payment, Delivery, ContactMessage, SystemSettings, Author, DeliveryStaff
-    
-    live_rentals = Rental.objects.filter(
-        rental_status=Rental.STATUS_PENDING,
-    ).select_related('user', 'book').order_by('-rented_at')
-    history_rentals = Rental.objects.filter(
-        rental_status__in=[Rental.STATUS_COMPLETED, Rental.STATUS_FAILED],
-    ).select_related('user', 'book', 'delivery').order_by('-rented_at')
-    assigned_deliveries = Delivery.objects.exclude(status='Pending')
-    
-    context = {
-        'total_books': books.count(),
-        'active_members': members.count(),
-        'pending_orders': orders.count(),
-        'low_stock_count': low_stock_count,
-        'books': books,
-        'authors': Author.objects.all(),
-        'riders': riders,
-        'orders': orders,
-        'members': members,
-        'live_rentals': live_rentals,
-        'history_rentals': history_rentals,
-        'payments': Payment.objects.all().order_by('-created_at'),
-        'assigned_deliveries': assigned_deliveries,
-        'messages': ContactMessage.objects.all().order_by('-created_at'),
-        'settings': SystemSettings.objects.first(),
-        'delivery_staff': DeliveryStaff.objects.all(),
-    }
-    return render(request, 'admin.html', context)
+    from .safe_queries import rentals_for_admin
+
+    try:
+        books = list(Book.objects.all().order_by('-id'))
+        riders = list(DeliveryRider.objects.all())
+        orders = list(Order.objects.filter(status='Pending'))
+        try:
+            members = list(UserProfile.objects.all())
+        except Exception:
+            members = []
+        low_stock_count = sum(1 for b in books if getattr(b, 'copies_available', 0) <= 2)
+        live_rentals = rentals_for_admin(Rental, {'rental_status': Rental.STATUS_PENDING})
+        history_rentals = rentals_for_admin(
+            Rental,
+            {'rental_status__in': [Rental.STATUS_COMPLETED, Rental.STATUS_FAILED]},
+        )
+        assigned_deliveries = list(Delivery.objects.exclude(status='Pending'))
+        context = {
+            'total_books': len(books),
+            'active_members': len(members),
+            'pending_orders': len(orders),
+            'low_stock_count': low_stock_count,
+            'books': books,
+            'authors': Author.objects.all(),
+            'riders': riders,
+            'orders': orders,
+            'members': members,
+            'live_rentals': live_rentals,
+            'history_rentals': history_rentals,
+            'payments': Payment.objects.all().order_by('-created_at'),
+            'assigned_deliveries': assigned_deliveries,
+            'messages': ContactMessage.objects.all().order_by('-created_at'),
+            'settings': SystemSettings.objects.first(),
+            'delivery_staff': DeliveryStaff.objects.all(),
+        }
+        return render(request, 'admin.html', context)
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        messages.error(request, f'Admin dashboard error: {exc}')
+        return render(request, 'admin.html', {
+            'total_books': 0,
+            'active_members': 0,
+            'pending_orders': 0,
+            'low_stock_count': 0,
+            'books': [],
+            'authors': [],
+            'riders': [],
+            'orders': [],
+            'members': [],
+            'live_rentals': [],
+            'history_rentals': [],
+            'payments': [],
+            'assigned_deliveries': [],
+            'messages': [],
+            'settings': None,
+            'delivery_staff': [],
+        })
 
 @admin_portal_required
 def assign_delivery(request, rental_id):
@@ -509,73 +530,80 @@ def assign_order(request):
 def delivery_dashboard(request):
     request.session['login_role'] = ROLE_DELIVERY
     from .models import Delivery, DeliveryStaff, DeliveryRider, Order, Rental
-    
+    from .safe_queries import split_deliveries_for_dashboard
+
     rider = None
     active_deliveries = []
     history_deliveries = []
 
-    # 1. Modern System
     try:
-        rider = DeliveryStaff.objects.get(user_id=request.user.pk)
-        # Djongo cannot filter on rental__rental_status; filter in Python after fetch.
-        my_deliveries = Delivery.objects.filter(
-            delivery_person_id=request.user.pk,
-        ).select_related('rental', 'rental__user', 'rental__book')
-        for d in my_deliveries:
-            rs = getattr(d.rental, 'rental_status', None)
-            if rs == Rental.STATUS_ASSIGNED:
-                active_deliveries.append(d)
-            elif rs in (Rental.STATUS_COMPLETED, Rental.STATUS_FAILED):
-                history_deliveries.append(d)
-    except DeliveryStaff.DoesNotExist:
-        pass
+        try:
+            rider = DeliveryStaff.objects.get(user_id=request.user.pk)
+        except DeliveryStaff.DoesNotExist:
+            rider = None
 
-    # 2. Legacy System
-    try:
-        rider_old = DeliveryRider.objects.get(user=request.user)
-        if not rider: 
-            rider = rider_old
-        
-        legacy_orders = Order.objects.filter(assigned_rider=rider_old)
-        
-        for o in legacy_orders:
-            # Map legacy status to new template status
-            template_status = o.status
-            if o.status == 'Assigned': template_status = 'Assigned'
-            elif o.status == 'Out for Delivery': template_status = 'Out For Delivery'
-            
-            if o.status in ['Pending', 'Assigned', 'Out for Delivery']:
-                active_deliveries.append({
-                    'id': o.order_id,
-                    'tracking_id': o.order_id,
-                    'status': template_status,
-                    'rental': {
-                        'user': o.customer.user,
-                        'book': o.book
-                    },
-                    'is_legacy': True
-                })
-            else:
-                history_deliveries.append({
-                    'id': o.order_id,
-                    'tracking_id': o.order_id,
-                    'status': template_status,
-                    'rental': {
-                        'user': o.customer.user,
-                        'book': o.book
-                    },
-                    'is_legacy': True
-                })
-    except DeliveryRider.DoesNotExist:
-        pass
+        if rider is not None:
+            try:
+                deliveries = Delivery.objects.filter(delivery_person_id=request.user.pk)
+            except Exception as exc:
+                print('DELIVERY DASHBOARD ERROR:', exc)
+                deliveries = []
 
-    context = {
-        'rider': rider,
-        'assigned_orders': active_deliveries,
-        'history_orders': history_deliveries,
-        'debug_info': f"Found {len(active_deliveries)} active and {len(history_deliveries)} history orders for user {request.user.username}"
-    }
-    return render(request, 'deliveryman.html', context)
+            active_deliveries, history_deliveries = split_deliveries_for_dashboard(
+                deliveries, Rental, assigned_status='assigned',
+            )
+
+        # Legacy orders (optional)
+        try:
+            rider_old = DeliveryRider.objects.get(user=request.user)
+            if rider is None:
+                rider = rider_old
+            for o in Order.objects.filter(assigned_rider=rider_old):
+                try:
+                    template_status = o.status
+                    if o.status == 'Out for Delivery':
+                        template_status = 'Out For Delivery'
+                    customer_user = getattr(getattr(o, 'customer', None), 'user', None)
+                    if o.status in ('Pending', 'Assigned', 'Out for Delivery') and customer_user:
+                        active_deliveries.append({
+                            'id': o.order_id,
+                            'tracking_id': o.order_id,
+                            'status': template_status,
+                            'rental': {'user': customer_user, 'book': o.book},
+                            'is_legacy': True,
+                        })
+                    elif customer_user:
+                        history_deliveries.append({
+                            'id': o.order_id,
+                            'tracking_id': o.order_id,
+                            'status': template_status,
+                            'rental': {'user': customer_user, 'book': o.book},
+                            'is_legacy': True,
+                        })
+                except Exception as exc:
+                    print('DELIVERY DASHBOARD ERROR:', exc)
+                    continue
+        except DeliveryRider.DoesNotExist:
+            pass
+
+        return render(request, 'deliveryman.html', {
+            'rider': rider,
+            'assigned_orders': active_deliveries,
+            'history_orders': history_deliveries,
+            'debug_info': (
+                f'Found {len(active_deliveries)} active and {len(history_deliveries)} '
+                f'history orders for user {request.user.username}'
+            ),
+        })
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        return render(request, 'deliveryman.html', {
+            'rider': rider,
+            'assigned_orders': [],
+            'history_orders': [],
+            'debug_info': f'Dashboard safe mode: {exc}',
+        })
 
 
 def update_order_status(request):

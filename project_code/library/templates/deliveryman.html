@@ -104,9 +104,9 @@
             <a href="{% url 'logout' %}" style="text-decoration:none;"><li class="nav-item logout-item"><i class="fas fa-power-off"></i> Logout</li></a>
         </ul>
         <div style="padding: 20px; border-top: 1px solid var(--border-color);">
-            {% if rider %}
+            {% if rider and rider.user %}
                 <div style="font-weight: 700; font-size: 14px;">{{ rider.user.first_name|default:rider.user.username }}</div>
-                <div style="font-size: 11px; color: var(--text-gray);">{{ rider.vehicle_number }}</div>
+                <div style="font-size: 11px; color: var(--text-gray);">{{ rider.vehicle_number|default:"" }}</div>
             {% else %}
                 <div style="font-weight: 700; font-size: 14px; color: var(--primary-orange);">Test Mode Active</div>
                 <div style="font-size: 11px; color: var(--text-gray);">Viewing as Guest</div>
@@ -143,11 +143,15 @@
                         <tr>
                             <td><strong>#{{ order.tracking_id|default:order.id }}</strong></td>
                             <td>
+                                {% if order.rental and order.rental.user %}
                                 <div style="font-weight: 600;">{{ order.rental.user.first_name|default:order.rental.user.username }}</div>
-                                <div style="font-size:12px; color:var(--text-gray); margin-top:2px;">{{ order.rental.user.userprofile.address|default:"N/A" }}, {{ order.rental.user.userprofile.pincode|default:"N/A" }}</div>
-                                <a href="tel:{{ order.rental.user.userprofile.phone }}" class="btn-call"><i class="fas fa-phone"></i> Call</a>
+                                <div style="font-size:12px; color:var(--text-gray); margin-top:2px;">{% if order.rental.user.userprofile %}{{ order.rental.user.userprofile.address|default:"N/A" }}, {{ order.rental.user.userprofile.pincode|default:"N/A" }}{% else %}N/A{% endif %}</div>
+                                {% if order.rental.user.userprofile.phone %}<a href="tel:{{ order.rental.user.userprofile.phone }}" class="btn-call"><i class="fas fa-phone"></i> Call</a>{% endif %}
+                                {% else %}
+                                <div style="color: var(--text-gray);">Customer unavailable</div>
+                                {% endif %}
                             </td>
-                            <td>{{ order.rental.book.title }}</td>
+                            <td>{% if order.rental and order.rental.book %}{{ order.rental.book.title }}{% else %}—{% endif %}</td>
                             <td>
                                 {% if order.status == 'Pending' or order.status == 'Assigned' %}
                                     <span class="badge badge-pending">{{ order.status }}</span>
@@ -206,7 +210,9 @@
                                             <input type="hidden" name="status" value="Failed">
                                             <button type="submit" class="btn btn-outline" style="width:100%; margin-bottom: 5px; color: var(--danger-red); border-color: var(--danger-red);">Mark Failed</button>
                                         </form>
+                                        {% if order.rental and order.rental.user and order.rental.user.userprofile %}
                                         <button class="btn btn-map" onclick="openMap('{{ order.rental.user.userprofile.address|default:"New Delhi" }}')"><i class="fas fa-motorcycle"></i> Live Route</button>
+                                        {% endif %}
                                     {% endif %}
                                 {% endif %}
                             </td>
@@ -227,8 +233,8 @@
                         {% for order in history_orders %}
                         <tr>
                             <td>#{{ order.tracking_id|default:order.id }}</td>
-                            <td>{{ order.rental.user.first_name|default:order.rental.user.username }}</td>
-                            <td>{{ order.rental.user.userprofile.address|default:"N/A" }}</td>
+                            <td>{% if order.rental and order.rental.user %}{{ order.rental.user.first_name|default:order.rental.user.username }}{% else %}—{% endif %}</td>
+                            <td>{% if order.rental and order.rental.user and order.rental.user.userprofile %}{{ order.rental.user.userprofile.address|default:"N/A" }}{% else %}N/A{% endif %}</td>
                             <td>
                                 {% if order.status == 'Delivered' %}
                                     <span class="badge badge-success">Delivered Successfully</span>

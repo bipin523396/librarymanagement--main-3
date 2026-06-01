@@ -361,7 +361,7 @@
             {
                 id: {{ book.id }},
                 title: "{{ book.title|escapejs }}",
-                author: "{{ book.author.name|escapejs }}",
+                author: "{% if book.author %}{{ book.author.name|escapejs }}{% else %}Unknown{% endif %}",
                 category: "{{ book.category|escapejs }}",
                 price: {{ book.price_per_day|floatformat:2 }},
                 copies_available: {{ book.copies_available }},
