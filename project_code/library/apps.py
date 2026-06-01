@@ -35,7 +35,6 @@ class LibraryConfig(AppConfig):
                     else:
                         return self.update_one(spec, document, **kwargs)
                 Collection.update = legacy_update
-                print("✅ Patched PyMongo Collection.update")
 
             if not hasattr(Collection, 'insert'):
                 def legacy_insert(self, doc_or_docs, **kwargs):
@@ -44,7 +43,6 @@ class LibraryConfig(AppConfig):
                     else:
                         return self.insert_one(doc_or_docs, **kwargs)
                 Collection.insert = legacy_insert
-                print("✅ Patched PyMongo Collection.insert")
 
             if not hasattr(Collection, 'remove'):
                 def legacy_remove(self, spec_or_id=None, **kwargs):
@@ -55,24 +53,19 @@ class LibraryConfig(AppConfig):
                     else:
                         return self.delete_one({'_id': spec_or_id}, **kwargs)
                 Collection.remove = legacy_remove
-                print("✅ Patched PyMongo Collection.remove")
-        except Exception as e:
-            print("⚠️ Failed to patch PyMongo Collection:", e)
+        except Exception:
+            pass
 
         # Patch MongoClient.close to prevent closure of connections
         try:
             from pymongo import MongoClient
             MongoClient.close = lambda self: None
-            print("✅ Patched PyMongo MongoClient.close")
-        except Exception as e:
-            print("⚠️ Failed to patch PyMongo MongoClient:", e)
+        except Exception:
+            pass
 
         try:
             from pymongo.synchronous.mongo_client import MongoClient as SyncMongoClient
             SyncMongoClient.close = lambda self: None
-            print("✅ Patched PyMongo SyncMongoClient.close")
-        except Exception as e:
+        except Exception:
             pass
-
-        print("✅ LibraryConfig ready() executed – signal disconnected & AutoField patched")
 

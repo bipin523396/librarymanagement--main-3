@@ -81,20 +81,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-from django.utils.translation import gettext_lazy as _
 LANGUAGE_CODE = 'en'
 LANGUAGES = [
-    ('en', _('English')),
-    ('hi', _('Hindi')),
-    ('ta', _('Tamil')),
-    ('te', _('Telugu')),
-    ('kn', _('Kannada')),
-    ('ml', _('Malayalam')),
-    ('mr', _('Marathi')),
-    ('bn', _('Bengali')),
-    ('ur', _('Urdu')),
-    ('pa', _('Punjabi')),
-    ('ne', _('Nepali')),
+    ('en', 'English'),
+    ('hi', 'Hindi'),
+    ('ta', 'Tamil'),
+    ('te', 'Telugu'),
+    ('kn', 'Kannada'),
+    ('ml', 'Malayalam'),
+    ('mr', 'Marathi'),
+    ('bn', 'Bengali'),
+    ('ur', 'Urdu'),
+    ('pa', 'Punjabi'),
+    ('ne', 'Nepali'),
 ]
 LOCALE_PATHS = [os.path.join(BASE_DIR, 'locale')]
 TIME_ZONE = 'UTC'
