@@ -3,13 +3,10 @@
   "builds": [
     {
       "src": "project_code/bookhub_backend/wsgi.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "project_code/bookhub_backend/wsgi.py"
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb"
+      }
     }
   ]
 }
