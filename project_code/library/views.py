@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
 from .models import DeliveryRider, Order, Book, UserProfile, MembershipPlan, Author
 from .role_utils import (
@@ -111,13 +111,11 @@ def signup_view(request):
             address="Not provided yet"
         )
 
-        original_save = getattr(user, "save", None)
-        try:
-            user.save = lambda *args, **kwargs: None
-            login(request, user, backend=AUTH_BACKEND)
-        finally:
-            if original_save is not None:
-                user.save = original_save
+        from .mongo_auth import mongo_session_login
+
+        mongo_session_login(request, user)
+        request.session['login_role'] = detect_login_role(user)
+        request.session.save()
 
         return redirect('home')
 
@@ -155,20 +153,13 @@ def login_view(request):
 
         if user is not None:
             print(f"DEBUG: Authentication successful for: {user.username}")
-            from library.auth_backend import session_user_id
+            from .mongo_auth import mongo_session_login
 
             try:
-                if user.pk is None:
-                    # Djongo/MongoDB: avoid session key "None" and int pk validation
-                    request.session['_auth_user_id'] = session_user_id(user)
-                    request.session['_auth_user_backend'] = AUTH_BACKEND
-                    request.session.pop('_auth_user_hash', None)
-                    request.user = user
-                else:
-                    login(request, user, backend=AUTH_BACKEND)
-                print(f"DEBUG: login() call successful for: {user.username}")
+                mongo_session_login(request, user)
+                print(f"DEBUG: session login successful for: {user.username}")
             except Exception as e:
-                print(f"DEBUG: login() call failed: {str(e)}")
+                print(f"DEBUG: session login failed: {str(e)}")
                 messages.error(request, f"Login failed: {str(e)}")
                 return render(request, 'login.html', {'username_value': username})
 
@@ -192,7 +183,9 @@ def login_view(request):
     return render(request, 'login.html')
 
 def logout_view(request):
-    logout(request)
+    from .mongo_auth import mongo_session_logout
+
+    mongo_session_logout(request)
     return redirect('login')
 
 # ==========================================
@@ -601,19 +594,30 @@ def delivery_dashboard(request):
 
     from library.auth_backend import resolve_user_pk
 
+    username = request.user.get_username()
     user_pk = resolve_user_pk(request.user, request)
     try:
-        try:
-            rider = DeliveryStaff.objects.get(user_id=user_pk) if user_pk else None
-        except DeliveryStaff.DoesNotExist:
-            rider = None
-
-        if rider is not None:
+        rider = DeliveryStaff.objects.filter(user__username=username).first()
+        if rider is None and username:
+            rider = DeliveryStaff.objects.filter(user__email=username).first()
+        if rider is None and user_pk:
             try:
-                deliveries = Delivery.objects.filter(delivery_person_id=user_pk)
+                rider = DeliveryStaff.objects.filter(user_id=user_pk).first()
+            except Exception:
+                rider = None
+
+        if rider is not None or username:
+            try:
+                deliveries = Delivery.objects.filter(delivery_person__username=username)
             except Exception as exc:
                 print('DELIVERY DASHBOARD ERROR:', exc)
                 deliveries = []
+            if not deliveries and user_pk:
+                try:
+                    deliveries = Delivery.objects.filter(delivery_person_id=user_pk)
+                except Exception as exc:
+                    print('DELIVERY DASHBOARD ERROR:', exc)
+                    deliveries = []
 
             active_deliveries, history_deliveries = split_deliveries_for_dashboard(
                 deliveries, Rental, assigned_status='assigned',
@@ -621,7 +625,9 @@ def delivery_dashboard(request):
 
         # Legacy orders (optional)
         try:
-            rider_old = DeliveryRider.objects.get(user=request.user)
+            rider_old = DeliveryRider.objects.filter(user__username=username).first()
+            if rider_old is None:
+                raise DeliveryRider.DoesNotExist
             if rider is None:
                 rider = rider_old
             for o in Order.objects.filter(assigned_rider=rider_old):
@@ -1059,7 +1065,7 @@ def payment_success(request, book_id):
 @login_required
 def my_rentals(request):
     from .models import Rental
-    rentals = Rental.objects.filter(user=request.user).select_related('book', 'delivery').order_by('-rented_at')
+    rentals = Rental.objects.filter(user__username=request.user.get_username()).order_by('-rented_at')
     return render(request, 'my_rentals.html', {'rentals': rentals})
 
 @login_required
@@ -1068,14 +1074,22 @@ def track_order(request, delivery_id):
     delivery = get_object_or_404(Delivery, id=delivery_id)
     
     # Ensure the user owns this rental
-    if delivery.rental.user != request.user:
+    rental_user = getattr(delivery.rental, 'user', None)
+    owner_name = getattr(rental_user, 'username', None) if rental_user else None
+    if owner_name and owner_name != request.user.get_username():
         messages.error(request, "Unauthorized access.")
         return redirect('my_rentals')
         
     rider_profile = None
-    if delivery.delivery_person:
+    if delivery.delivery_person_id:
         try:
-            rider_profile = DeliveryStaff.objects.get(user=delivery.delivery_person)
+            rider_profile = DeliveryStaff.objects.filter(
+                user_id=delivery.delivery_person_id
+            ).first()
+            if rider_profile is None and delivery.delivery_person_id:
+                uname = getattr(delivery.delivery_person, 'username', None)
+                if uname:
+                    rider_profile = DeliveryStaff.objects.filter(user__username=uname).first()
         except DeliveryStaff.DoesNotExist:
             pass
             

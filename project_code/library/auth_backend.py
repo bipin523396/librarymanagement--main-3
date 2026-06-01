@@ -7,12 +7,10 @@ User = get_user_model()
 
 
 def session_user_id(user):
-    """Djongo/MongoDB often leaves user.pk as None; use username in session."""
-    if user is None:
-        return None
-    if user.pk is not None:
-        return str(user.pk)
-    return user.get_username()
+    """Session key for MongoDB users — always username/email, never pk."""
+    from library.mongo_auth import mongo_session_key
+
+    return mongo_session_key(user)
 
 
 def resolve_user_pk(user, request=None):
@@ -76,6 +74,13 @@ class MongoModelBackend(ModelBackend):
         uid = str(user_id).strip()
         if not uid or uid == 'None':
             return None
+
+        # Session stores username or email (MongoAuthSessionMiddleware)
+        if '@' in uid or not uid.isdigit():
+            user = User.objects.filter(username=uid).first()
+            if user:
+                return user
+            return User.objects.filter(email=uid).first()
 
         candidates = [user_id, uid]
         try:

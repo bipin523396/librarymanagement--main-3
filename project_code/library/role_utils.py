@@ -10,7 +10,14 @@ CUSTOMER_HOME = 'home'
 
 
 def user_can_admin(user):
-    return user.is_authenticated and user.is_superuser
+    if user is None:
+        return False
+    try:
+        if not user.is_authenticated:
+            return False
+    except Exception:
+        return False
+    return bool(getattr(user, 'is_superuser', False))
 
 
 def _delivery_staff_active_in_mongo(username):

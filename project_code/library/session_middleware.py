@@ -1,30 +1,28 @@
-"""Restore login when Djongo leaves user.pk empty but session has username."""
+"""MongoDB session auth — store username/email in session, never integer user pk."""
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
+from django.utils.functional import SimpleLazyObject
 
 
 class MongoAuthSessionMiddleware:
-    """
-    Django's session auth hash can fail when user.pk is None on MongoDB.
-    Re-load user from _auth_user_id (username or ObjectId) when needed.
-    """
-
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        try:
-            authenticated = request.user.is_authenticated
-        except Exception:
-            authenticated = False
+        def get_user():
+            username = request.session.get('_auth_user_id')
+            if not username:
+                return AnonymousUser()
 
-        if not authenticated:
-            uid = request.session.get('_auth_user_id')
-            backend_path = request.session.get('_auth_user_backend')
-            if uid and backend_path:
-                from django.contrib.auth import load_backend
+            User = get_user_model()
+            try:
+                user = User.objects.filter(username=username).first()
+                if user is None:
+                    user = User.objects.filter(email=username).first()
+                return user if user is not None else AnonymousUser()
+            except Exception:
+                return AnonymousUser()
 
-                backend = load_backend(backend_path)
-                user = backend.get_user(uid)
-                if user is not None:
-                    request.user = user
-
+        request.user = SimpleLazyObject(get_user)
         return self.get_response(request)
