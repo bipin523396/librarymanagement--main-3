@@ -29,7 +29,7 @@ Use these when creating or redeploying **librarymanagement-main-3** on [Render](
 
 | # | KEY | VALUE |
 |---|-----|--------|
-| 1 | `MONGODB_URI` | `mongodb+srv://bipinsagarmatha321_db_user:BookHubRender2026@cluster0.3f7teqs.mongodb.net/bookhub_db?retryWrites=true&w=majority&appName=Cluster0` |
+| 1 | `MONGODB_URI` | `mongodb+srv://bookhub_user:%40Sagarmatha321@cluster0.3f7teqs.mongodb.net/bookhub_db?retryWrites=true&w=majority&appName=Cluster0` |
 | 2 | `DJANGO_DATABASE_URL` | **Same exact URI as `MONGODB_URI`** |
 | 3 | `MONGODB_NAME` | `bookhub_db` |
 | 4 | `DEBUG` | `False` |
@@ -44,7 +44,7 @@ Optional but recommended:
 
 **Atlas (before deploy):**
 
-1. [MongoDB Atlas](https://cloud.mongodb.com) → **Database Access** → user `bipinsagarmatha321_db_user` → password **`BookHubRender2026`**
+1. [MongoDB Atlas](https://cloud.mongodb.com) → **Database Access** → user **`bookhub_user`** → password **`@Sagarmatha321`**
 2. **Network Access** → add **`0.0.0.0/0`**
 
 ---

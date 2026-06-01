@@ -39,7 +39,7 @@ In [Render Environment](https://dashboard.render.com/web/srv-d8e55lcm0tmc73ei3u0
 
 | Key | Value |
 |-----|--------|
-| `MONGODB_URI` | `mongodb+srv://bipinsagarmatha321_db_user:%40YOUR_PASSWORD@cluster0.3f7teqs.mongodb.net/bookhub_db?retryWrites=true&w=majority&appName=Cluster0` |
+| `MONGODB_URI` | `mongodb+srv://bookhub_user:%40Sagarmatha321@cluster0.3f7teqs.mongodb.net/bookhub_db?retryWrites=true&w=majority&appName=Cluster0` |
 | `DJANGO_DATABASE_URL` | *(same as MONGODB_URI)* |
 | `MONGODB_NAME` | `bookhub_db` |
 
@@ -47,7 +47,7 @@ Password `@Sagarmatha321` → use `%40` instead of `@` in the URL.
 
 **Atlas checks:**
 
-1. **Database Access** → user `bipinsagarmatha321_db_user` exists, password matches.
+1. **Database Access** → user `bookhub_user` exists, password `@Sagarmatha321`.
 2. **Network Access** → allow `0.0.0.0/0` (for Render).
 3. Render → **Manual Deploy** → **Clear build cache & deploy**.
 
