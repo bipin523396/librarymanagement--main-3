@@ -202,10 +202,18 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 ACCOUNT_LOGOUT_ON_GET = True
 
+_on_render = (
+    os.getenv('RENDER', '').lower() in ('true', '1', 'yes')
+    or bool(os.getenv('RENDER_EXTERNAL_URL', '').strip())
+)
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'true').lower() in ('true', '1', 'yes')
+    # Render health checks hit HTTP on $PORT; SSL redirect breaks deploy probes.
+    if _on_render:
+        SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'false').lower() in ('true', '1', 'yes')
+    else:
+        SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'true').lower() in ('true', '1', 'yes')
 else:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False

@@ -1,8 +1,7 @@
 # Render Blueprint — librarymanagement-main-3
 # Dashboard: https://dashboard.render.com/web/srv-d8e55lcm0tmc73ei3u0g
 #
-# Secrets (MONGODB_URI, DJANGO_DATABASE_URL, SECRET_KEY): set in Render UI
-# per RENDER_SETUP.md — do not commit real passwords to git.
+# Set MONGODB_URI + DJANGO_DATABASE_URL in Render UI (see RENDER_SETUP.md).
 
 services:
   - type: web
@@ -11,14 +10,16 @@ services:
     plan: free
     rootDir: project_code
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    startCommand: gunicorn bookhub_backend.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
-    healthCheckPath: /en/library/health/
+    startCommand: bash start.sh
+    healthCheckPath: /health/
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
       - key: DJANGO_SETTINGS_MODULE
         value: bookhub_backend.settings
       - key: DEBUG
+        value: "False"
+      - key: SECURE_SSL_REDIRECT
         value: "False"
       - key: MONGODB_NAME
         value: bookhub_db

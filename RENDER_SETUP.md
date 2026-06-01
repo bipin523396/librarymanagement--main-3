@@ -19,8 +19,9 @@ Use these when creating or redeploying **librarymanagement-main-3** on [Render](
 |-------|--------|
 | **Root Directory** | `project_code` |
 | **Build Command** | `pip install -r requirements.txt && python manage.py collectstatic --noinput` |
-| **Start Command** | `gunicorn bookhub_backend.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120` |
-| **Health Check Path** | `/en/library/health/` |
+| **Start Command** | `bash start.sh` |
+| **Health Check Path** | `/health/` |
+| **Start Command** | `bash start.sh` (or see below) |
 
 ---
 

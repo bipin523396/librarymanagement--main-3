@@ -4,6 +4,8 @@ from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
 
+from library.views import render_liveness
+
 
 def home_redirect(request):
     return redirect('/en/library/')
@@ -11,6 +13,7 @@ def home_redirect(request):
 
 urlpatterns = [
     path('', home_redirect),
+    path('health/', render_liveness),
     path('i18n/', include('django.conf.urls.i18n')),
     path('admin/', admin.site.urls),
     path('en/library/', include('library.urls')),

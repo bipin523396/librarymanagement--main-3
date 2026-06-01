@@ -593,9 +593,18 @@ def update_order_status(request):
         return JsonResponse({'status': 'error', 'message': 'Invalid status.'}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=405)
     
+def render_liveness(request):
+    """Fast liveness probe — no DB (Render health check must not fail on Mongo)."""
+    return JsonResponse({'status': 'ok', 'service': 'bookhub'})
+
+
 def health_check(request):
-    """Lightweight health check for Render / uptime monitors."""
+    """App health + optional MongoDB status (?db=1)."""
     from bookhub_backend.mongo_config import get_mongodb_uri, mongodb_username_from_uri
+    payload = {'status': 'ok', 'service': 'bookhub'}
+    if request.GET.get('db') != '1':
+        return JsonResponse(payload)
+
     db_status = 'unknown'
     uri = get_mongodb_uri()
     try:
@@ -611,11 +620,9 @@ def health_check(request):
             db_status = 'auth_failed'
         else:
             db_status = f'error: {exc.__class__.__name__}'
-    return JsonResponse({
-        'status': 'ok',
-        'database': db_status,
-        'mongo_user': mongodb_username_from_uri(uri),
-    })
+    payload['database'] = db_status
+    payload['mongo_user'] = mongodb_username_from_uri(uri)
+    return JsonResponse(payload)
 
 
 def test_db_connection(request):
@@ -645,10 +652,8 @@ def test_db_connection(request):
             import traceback
             payload['traceback'] = traceback.format_exc()
         if 'authentication failed' in str(e).lower() or 'bad auth' in str(e).lower():
-            payload['hint'] = (
-                'Atlas rejected login. On Render set MONGODB_URI and DJANGO_DATABASE_URL to the same '
-                'mongodb+srv://... string. User must be bipinsagarmatha321_db_user and @ in password → %40.'
-            )
+            from bookhub_backend.mongo_config import mongodb_uri_diagnostics
+            payload['hints'] = mongodb_uri_diagnostics(uri)
         return JsonResponse(payload, status=500)
 
 @csrf_exempt
