@@ -1,16 +1,16 @@
-# Dockerfile for Vercel (Django app)
+# Dockerfile for Render/Deployment
 # -------------------------------------------------
-# 1. Base image – Python 3.9 (slim)
-FROM python:3.9-slim
+# 1. Base image – Python 3.11 (slim)
+FROM python:3.11-slim
 
 # 2. Set working directory to /app
 WORKDIR /app
 
 # 3. Install system build tools
-RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y gcc python3-dev libpq-dev && rm -rf /var/lib/apt/lists/*
 
-# 4. Copy requirements and install Python dependencies
-COPY project_code/requirements.txt .
+# 4. Copy root requirements and install Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 5. Copy the entire project
@@ -23,15 +23,15 @@ ENV PYTHONPATH=/app/project_code
 ENV ALLOWED_HOSTS=*
 ENV DEBUG=True
 
-# 7. Work in project directory
+# 7. Work in project directory where manage.py is
 WORKDIR /app/project_code
 
-# 8. Run migrations and collect static files
-RUN python manage.py migrate --noinput
+# 8. Collect static files
 RUN python manage.py collectstatic --noinput
 
-# 9. Expose port Vercel expects for containers
-EXPOSE 8080
+# 9. Expose port (Render uses PORT env var, but we expose 8000 by default)
+EXPOSE 8000
 
 # 10. Run the app with Gunicorn
-CMD ["gunicorn", "bookhub_backend.wsgi:application", "--bind", "0.0.0.0:8080", "--workers", "2", "--timeout", "120"]
+# Using the PYTHONPATH we set earlier
+CMD ["gunicorn", "bookhub_backend.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120"]

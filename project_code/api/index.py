@@ -13,6 +13,7 @@ django.setup()
 
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
+app = application
 
 def handler(event, context):
     return application(event, context)

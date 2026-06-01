@@ -1,8 +1,9 @@
 
 from django.views.decorators.csrf import csrf_exempt
 import json
+import uuid
 from django.shortcuts import render, get_object_or_404, redirect
-# from .bot_engine import super_ai  # Temporarily disabled for debugging
+from .bot_engine import super_ai
 from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -95,18 +96,29 @@ def login_view(request):
     if request.method == "POST":
         username = request.POST.get('username')
         password = request.POST.get('password')
+        
+        print(f"DEBUG: Login attempt for username: {username}")
 
-        user = authenticate(request, username=username, password=password)
+        try:
+            user = authenticate(request, username=username, password=password)
+        except Exception as e:
+            print(f"DEBUG: Authenticate error: {str(e)}")
+            user = None
         
         # Fallback: if username was actually an email, lookup the user's real username
         if user is None and '@' in username:
+            print(f"DEBUG: Username '{username}' not found, trying as email...")
             try:
                 user_obj = User.objects.get(email=username)
+                print(f"DEBUG: Found user with email: {user_obj.username}")
                 user = authenticate(request, username=user_obj.username, password=password)
             except User.DoesNotExist:
-                pass
+                print(f"DEBUG: No user found with email: {username}")
+            except Exception as e:
+                print(f"DEBUG: Email fallback error: {str(e)}")
 
         if user is not None:
+            print(f"DEBUG: Authentication successful for: {user.username}")
             # Prevent Django's login() from trying to update `last_login`
             # The MongoDB‑backed user may not have a traditional PK, so we
             # replace `save` with a no‑op before calling `login`.
@@ -114,6 +126,11 @@ def login_view(request):
             try:
                 user.save = lambda *args, **kwargs: None
                 login(request, user)
+                print(f"DEBUG: login() call successful for: {user.username}")
+            except Exception as e:
+                print(f"DEBUG: login() call failed: {str(e)}")
+                messages.error(request, f"Login failed: {str(e)}")
+                return redirect('login')
             finally:
                 if original_save is not None:
                     user.save = original_save
@@ -130,6 +147,7 @@ def login_view(request):
             else:
                 return redirect('home')
         else:
+            print(f"DEBUG: Authentication failed for: {username}")
             messages.error(request, "Invalid username or password.")
             return redirect('login')
 
@@ -161,8 +179,8 @@ def admin_dashboard(request):
 
     from .models import Rental, Payment, Delivery, ContactMessage, SystemSettings, Author, DeliveryStaff
     
-    live_rentals = Rental.objects.filter(rental_status__in=['Pending', 'Assigned', 'Out For Delivery']).order_by('-rented_at')
-    history_rentals = Rental.objects.filter(rental_status__in=['Delivered', 'Returned', 'Cancelled']).order_by('-rented_at')
+    live_rentals = Rental.objects.filter(rental_status='Pending').order_by('-rented_at')
+    history_rentals = Rental.objects.exclude(rental_status='Pending').order_by('-rented_at')
     assigned_deliveries = Delivery.objects.exclude(status='Pending')
     
     context = {
@@ -440,26 +458,58 @@ def assign_order(request):
 # ==========================================
 
 @login_required(login_url='login')
-@user_passes_test(lambda u: hasattr(u, 'deliverystaff') and u.deliverystaff.active, login_url='home')
+@user_passes_test(lambda u: hasattr(u, 'deliverystaff') or hasattr(u, 'deliveryrider'), login_url='home')
 def delivery_dashboard(request):
-    from .models import Delivery, DeliveryStaff
+    from .models import Delivery, DeliveryStaff, DeliveryRider, Order
     
     rider = None
     active_deliveries = []
     history_deliveries = []
 
+    # 1. Try modern DeliveryStaff/Delivery model
     try:
         rider = DeliveryStaff.objects.get(user=request.user)
-        active_deliveries = Delivery.objects.filter(
+        active_deliveries = list(Delivery.objects.filter(
             delivery_person=request.user, 
             status__in=['Pending', 'Assigned', 'Picked Up', 'Out For Delivery']
-        ).order_by('-assigned_at')
-        history_deliveries = Delivery.objects.filter(
+        ).order_by('-assigned_at'))
+        history_deliveries = list(Delivery.objects.filter(
             delivery_person=request.user, 
             status__in=['Delivered', 'Cancelled']
-        ).order_by('-assigned_at')
+        ).order_by('-assigned_at'))
     except DeliveryStaff.DoesNotExist:
-        pass 
+        pass
+
+    # 2. Try older DeliveryRider/Order model (Unified)
+    try:
+        rider_old = DeliveryRider.objects.get(user=request.user)
+        if not rider: # Use old rider if new one not found
+            rider = rider_old
+        
+        legacy_active = Order.objects.filter(
+            assigned_rider=rider_old,
+            status__in=['Pending', 'Assigned to Rider', 'Out for Delivery']
+        ).order_by('-id')
+        
+        # Wrap legacy orders in a Delivery-like object for the template
+        for o in legacy_active:
+            # Map legacy status to new template status
+            template_status = o.status
+            if o.status == 'Assigned to Rider': template_status = 'Assigned'
+            elif o.status == 'Out for Delivery': template_status = 'Out For Delivery'
+            
+            active_deliveries.append({
+                'id': o.order_id,
+                'tracking_id': o.order_id,
+                'status': template_status,
+                'rental': {
+                    'user': o.customer.user,
+                    'book': o.book
+                },
+                'is_legacy': True # Flag for template actions
+            })
+    except DeliveryRider.DoesNotExist:
+        pass
 
     context = {
         'rider': rider,
@@ -486,10 +536,20 @@ def update_order_status(request):
         return JsonResponse({'status': 'error', 'message': 'Invalid status.'}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=405)
     
+def test_db_connection(request):
+    try:
+        from .models import Book
+        count = Book.objects.count()
+        return JsonResponse({'status': 'success', 'message': f'Connected to DB. Book count: {count}'})
+    except Exception as e:
+        import traceback
+        return JsonResponse({'status': 'error', 'message': str(e), 'traceback': traceback.format_exc()}, status=500)
+
 @csrf_exempt
 def chat_api(request):
     if request.method == "POST":
         try:
+            print(f"DEBUG: Chat API received: {request.body}")
             data = json.loads(request.body)
             user_message = data.get('message', '')
             has_image = data.get('has_image', False)
@@ -497,6 +557,9 @@ def chat_api(request):
             bot_response = super_ai(user_message, has_image=has_image)
             return JsonResponse({'status': 'success', 'response': bot_response})
         except Exception as e:
+            import traceback
+            print(f"DEBUG: Chat API Error: {str(e)}")
+            print(traceback.format_exc())
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
@@ -693,6 +756,7 @@ def checkout_view(request):
 def process_checkout(request):
     if request.method == "POST":
         try:
+            print(f"DEBUG: Process Checkout received: {request.body}")
             data = json.loads(request.body)
             book_id = data.get('book_id')
             duration = data.get('duration')
@@ -741,6 +805,7 @@ def process_checkout(request):
             )
             Delivery.objects.create(rental=rental)
             
+            print(f"DEBUG: Checkout successful for Order ID: {order_id}")
             return JsonResponse({
                 'status': 'success',
                 'order_id': order_id,
@@ -748,6 +813,9 @@ def process_checkout(request):
             })
             
         except Exception as e:
+            import traceback
+            print(f"DEBUG: Checkout Error: {str(e)}")
+            print(traceback.format_exc())
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
@@ -784,8 +852,30 @@ def payment_success(request, book_id):
 @login_required
 def my_rentals(request):
     from .models import Rental
-    rentals = Rental.objects.filter(user=request.user).order_by('-rented_at')
+    rentals = Rental.objects.filter(user=request.user).select_related('book', 'delivery').order_by('-rented_at')
     return render(request, 'my_rentals.html', {'rentals': rentals})
+
+@login_required
+def track_order(request, delivery_id):
+    from .models import Delivery, DeliveryStaff
+    delivery = get_object_or_404(Delivery, id=delivery_id)
+    
+    # Ensure the user owns this rental
+    if delivery.rental.user != request.user:
+        messages.error(request, "Unauthorized access.")
+        return redirect('my_rentals')
+        
+    rider_profile = None
+    if delivery.delivery_person:
+        try:
+            rider_profile = DeliveryStaff.objects.get(user=delivery.delivery_person)
+        except DeliveryStaff.DoesNotExist:
+            pass
+            
+    return render(request, 'track_order.html', {
+        'delivery': delivery,
+        'rider_profile': rider_profile
+    })
 
 @login_required
 def premium_checkout(request):

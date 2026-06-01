@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-extrabold text-gray-900">{% trans "My Wishlist" %}</h1>
+        <a href="{% url 'home' %}" class="text-orange-600 hover:text-orange-700 font-medium">
+            <i class="fas fa-arrow-left mr-2"></i>{% trans "Continue Shopping" %}
+        </a>
+    </div>
+
+    {% if books %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {% for book in books %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
+                    <div class="relative aspect-[3/4] overflow-hidden">
+                        {% if book.image %}
+                            <img src="{{ book.image.url }}" alt="{{ book.title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        {% else %}
+                            <div class="w-full h-full bg-gray-100 flex items-center justify-center">
+                                <i class="fas fa-book text-gray-300 text-4xl"></i>
+                            </div>
+                        {% endif %}
+                        <div class="absolute top-2 right-2">
+                            <span class="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs font-bold uppercase tracking-wider">
+                                {{ book.category }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4">
+                        <h3 class="font-bold text-gray-900 mb-1 line-clamp-1">{{ book.title }}</h3>
+                        <p class="text-sm text-gray-500 mb-4">by {{ book.author.name }}</p>
+                        
+                        <div class="flex items-center justify-between mt-auto">
+                            <span class="text-lg font-bold text-orange-600">Rs. {{ book.price_per_day|floatformat:2 }}</span>
+                            <div class="flex space-x-2">
+                                <a href="{% url 'book_detail' book.id %}" class="p-2 text-gray-400 hover:text-orange-600 transition" title="{% trans 'View Details' %}">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <form action="{% url 'add_to_cart' book.id %}" method="POST" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="p-2 text-gray-400 hover:text-orange-600 transition" title="{% trans 'Add to Cart' %}">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-200">
+            <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-heart text-gray-300 text-3xl"></i>
+            </div>
+            <h2 class="text-xl font-bold text-gray-900 mb-2">{% trans "Your wishlist is empty" %}</h2>
+            <p class="text-gray-500 mb-8">{% trans "Save books you're interested in for later!" %}</p>
+            <a href="{% url 'home' %}" class="inline-flex items-center px-6 py-3 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 transition shadow-lg shadow-orange-200">
+                {% trans "Browse Books" %}
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

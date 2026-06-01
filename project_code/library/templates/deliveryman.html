@@ -156,25 +156,43 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if order.status == 'Assigned' %}
-                                    <form method="POST" action="{% url 'update_delivery_status' order.id %}">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="status" value="Picked Up">
-                                        <button type="submit" class="btn btn-primary" style="width:100%; margin-bottom: 5px;">Mark Picked Up</button>
-                                    </form>
-                                {% elif order.status == 'Picked Up' %}
-                                    <form method="POST" action="{% url 'update_delivery_status' order.id %}">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="status" value="Out For Delivery">
-                                        <button type="submit" class="btn btn-primary" style="width:100%; margin-bottom: 5px;">Mark Out for Delivery</button>
-                                    </form>
-                                {% elif order.status == 'Out For Delivery' %}
-                                    <form method="POST" action="{% url 'update_delivery_status' order.id %}">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="status" value="Delivered">
-                                        <button type="submit" class="btn btn-success" style="width:100%; margin-bottom: 5px;">Mark Delivered</button>
-                                    </form>
-                                    <button class="btn btn-map" onclick="openMap('{{ order.rental.user.userprofile.address|default:"New Delhi" }}')"><i class="fas fa-motorcycle"></i> Live Route</button>
+                                {% if order.is_legacy %}
+                                    {% if order.status == 'Assigned' %}
+                                        <form method="POST" action="{% url 'update_order_status' %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="order_id" value="{{ order.id }}">
+                                            <input type="hidden" name="status" value="Out for Delivery">
+                                            <button type="submit" class="btn btn-primary" style="width:100%; margin-bottom: 5px;">Mark Out for Delivery</button>
+                                        </form>
+                                    {% elif order.status == 'Out For Delivery' %}
+                                        <form method="POST" action="{% url 'update_order_status' %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="order_id" value="{{ order.id }}">
+                                            <input type="hidden" name="status" value="Completed">
+                                            <button type="submit" class="btn btn-success" style="width:100%; margin-bottom: 5px;">Mark Delivered</button>
+                                        </form>
+                                    {% endif %}
+                                {% else %}
+                                    {% if order.status == 'Assigned' %}
+                                        <form method="POST" action="{% url 'update_delivery_status' order.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="Picked Up">
+                                            <button type="submit" class="btn btn-primary" style="width:100%; margin-bottom: 5px;">Mark Picked Up</button>
+                                        </form>
+                                    {% elif order.status == 'Picked Up' %}
+                                        <form method="POST" action="{% url 'update_delivery_status' order.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="Out For Delivery">
+                                            <button type="submit" class="btn btn-primary" style="width:100%; margin-bottom: 5px;">Mark Out for Delivery</button>
+                                        </form>
+                                    {% elif order.status == 'Out For Delivery' %}
+                                        <form method="POST" action="{% url 'update_delivery_status' order.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="status" value="Delivered">
+                                            <button type="submit" class="btn btn-success" style="width:100%; margin-bottom: 5px;">Mark Delivered</button>
+                                        </form>
+                                        <button class="btn btn-map" onclick="openMap('{{ order.rental.user.userprofile.address|default:"New Delhi" }}')"><i class="fas fa-motorcycle"></i> Live Route</button>
+                                    {% endif %}
                                 {% endif %}
                             </td>
                         </tr>

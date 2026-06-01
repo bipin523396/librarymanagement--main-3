@@ -12,14 +12,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
-SECRET_KEY = os.getenv('SECRET_KEY')
-DEBUG = True
-ALLOWED_HOSTS = ["*"]
+SECRET_KEY = os.getenv('SECRET_KEY', '#5k*!@#vg0yk!)4861o$a!c)+t^!rbf0dk6$9g^@3(bpi_ydfy')
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+if 'testserver' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('testserver')
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:8000",
     "https://librarymanagement-main-3.vercel.app",
     "https://*.vercel.app",
+    "https://*.onrender.com",
 ]
 
 INSTALLED_APPS = [
@@ -67,13 +70,17 @@ TEMPLATES = [
 WSGI_APPLICATION = 'bookhub_backend.wsgi.application'
 
 # Database
+# For MongoDB with Djongo, we use the custom backend to fix connection issues
 DATABASES = {
     'default': {
-        'ENGINE': 'djongo',
+        'ENGINE': 'library.custom_djongo_backend',
         'NAME': os.getenv('MONGODB_NAME', 'bookhub_db'),
         'ENFORCE_SCHEMA': False,
         'CLIENT': {
             'host': os.getenv('DJANGO_DATABASE_URL', os.getenv('MONGODB_URI')),
+            'connectTimeoutMS': 10000, # 10 seconds timeout for connection
+            'socketTimeoutMS': 10000,
+            'retryWrites': True,
         },
     }
 }
@@ -108,6 +115,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'library/static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
@@ -122,5 +133,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 CSRF_COOKIE_NAME = "bookhub_csrf_token"
 SESSION_COOKIE_NAME = "bookhub_session_id"
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_HTTPONLY = True
 ACCOUNT_LOGOUT_ON_GET = True
 

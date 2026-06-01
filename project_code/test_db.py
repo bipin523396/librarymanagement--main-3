@@ -8,8 +8,11 @@ django.setup()
 
 from library.models import UserSettings
 
+import traceback
+
 try:
     count = UserSettings.objects.count()
     print(f"✅ Database connection successful. UserSettings count: {count}")
 except Exception as e:
-    print(f"❌ Database connection failed: {e}")
+    print(f"❌ Database connection failed:")
+    traceback.print_exc()

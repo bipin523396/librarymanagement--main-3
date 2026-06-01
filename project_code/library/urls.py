@@ -8,6 +8,7 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
 # admin path moved to root urls, removed to avoid duplicate namespace
     path('api/chat/', views.chat_api, name='chat_api'),# Default Django admin
+    path('test-db/', views.test_db_connection, name='test_db_connection'),
     
     # Main Pages
     path('', views.home, name='home'),
@@ -71,6 +72,7 @@ urlpatterns = [
     path('admin-dashboard/add-admin/', views.add_admin, name='add_admin'),
     path('admin-dashboard/resolve-message/<int:message_id>/', views.resolve_message, name='resolve_message'),
     path('my-rentals/', views.my_rentals, name='my_rentals'),
+    path('track-order/<int:delivery_id>/', views.track_order, name='track_order'),
     path('premium-checkout/', views.premium_checkout, name='premium_checkout'),
     path('premium-checkout/activate/', views.activate_premium, name='activate_premium'),
     path('search/', views.search, name='search'),

@@ -220,15 +220,46 @@
             addMessageToChat('user', message);
             searchInput.value = '';
             try {
+                // Get CSRF token from cookie if template tag is empty
+                let csrfToken = '{{ csrf_token }}';
+                if (!csrfToken || csrfToken === 'None') {
+                    const name = 'bookhub_csrf_token';
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    csrfToken = cookieValue;
+                }
+
                 const response = await fetch("{% url 'chat_api' %}", {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
                     body: JSON.stringify({ message: message })
                 });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.message || 'Server error');
+                }
+
                 const data = await response.json();
                 typingIndicator.classList.add('hidden');
-                addMessageToChat('ai', response.ok ? data.response : '{% trans "Error" %}');
-            } catch (e) { typingIndicator.classList.add('hidden'); addMessageToChat('ai', '{% trans "Error" %}'); }
+                addMessageToChat('ai', data.response);
+            } catch (error) {
+                console.error('Chat Error:', error);
+                typingIndicator.classList.add('hidden');
+                addMessageToChat('ai', '{% trans "Error" %}: ' + error.message);
+            }
         });
     }
 
