@@ -1,8 +1,8 @@
-# Render Blueprint — full Django app (frontend + backend + static files)
+# Render Blueprint — librarymanagement-main-3
 # Dashboard: https://dashboard.render.com/web/srv-d8e55lcm0tmc73ei3u0g
 #
-# After deploy, set in Render Environment (sync: false = enter manually):
-#   MONGODB_URI, DJANGO_DATABASE_URL (same Atlas URI, @ in password → %40)
+# Secrets (MONGODB_URI, DJANGO_DATABASE_URL, SECRET_KEY): set in Render UI
+# per RENDER_SETUP.md — do not commit real passwords to git.
 
 services:
   - type: web
@@ -11,7 +11,7 @@ services:
     plan: free
     rootDir: project_code
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    startCommand: gunicorn bookhub_backend.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120
+    startCommand: gunicorn bookhub_backend.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     healthCheckPath: /en/library/health/
     envVars:
       - key: PYTHON_VERSION
@@ -20,12 +20,14 @@ services:
         value: bookhub_backend.settings
       - key: DEBUG
         value: "False"
-      - key: ALLOWED_HOSTS
-        value: ".onrender.com,localhost,127.0.0.1"
       - key: MONGODB_NAME
         value: bookhub_db
+      - key: FRONTEND_URL
+        value: https://librarymanagement-main-3.onrender.com
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,librarymanagement-main-3.onrender.com"
       - key: SECRET_KEY
-        generateValue: true
+        sync: false
       - key: MONGODB_URI
         sync: false
       - key: DJANGO_DATABASE_URL
