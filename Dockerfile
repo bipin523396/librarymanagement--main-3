@@ -26,8 +26,7 @@ ENV DEBUG=True
 # 7. Work in project directory
 WORKDIR /app/project_code
 
-# 8. Create database file and run migrations
-RUN touch db.sqlite3
+# 8. Run migrations and collect static files
 RUN python manage.py migrate --noinput
 RUN python manage.py collectstatic --noinput
 

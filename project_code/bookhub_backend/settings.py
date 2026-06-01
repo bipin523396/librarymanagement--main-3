@@ -69,8 +69,12 @@ WSGI_APPLICATION = 'bookhub_backend.wsgi.application'
 # Database
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'djongo',
+        'NAME': os.getenv('MONGODB_NAME', 'bookhub_db'),
+        'ENFORCE_SCHEMA': False,
+        'CLIENT': {
+            'host': os.getenv('DJANGO_DATABASE_URL', os.getenv('MONGODB_URI')),
+        },
     }
 }
 
