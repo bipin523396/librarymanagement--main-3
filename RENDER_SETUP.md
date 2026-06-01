@@ -1,120 +1,79 @@
 # Render deploy — exact settings (BOOK HUB)
 
-Use these when creating or redeploying **librarymanagement-main-3** on [Render](https://dashboard.render.com).
+**Passwords are set only in MongoDB Atlas + Render — not in code.**
 
-**Live URLs after deploy**
+**Live URLs**
 
 | What | URL |
 |------|-----|
 | Website | https://librarymanagement-main-3.onrender.com |
 | Login | https://librarymanagement-main-3.onrender.com/en/library/login/ |
-| Health check | https://librarymanagement-main-3.onrender.com/en/library/health/ |
 | Database test | https://librarymanagement-main-3.onrender.com/en/library/test-db/ |
 
 ---
 
-## Service settings
+## STEP 1 — MongoDB Atlas
 
-| Field | Value |
-|-------|--------|
-| **Root Directory** | `project_code` |
-| **Build Command** | `pip install -r requirements.txt && python manage.py collectstatic --noinput` |
-| **Start Command** | `bash start.sh` |
-| **Health Check Path** | `/health/` |
-| **Start Command** | `bash start.sh` (or see below) |
+1. [MongoDB Atlas](https://cloud.mongodb.com) → **Database Access** → user **`bookhub_user`**
+2. **Edit Password** → set to: **`Sagarmatha321`**
+3. **Update User**
+4. **Network Access** → **`0.0.0.0/0`** allowed
 
 ---
 
-## Environment variables (add all 6)
+## STEP 2 — Render environment variables
 
-| # | KEY | VALUE |
-|---|-----|--------|
-| 1 | `MONGODB_URI` | `mongodb+srv://bookhub_user:%40Sagarmatha321@cluster0.3f7teqs.mongodb.net/bookhub_db?retryWrites=true&w=majority&appName=Cluster0` |
-| 2 | `DJANGO_DATABASE_URL` | **Same exact URI as `MONGODB_URI`** |
-| 3 | `MONGODB_NAME` | `bookhub_db` |
-| 4 | `DEBUG` | `False` |
-| 5 | `SECRET_KEY` | `bookhub-super-secret-key-2026-render` |
-| 6 | `FRONTEND_URL` | `https://librarymanagement-main-3.onrender.com` |
-
-Optional but recommended:
+[Render service](https://dashboard.render.com/web/srv-d8e55lcm0tmc73ei3u0g) → **Environment**
 
 | KEY | VALUE |
 |-----|--------|
-| `ALLOWED_HOSTS` | `.onrender.com,librarymanagement-main-3.onrender.com` |
+| `MONGODB_URI` | `mongodb+srv://bookhub_user:Sagarmatha321@cluster0.3f7teqs.mongodb.net/bookhub_db?retryWrites=true&w=majority&appName=Cluster0` |
+| `DJANGO_DATABASE_URL` | **Same exact URI as `MONGODB_URI`** |
+| `MONGODB_NAME` | `bookhub_db` |
+| `DEBUG` | `False` |
 
-**Atlas (before deploy):**
+**Service settings**
 
-1. [MongoDB Atlas](https://cloud.mongodb.com) → **Database Access** → user **`bookhub_user`** → password **`@Sagarmatha321`**
-2. **Network Access** → add **`0.0.0.0/0`**
-
----
-
-## Deploy
-
-1. Add all settings and env vars above.
-2. Click **Deploy Web Service** (or **Manual Deploy** → **Clear build cache & deploy**).
-3. Wait until status is **Your service is live**.
-
----
-
-## Test after deploy
-
-1. **Website:** https://librarymanagement-main-3.onrender.com — books should appear (not “No books found”).
-2. **Database:** https://librarymanagement-main-3.onrender.com/en/library/test-db/
-
-   **Want:**
-
-   ```json
-   {"status": "success", "message": "Connected to DB. Book count: ..."}
-   ```
-
-   **If you see** `bad auth` or `authentication failed` → Atlas password does not match the URI on Render. Fix Atlas + env vars, save, redeploy.
+| Field | Value |
+|-------|--------|
+| Root Directory | `project_code` |
+| Build Command | `pip install -r requirements.txt && python manage.py collectstatic --noinput` |
+| Start Command | `bash start.sh` |
+| Health Check Path | `/health/` |
 
 ---
 
-## Create admin (only after database test succeeds)
+## STEP 3 — Deploy
 
-Render → service → **Shell**:
+**Manual Deploy** → **Clear build cache & deploy** → wait until **Live**
+
+---
+
+## STEP 4 — Test
+
+Open: https://librarymanagement-main-3.onrender.com/en/library/test-db/
+
+**Success:**
+
+```json
+{"status": "success", "message": "Connected to DB. Book count: ..."}
+```
+
+Then create admin (Render Shell):
 
 ```bash
 cd project_code
 python manage.py bootstrap_admin --email bipinsagarmatha123@gmail.com --password "Test123@"
 ```
 
----
-
-## Login
-
-https://librarymanagement-main-3.onrender.com/en/library/login/
-
-| Field | Value |
-|-------|--------|
-| Email | `bipinsagarmatha123@gmail.com` |
-| Password | `Test123@` |
-
----
-
-## Architecture
-
-```
-Frontend (templates)  ✅  — loads on Render
-Backend (Django)      ✅  — gunicorn + API/views
-Database (MongoDB)    ❌ until test-db shows "success"
-```
-
-When the database connects, admin dashboard, delivery dashboard, login, rentals, users, categories, and search all get data from MongoDB.
+Login: https://librarymanagement-main-3.onrender.com/en/library/login/
 
 ---
 
 ## Troubleshooting
 
-| Symptom | Cause | Fix |
-|---------|--------|-----|
-| **Not Found** + `x-render-routing: no-server` | No running instance | Render → **Resume** → **Manual Deploy** (latest commit) |
-| **503** suspend | Service paused | **Resume** on Render dashboard |
-| UI loads, no books / login fails | MongoDB `bad auth` | Reset Atlas password; update both URI env vars; redeploy |
-| Vercel 404 | Proxy to dead Render | Use https://librarymanagement-main-3.onrender.com |
-
-**Smoke test:** `python project_code/scripts/test_deploy.py`
-
-**URLs:** Liveness `/health/` · Database `/en/library/test-db/?` · App `/en/library/`
+| Symptom | Fix |
+|---------|-----|
+| `no-server` on all URLs | Render → **Resume** → redeploy |
+| `bad auth` on test-db | Atlas password must match URI (`Sagarmatha321`) |
+| Login fails | Run `bootstrap_admin` on Render Shell |
