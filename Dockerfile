@@ -6,8 +6,8 @@ FROM python:3.9-slim
 # 2. Set working directory to /app
 WORKDIR /app
 
-# 3. Install system build tools (gcc, libpq-dev etc.)
-RUN apt-get update && apt-get install -y gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+# 3. Install system build tools
+RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
 
 # 4. Copy requirements and install Python dependencies
 COPY project_code/requirements.txt .
@@ -16,22 +16,22 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 5. Copy the entire project
 COPY . .
 
-# 5.5 Copy production environment file and database
-COPY .env.production /app/project_code/.env
-COPY project_code/db.sqlite3 /app/project_code/db.sqlite3
-
 # 6. Set environment variables for Django
 ENV DJANGO_SETTINGS_MODULE=bookhub_backend.settings
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app/project_code
+ENV ALLOWED_HOSTS=*
+ENV DEBUG=True
 
-# 7. Run migrations and collect static files
+# 7. Work in project directory
 WORKDIR /app/project_code
-RUN python manage.py migrate --noinput || echo "Migrations failed, continuing..."
-RUN python manage.py collectstatic --noinput || echo "Collectstatic failed, continuing..."
 
-# 8. Expose port Vercel expects for containers
+# 8. Run migrations and collect static files
+RUN python manage.py migrate --noinput || true
+RUN python manage.py collectstatic --noinput || true
+
+# 9. Expose port Vercel expects for containers
 EXPOSE 8080
 
-# 9. Run the app with Gunicorn
-CMD ["gunicorn", "bookhub_backend.wsgi:application", "--bind", "0.0.0.0:8080", "--workers", "2"]
+# 10. Run the app with Gunicorn
+CMD ["gunicorn", "bookhub_backend.wsgi:application", "--bind", "0.0.0.0:8080", "--workers", "2", "--timeout", "120"]
