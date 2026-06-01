@@ -1,11 +1,7 @@
 {
-  "buildCommand": "cd project_code && python -m pip install -r requirements.txt",
-  "outputDirectory": "project_code",
-  "framework": null,
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/project_code/bookhub_backend/wsgi.py"
+  "functions": {
+    "api/*.py": {
+      "runtime": "python3.9"
     }
-  ]
+  }
 }

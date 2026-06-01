@@ -11,8 +11,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bookhub_backend.settings')
 import django
 django.setup()
 
-# Import the WSGI application
-from bookhub_backend.wsgi import application
+from django.core.wsgi import get_wsgi_application
+application = get_wsgi_application()
 
-# Vercel Python entry point
-app = application
+def handler(event, context):
+    return application(event, context)
