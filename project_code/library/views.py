@@ -209,21 +209,30 @@ def assign_delivery(request, rental_id):
     delivery_boys = [staff for staff in DeliveryStaff.objects.all() if staff.active]
 
     if request.method == 'POST':
-        delivery_id = request.POST.get('delivery_person')
-        if delivery_id:
+        delivery_staff_id = request.POST.get('delivery_person')
+        if delivery_staff_id:
             try:
-                delivery_boy = DeliveryStaff.objects.get(id=delivery_id)
-                delivery = Delivery.objects.get(rental=rental)
-                delivery.delivery_person = delivery_boy.user
+                delivery_staff = DeliveryStaff.objects.get(id=delivery_staff_id)
+                
+                # Update or Create Delivery record
+                delivery, created = Delivery.objects.get_or_create(rental=rental)
+                delivery.delivery_person = delivery_staff.user
                 delivery.status = 'Assigned'
                 delivery.save()
 
+                # Update Rental Status
                 rental.rental_status = 'Assigned'
                 rental.save()
-                messages.success(request, f"Delivery assigned to {delivery_boy.user.username}")
+                
+                messages.success(request, f"Delivery assigned to {delivery_staff.user.username}")
+                print(f"DEBUG: Assigned rental {rental_id} to {delivery_staff.user.username}")
             except DeliveryStaff.DoesNotExist:
                 messages.error(request, "Selected delivery staff does not exist.")
-        # The user's code redirect to live_rentals but we don't have that named route, so we use admin_dashboard and fragment anchor
+            except Exception as e:
+                import traceback
+                print(traceback.format_exc())
+                messages.error(request, f"Error: {str(e)}")
+                
         return redirect('/en/library/admin-dashboard/#live-rental-management')
 
     return render(request, 'assign_delivery.html', {
@@ -466,48 +475,56 @@ def delivery_dashboard(request):
     active_deliveries = []
     history_deliveries = []
 
-    # 1. Try modern DeliveryStaff/Delivery model
+    # 1. Modern System
     try:
         rider = DeliveryStaff.objects.get(user=request.user)
-        active_deliveries = list(Delivery.objects.filter(
-            delivery_person=request.user, 
-            status__in=['Pending', 'Assigned', 'Picked Up', 'Out For Delivery']
-        ).order_by('-assigned_at'))
-        history_deliveries = list(Delivery.objects.filter(
-            delivery_person=request.user, 
-            status__in=['Delivered', 'Cancelled']
-        ).order_by('-assigned_at'))
+        # Get ALL deliveries for this person to debug
+        modern_deliveries = Delivery.objects.filter(delivery_person=request.user)
+        
+        for d in modern_deliveries:
+            if d.status in ['Pending', 'Assigned', 'Picked Up', 'Out For Delivery']:
+                active_deliveries.append(d)
+            else:
+                history_deliveries.append(d)
     except DeliveryStaff.DoesNotExist:
         pass
 
-    # 2. Try older DeliveryRider/Order model (Unified)
+    # 2. Legacy System
     try:
         rider_old = DeliveryRider.objects.get(user=request.user)
-        if not rider: # Use old rider if new one not found
+        if not rider: 
             rider = rider_old
         
-        legacy_active = Order.objects.filter(
-            assigned_rider=rider_old,
-            status__in=['Pending', 'Assigned to Rider', 'Out for Delivery']
-        ).order_by('-id')
+        legacy_orders = Order.objects.filter(assigned_rider=rider_old)
         
-        # Wrap legacy orders in a Delivery-like object for the template
-        for o in legacy_active:
+        for o in legacy_orders:
             # Map legacy status to new template status
             template_status = o.status
-            if o.status == 'Assigned to Rider': template_status = 'Assigned'
+            if o.status == 'Assigned': template_status = 'Assigned'
             elif o.status == 'Out for Delivery': template_status = 'Out For Delivery'
             
-            active_deliveries.append({
-                'id': o.order_id,
-                'tracking_id': o.order_id,
-                'status': template_status,
-                'rental': {
-                    'user': o.customer.user,
-                    'book': o.book
-                },
-                'is_legacy': True # Flag for template actions
-            })
+            if o.status in ['Pending', 'Assigned', 'Out for Delivery']:
+                active_deliveries.append({
+                    'id': o.order_id,
+                    'tracking_id': o.order_id,
+                    'status': template_status,
+                    'rental': {
+                        'user': o.customer.user,
+                        'book': o.book
+                    },
+                    'is_legacy': True
+                })
+            else:
+                history_deliveries.append({
+                    'id': o.order_id,
+                    'tracking_id': o.order_id,
+                    'status': template_status,
+                    'rental': {
+                        'user': o.customer.user,
+                        'book': o.book
+                    },
+                    'is_legacy': True
+                })
     except DeliveryRider.DoesNotExist:
         pass
 
@@ -515,6 +532,7 @@ def delivery_dashboard(request):
         'rider': rider,
         'assigned_orders': active_deliveries,
         'history_orders': history_deliveries,
+        'debug_info': f"Found {len(active_deliveries)} active and {len(history_deliveries)} history orders for user {request.user.username}"
     }
     return render(request, 'deliveryman.html', context)
 
