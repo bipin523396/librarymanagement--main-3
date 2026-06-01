@@ -2,11 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "project_code/bookhub_backend/wsgi.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "15mb"
-      }
+      "src": "Dockerfile",
+      "use": "@vercel/docker"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
     }
   ]
 }
