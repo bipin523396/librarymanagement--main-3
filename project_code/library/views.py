@@ -2,7 +2,7 @@
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.shortcuts import render, get_object_or_404, redirect
-from .bot_engine import super_ai
+# from .bot_engine import super_ai  # Temporarily disabled for debugging
 from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -903,4 +903,4 @@ def submit_contact(request):
 def author_list(request):
     from .models import Author
     authors = Author.objects.all()
-    return render(request, 'author_list.html', {'authors': authors})
+    return render(request, 'author_list.html', {'authors': authors})
