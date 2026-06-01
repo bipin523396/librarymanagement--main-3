@@ -64,9 +64,16 @@ Then create admin (Render Shell):
 ```bash
 cd project_code
 python manage.py bootstrap_admin --email bipinsagarmatha123@gmail.com --password "Test123@"
+python manage.py bootstrap_delivery --username ram --password "ram123"
+python manage.py seed_books
 ```
 
 Login: https://librarymanagement-main-3.onrender.com/en/library/login/
+
+| Role | Username | Password |
+|------|----------|----------|
+| Admin | `bipinsagarmatha123@gmail.com` | `Test123@` |
+| Delivery | `ram` | `ram123` |
 
 ---
 

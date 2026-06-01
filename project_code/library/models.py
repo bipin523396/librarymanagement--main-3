@@ -241,7 +241,28 @@ class Rental(models.Model):
         """Update status without full save (avoids MongoDB Decimal128 errors on other fields)."""
         rental = cls(pk=pk)
         rental.status = status
-        return cls.objects.filter(pk=pk).update(rental_status=rental.rental_status, **extra)
+        fields = {'rental_status': rental.rental_status, **extra}
+        updated = cls.objects.filter(pk=pk).update(**fields)
+        if updated:
+            return updated
+        try:
+            import os
+            from bson import ObjectId
+            from pymongo import MongoClient
+            from bookhub_backend.mongo_config import get_mongodb_uri
+
+            uri = get_mongodb_uri()
+            if not uri:
+                return 0
+            db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+            oid = pk if isinstance(pk, ObjectId) else ObjectId(str(pk))
+            result = MongoClient(uri)[db_name].library_rental.update_one(
+                {'_id': oid},
+                {'$set': fields},
+            )
+            return result.modified_count
+        except Exception:
+            return 0
 
 
 # 11. DELIVERY STAFF

@@ -36,6 +36,60 @@ def section(title):
     print(f'\n--- {title} ---')
 
 
+def _mongo_db():
+    import os
+    from pymongo import MongoClient
+    from bookhub_backend.mongo_config import get_mongodb_uri
+
+    uri = get_mongodb_uri()
+    if not uri:
+        return None
+    return MongoClient(uri)[os.getenv('MONGODB_NAME', 'bookhub_db')]
+
+
+def _create_pending_rental_id(customer):
+    """Insert pending rental in MongoDB; return str(ObjectId) for assign URL."""
+    from datetime import datetime, timedelta, timezone
+    from bson import ObjectId
+
+    db = _mongo_db()
+    if db is None or not customer or not customer.pk:
+        return None
+    book = db.library_book.find_one({'isbn': 'TEST-E2E-001'}) or db.library_book.find_one()
+    if not book:
+        return None
+    user_oid = customer.pk if isinstance(customer.pk, ObjectId) else ObjectId(str(customer.pk))
+    rid = db.library_rental.insert_one(
+        {
+            'user_id': user_oid,
+            'book_id': book['_id'],
+            'duration_days': 7,
+            'total_amount': '50.00',
+            'rental_status': Rental.STATUS_PENDING,
+            'payment_status': 'Pending',
+            'due_date': datetime.now(timezone.utc) + timedelta(days=7),
+            'returned': False,
+        }
+    ).inserted_id
+    return str(rid)
+
+
+def ensure_ram_delivery(password='ram123'):
+    """Ensure delivery credentials + staff row (MongoDB may have duplicate/broken user FKs)."""
+    from django.core.management import call_command
+
+    call_command('bootstrap_delivery', username='ram', password=password, verbosity=0)
+    staff = DeliveryStaff.objects.filter(vehicle_number='DL-01').order_by('-id').first()
+    if not staff:
+        staff = DeliveryStaff.objects.order_by('-id').first()
+    if not staff:
+        raise RuntimeError('bootstrap_delivery did not create DeliveryStaff')
+    ram_user = authenticate(username='ram', password=password)
+    if ram_user is None:
+        raise RuntimeError('ram does not authenticate after bootstrap_delivery')
+    return ram_user, staff, staff.user_id
+
+
 def main():
     section('Login page (GET)')
     c = Client()
@@ -60,63 +114,32 @@ def main():
     section('Admin login (email + password)')
     admin_email = 'bipinsagarmatha123@gmail.com'
     admin_password = 'Test123@'
-    c_admin = Client()
-    r = c_admin.post(
-        '/en/library/login/',
-        {'username': admin_email, 'password': admin_password},
-        follow=True,
-    )
-    user = authenticate(username=admin_email, password=admin_password)
-    if user is None:
-        try:
-            u = User.objects.get(email=admin_email)
-            user = authenticate(username=u.username, password=admin_password)
-        except User.DoesNotExist:
-            user = None
-
-    if user is not None:
-        ok(f'Admin authenticates ({user.username})')
-        c_admin.force_login(user)
-        c_admin.session['login_role'] = 'admin'
-        c_admin.session.save()
-        r = c_admin.get('/en/library/admin-dashboard/')
-        if r.status_code == 200:
-            ok('Admin dashboard HTTP 200')
-        else:
-            bad(f'Admin dashboard HTTP {r.status_code}')
-    elif r.status_code == 200 and 'admin-dashboard' in r.request.get('PATH_INFO', ''):
-        ok('Admin login redirect (POST follow)')
+    c_admin = Client(enforce_csrf_checks=False)
+    c_admin.post('/en/library/login/', {'username': admin_email, 'password': admin_password})
+    r = c_admin.get('/en/library/admin-dashboard/')
+    if r.status_code == 200:
+        ok('Admin login + dashboard HTTP 200')
+        user = authenticate(username=admin_email, password=admin_password)
+        if user:
+            ok(f'Admin authenticates ({user.username})')
     else:
-        bad('Admin login failed — run: python manage.py bootstrap_admin --email ... --password Test123@')
+        bad(f'Admin dashboard HTTP {r.status_code} — run bootstrap_admin on this database')
 
     section('Delivery login (ram)')
-    c_ram = Client()
-    ram = None
-    try:
-        ram = User.objects.get(username='ram')
-    except User.DoesNotExist:
-        bad('User ram not in database')
-    if ram:
-        logged = False
-        for pwd in ('ram123', 'Test123@', 'ram', 'pass'):
-            if authenticate(username='ram', password=pwd):
-                r = c_ram.post('/en/library/login/', {'username': 'ram', 'password': pwd}, follow=True)
-                logged = r.status_code in (200, 302)
-                if logged:
-                    ok(f'ram login with password')
-                    break
-        if not logged:
-            c_ram = Client()
-            c_ram.force_login(ram)
-            c_ram.session['login_role'] = 'delivery'
-            c_ram.session['_auth_user_id'] = str(ram.pk)
-            c_ram.session.save()
-            ok('ram force_login (set password if needed)')
-        r = c_ram.get('/en/library/delivery/')
+    ensure_ram_delivery('ram123')
+    c_ram = Client(enforce_csrf_checks=False)
+    ram_logged = False
+    for pwd in ('ram123', 'Test123@', 'ram', 'pass'):
+        c_try = Client(enforce_csrf_checks=False)
+        c_try.post('/en/library/login/', {'username': 'ram', 'password': pwd})
+        r = c_try.get('/en/library/delivery/')
         if r.status_code == 200:
-            ok('Delivery dashboard HTTP 200')
-        else:
-            bad(f'Delivery dashboard HTTP {r.status_code}')
+            c_ram = c_try
+            ram_logged = True
+            ok('ram login + delivery dashboard HTTP 200')
+            break
+    if not ram_logged:
+        bad('Delivery login failed — ensure user ram exists with password ram123')
 
     section('Customer home (logged out)')
     c_home = Client()
@@ -146,66 +169,55 @@ def main():
         bad(f'test-db HTTP {r.status_code}')
 
     section('Assignment flow')
-    if user is None:
-        bad('Skip assignment — no admin user')
+    r_admin = c_admin.get('/en/library/admin-dashboard/')
+    if r_admin.status_code != 200:
+        bad('Skip assignment — admin not logged in')
     else:
-        author, _ = Author.objects.get_or_create(slug='test-author', defaults={'name': 'Test Author'})
-        book = Book.objects.first()
-        if not book:
-            book, _ = Book.objects.get_or_create(
-                isbn='TEST-E2E-001',
-                defaults={
-                    'title': 'E2E Book',
-                    'author': author,
-                    'category': 'Fiction',
-                    'copies_total': 5,
-                    'copies_available': 5,
-                },
-            )
-        customer, _ = User.objects.get_or_create(username='e2e_customer', defaults={'email': 'e2e@test.com'})
-        staff = DeliveryStaff.objects.filter(user__username='ram').first()
-        if book and staff:
-            rental = Rental.objects.create(
-                user=customer,
-                book=book,
-                duration_days=7,
-                total_amount=50,
-                rental_status=Rental.STATUS_PENDING,
-                due_date=date.today() + timedelta(days=7),
-            )
+        customer = User.objects.filter(username='bipinsagarmatha123@gmail.com').exclude(pk=None).first()
+        if customer is None:
+            customer = User.objects.exclude(pk=None).first()
+        ram_user, staff, ram_pk = ensure_ram_delivery('ram123')
+        rental_id = _create_pending_rental_id(customer)
+        db = _mongo_db()
+        if rental_id and staff and db is not None:
+            from bson import ObjectId
+
             c_admin.post(
-                f'/en/library/admin-dashboard/assign-delivery/{rental.id}/',
-                {'delivery_person': str(staff.id)},
+                f'/en/library/admin-dashboard/assign-delivery/{rental_id}/',
+                {'delivery_person': str(ram_pk)},
             )
-            rental.refresh_from_db()
-            if rental.rental_status == Rental.STATUS_ASSIGNED:
+            doc = db.library_rental.find_one({'_id': ObjectId(rental_id)})
+            status = (doc or {}).get('rental_status')
+            if status == Rental.STATUS_ASSIGNED:
                 ok('Assign sets rental_status Assigned')
             else:
-                bad(f'Assign status={rental.rental_status}')
-            if not Rental.objects.filter(pk=rental.pk, rental_status=Rental.STATUS_PENDING).exists():
+                bad(f'Assign status={status}')
+            if status != Rental.STATUS_PENDING:
                 ok('Removed from live pending')
             else:
                 bad('Still in live pending')
-            d = Delivery.objects.get(rental=rental)
-            if ram and any(
-                x.rental_id == rental.id and x.rental.rental_status == Rental.STATUS_ASSIGNED
-                for x in Delivery.objects.filter(delivery_person=ram)
-            ):
+            delivery = db.library_delivery.find_one({'rental_id': ObjectId(rental_id)})
+            if delivery and str(delivery.get('delivery_person_id')) == str(ram_pk):
                 ok('Shows on delivery dashboard query')
             else:
                 bad('Not on delivery dashboard')
-            c_admin.post(
-                f'/en/library/admin-dashboard/update-delivery/{d.id}/',
-                {'status': 'Delivered'},
-            )
-            rental.refresh_from_db()
-            if rental.rental_status == Rental.STATUS_COMPLETED:
-                ok('Delivered -> Completed')
+            if delivery:
+                d_id = str(delivery['_id'])
+                c_admin.post(
+                    f'/en/library/admin-dashboard/update-delivery/{d_id}/',
+                    {'status': 'Delivered'},
+                )
+                doc = db.library_rental.find_one({'_id': ObjectId(rental_id)})
+                if (doc or {}).get('rental_status') == Rental.STATUS_COMPLETED:
+                    ok('Delivered -> Completed')
+                else:
+                    bad(f'After deliver status={(doc or {}).get("rental_status")}')
             else:
-                bad(f'After deliver status={rental.rental_status}')
-            rental.delete()
+                bad('No delivery row after assign')
+            db.library_delivery.delete_many({'rental_id': ObjectId(rental_id)})
+            db.library_rental.delete_one({'_id': ObjectId(rental_id)})
         else:
-            bad('Need book + ram DeliveryStaff for assignment test')
+            bad('Need pending rental + ram DeliveryStaff for assignment test')
 
     print(f'\n{"=" * 50}')
     print(f'Results: {PASS} passed, {FAIL} failed')

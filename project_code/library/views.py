@@ -155,8 +155,17 @@ def login_view(request):
 
         if user is not None:
             print(f"DEBUG: Authentication successful for: {user.username}")
+            from library.auth_backend import session_user_id
+
             try:
-                login(request, user, backend=AUTH_BACKEND)
+                if user.pk is None:
+                    # Djongo/MongoDB: avoid session key "None" and int pk validation
+                    request.session['_auth_user_id'] = session_user_id(user)
+                    request.session['_auth_user_backend'] = AUTH_BACKEND
+                    request.session.pop('_auth_user_hash', None)
+                    request.user = user
+                else:
+                    login(request, user, backend=AUTH_BACKEND)
                 print(f"DEBUG: login() call successful for: {user.username}")
             except Exception as e:
                 print(f"DEBUG: login() call failed: {str(e)}")
@@ -165,9 +174,6 @@ def login_view(request):
 
             login_as = detect_login_role(user)
             request.session['login_role'] = login_as
-            request.session['_auth_user_backend'] = AUTH_BACKEND
-            from library.auth_backend import session_user_id
-            request.session['_auth_user_id'] = session_user_id(user)
             request.session.save()
             if request.POST.get('remember_me'):
                 request.session.set_expiry(60 * 60 * 24 * 14)
@@ -262,29 +268,82 @@ def admin_dashboard(request):
 def assign_delivery(request, rental_id):
     from django.urls import reverse
     from .models import Rental, Delivery, DeliveryStaff
-    rental = get_object_or_404(Rental, id=rental_id)
+    from .safe_queries import get_rental_or_404
+
+    rental = get_rental_or_404(rental_id, Rental)
     delivery_boys = [staff for staff in DeliveryStaff.objects.all() if staff.active]
 
     if request.method == 'POST':
         delivery_staff_id = request.POST.get('delivery_person')
         if delivery_staff_id:
             try:
-                delivery_staff = DeliveryStaff.objects.get(id=int(delivery_staff_id))
-                
-                delivery, _created = Delivery.objects.get_or_create(rental=rental)
+                delivery_staff = DeliveryStaff.objects.filter(pk=delivery_staff_id).first()
+                if delivery_staff is None:
+                    delivery_staff = DeliveryStaff.objects.filter(user_id=delivery_staff_id).first()
+                if delivery_staff is None:
+                    try:
+                        from bson import ObjectId
+
+                        oid = ObjectId(str(delivery_staff_id))
+                        delivery_staff = DeliveryStaff.objects.filter(user_id=oid).first()
+                        if delivery_staff is None:
+                            delivery_staff = DeliveryStaff.objects.filter(user_id=str(oid)).first()
+                    except Exception:
+                        pass
+                if delivery_staff is None:
+                    from bson import ObjectId
+
+                    try:
+                        person_id = ObjectId(str(delivery_staff_id))
+                    except Exception:
+                        person_id = delivery_staff_id
+                else:
+                    person_id = delivery_staff.user_id
+
+                delivery, _created = Delivery.objects.get_or_create(rental_id=rental.pk)
                 Delivery.objects.filter(pk=delivery.pk).update(
-                    delivery_person_id=delivery_staff.user_id,
+                    delivery_person_id=person_id,
                     status='Assigned',
                 )
+                try:
+                    import os
+                    from bson import ObjectId
+                    from pymongo import MongoClient
+                    from bookhub_backend.mongo_config import get_mongodb_uri
+
+                    uri = get_mongodb_uri()
+                    if uri:
+                        db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+                        rental_oid = rental.pk if isinstance(rental.pk, ObjectId) else ObjectId(str(rental.pk))
+                        person_oid = person_id if isinstance(person_id, ObjectId) else ObjectId(str(person_id))
+                        MongoClient(uri)[db_name].library_delivery.update_one(
+                            {'rental_id': rental_oid},
+                            {
+                                '$set': {
+                                    'rental_id': rental_oid,
+                                    'delivery_person_id': person_oid,
+                                    'status': 'Assigned',
+                                },
+                            },
+                            upsert=True,
+                        )
+                except Exception as exc:
+                    print('assign_delivery mongo sync:', exc)
 
                 updated = Rental.set_status(rental.pk, Rental.STATUS_ASSIGNED)
                 if not updated:
                     messages.error(request, 'Could not update rental status. Try again.')
                     return redirect(reverse('admin_dashboard') + '#live-rental-management')
-                
-                messages.success(request, f"Delivery assigned to {delivery_staff.user.username}")
+
+                rider_name = str(person_id)
+                if delivery_staff is not None:
+                    try:
+                        rider_name = delivery_staff.user.username
+                    except Exception:
+                        rider_name = str(delivery_staff.user_id)
+                messages.success(request, f'Delivery assigned to {rider_name}')
             except DeliveryStaff.DoesNotExist:
-                messages.error(request, "Selected delivery staff does not exist.")
+                messages.error(request, 'Selected delivery staff does not exist.')
             except Exception as e:
                 import traceback
                 print(traceback.format_exc())
@@ -304,7 +363,9 @@ def update_delivery_status(request, delivery_id):
     from django.urls import reverse
     from .models import Delivery, Rental
     if request.method == 'POST':
-        delivery = get_object_or_404(Delivery, id=delivery_id)
+        from .safe_queries import get_delivery_or_404
+
+        delivery = get_delivery_or_404(delivery_id, Delivery)
         new_status = request.POST.get('status')
         if new_status:
             Delivery.objects.filter(pk=delivery.pk).update(status=new_status)
@@ -538,15 +599,18 @@ def delivery_dashboard(request):
     active_deliveries = []
     history_deliveries = []
 
+    from library.auth_backend import resolve_user_pk
+
+    user_pk = resolve_user_pk(request.user, request)
     try:
         try:
-            rider = DeliveryStaff.objects.get(user_id=request.user.pk)
+            rider = DeliveryStaff.objects.get(user_id=user_pk) if user_pk else None
         except DeliveryStaff.DoesNotExist:
             rider = None
 
         if rider is not None:
             try:
-                deliveries = Delivery.objects.filter(delivery_person_id=request.user.pk)
+                deliveries = Delivery.objects.filter(delivery_person_id=user_pk)
             except Exception as exc:
                 print('DELIVERY DASHBOARD ERROR:', exc)
                 deliveries = []

@@ -24,7 +24,7 @@
                     <select name="delivery_person" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition" required>
                         <option value="">-- Select Person --</option>
                         {% for boy in delivery_boys %}
-                        <option value="{{ boy.id }}">{{ boy.user.username }} — {{ boy.vehicle_number }}</option>
+                        <option value="{{ boy.id|default:boy.user_id }}">{{ boy.user.username }} — {{ boy.vehicle_number }}</option>
                         {% endfor %}
                     </select>
                 </div>

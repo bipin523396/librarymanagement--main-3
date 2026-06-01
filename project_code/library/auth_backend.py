@@ -15,6 +15,38 @@ def session_user_id(user):
     return user.get_username()
 
 
+def resolve_user_pk(user, request=None):
+    """Primary key for FK lookups when Djongo leaves user.pk empty."""
+    if user is None:
+        return None
+    if user.pk is not None:
+        return user.pk
+
+    if request is not None:
+        sid = str(request.session.get('_auth_user_id') or '').strip()
+        if len(sid) == 24:
+            return sid
+
+    try:
+        from pymongo import MongoClient
+        from bookhub_backend.mongo_config import get_mongodb_uri
+        import os
+
+        uri = get_mongodb_uri()
+        if uri:
+            db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+            doc = MongoClient(uri)[db_name].auth_user.find_one(
+                {'username': user.get_username()},
+                projection={'_id': 1},
+            )
+            if doc and doc.get('_id') is not None:
+                return str(doc['_id'])
+    except Exception:
+        pass
+
+    return None
+
+
 class MongoModelBackend(ModelBackend):
     """Authenticate and reload users from MongoDB without fragile last_login saves."""
 

@@ -13,12 +13,50 @@ def user_can_admin(user):
     return user.is_authenticated and user.is_superuser
 
 
+def _delivery_staff_active_in_mongo(username):
+    try:
+        import os
+        from pymongo import MongoClient
+        from bookhub_backend.mongo_config import get_mongodb_uri
+
+        uri = get_mongodb_uri()
+        if not uri:
+            return False
+        db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+        db = MongoClient(uri)[db_name]
+        auth = db.auth_user.find_one({'username': username}, projection={'_id': 1})
+        if not auth:
+            return False
+        uid = auth['_id']
+        return db.library_deliverystaff.find_one({'user_id': uid, 'active': True}) is not None
+    except Exception:
+        return False
+
+
 def user_can_delivery(user):
     if not user.is_authenticated:
         return False
+    if _delivery_staff_active_in_mongo(user.get_username()):
+        return True
     try:
         if user.deliverystaff.active:
             return True
+    except Exception:
+        pass
+    try:
+        from bson import ObjectId
+        from library.models import DeliveryStaff
+        from library.auth_backend import resolve_user_pk
+
+        uid = resolve_user_pk(user)
+        if uid:
+            ids = [uid]
+            try:
+                ids.append(ObjectId(str(uid)))
+            except Exception:
+                pass
+            if DeliveryStaff.objects.filter(user_id__in=ids, active=True).exists():
+                return True
     except Exception:
         pass
     try:
