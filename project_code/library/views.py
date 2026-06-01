@@ -207,12 +207,12 @@ def admin_dashboard(request):
 
     from .models import Rental, Payment, Delivery, ContactMessage, SystemSettings, Author, DeliveryStaff
     
-    live_rentals = Rental.objects.filter(rental_status='Pending').select_related('user', 'book').order_by('-rented_at')
-    history_rentals = (
-        Rental.objects.exclude(rental_status='Pending')
-        .select_related('user', 'book', 'delivery')
-        .order_by('-rented_at')
-    )
+    live_rentals = Rental.objects.filter(
+        rental_status=Rental.STATUS_PENDING,
+    ).select_related('user', 'book').order_by('-rented_at')
+    history_rentals = Rental.objects.filter(
+        rental_status__in=[Rental.STATUS_COMPLETED, Rental.STATUS_FAILED],
+    ).select_related('user', 'book', 'delivery').order_by('-rented_at')
     assigned_deliveries = Delivery.objects.exclude(status='Pending')
     
     context = {
@@ -254,7 +254,10 @@ def assign_delivery(request, rental_id):
                     status='Assigned',
                 )
 
-                Rental.set_status(rental.id, 'Assigned')
+                updated = Rental.set_status(rental.pk, Rental.STATUS_ASSIGNED)
+                if not updated:
+                    messages.error(request, 'Could not update rental status. Try again.')
+                    return redirect(reverse('admin_dashboard') + '#live-rental-management')
                 
                 messages.success(request, f"Delivery assigned to {delivery_staff.user.username}")
             except DeliveryStaff.DoesNotExist:
@@ -281,17 +284,15 @@ def update_delivery_status(request, delivery_id):
         delivery = get_object_or_404(Delivery, id=delivery_id)
         new_status = request.POST.get('status')
         if new_status:
-            delivery.status = new_status
-            delivery.save()
+            Delivery.objects.filter(pk=delivery.pk).update(status=new_status)
 
             rental_id = delivery.rental_id
             if new_status == 'Delivered':
-                Rental.set_status(rental_id, 'Completed', returned=True)
+                Rental.set_status(rental_id, Rental.STATUS_COMPLETED, returned=True)
             elif new_status in ('Cancelled', 'Failed'):
-                Rental.set_status(rental_id, 'Failed')
-            else:
-                Rental.set_status(rental_id, new_status)
-            
+                Rental.set_status(rental_id, Rental.STATUS_FAILED)
+            # Keep rental_status Assigned during Picked Up / Out For Delivery
+
             messages.success(request, "Delivery status updated!")
 
     if _is_delivery_staff(request.user):
@@ -507,7 +508,7 @@ def assign_order(request):
 @delivery_portal_required
 def delivery_dashboard(request):
     request.session['login_role'] = ROLE_DELIVERY
-    from .models import Delivery, DeliveryStaff, DeliveryRider, Order
+    from .models import Delivery, DeliveryStaff, DeliveryRider, Order, Rental
     
     rider = None
     active_deliveries = []
@@ -516,14 +517,15 @@ def delivery_dashboard(request):
     # 1. Modern System
     try:
         rider = DeliveryStaff.objects.get(user_id=request.user.pk)
-        modern_deliveries = Delivery.objects.filter(
-            delivery_person_id=request.user.pk
+        # Djongo cannot filter on rental__rental_status; filter in Python after fetch.
+        my_deliveries = Delivery.objects.filter(
+            delivery_person_id=request.user.pk,
         ).select_related('rental', 'rental__user', 'rental__book')
-        
-        for d in modern_deliveries:
-            if d.status in ['Pending', 'Assigned', 'Picked Up', 'Out For Delivery']:
+        for d in my_deliveries:
+            rs = getattr(d.rental, 'rental_status', None)
+            if rs == Rental.STATUS_ASSIGNED:
                 active_deliveries.append(d)
-            else:
+            elif rs in (Rental.STATUS_COMPLETED, Rental.STATUS_FAILED):
                 history_deliveries.append(d)
     except DeliveryStaff.DoesNotExist:
         pass

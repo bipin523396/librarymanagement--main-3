@@ -187,12 +187,28 @@ class Author(models.Model):
 
 # 10. RENTAL MANAGEMENT
 class Rental(models.Model):
+    STATUS_PENDING = 'Pending'
+    STATUS_ASSIGNED = 'Assigned'
+    STATUS_COMPLETED = 'Completed'
+    STATUS_FAILED = 'Failed'
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_ASSIGNED, 'Assigned'),
+        (STATUS_COMPLETED, 'Completed'),
+        (STATUS_FAILED, 'Failed'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     duration_days = models.IntegerField(default=7)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     payment_status = models.CharField(max_length=50, default='Pending')
-    rental_status = models.CharField(max_length=50, default='Pending')
+    rental_status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+    )
     rented_at = models.DateTimeField(auto_now_add=True)
     due_date = models.DateField()
     returned = models.BooleanField(default=False)
@@ -201,10 +217,31 @@ class Rental(models.Model):
     def __str__(self):
         return f"{self.user.username} rented {self.book.title}"
 
+    @property
+    def status(self):
+        """Alias for rental_status (pending / assigned / completed / failed workflow)."""
+        return self.rental_status
+
+    @status.setter
+    def status(self, value):
+        normalized = (value or '').strip()
+        if normalized.lower() == 'pending':
+            self.rental_status = self.STATUS_PENDING
+        elif normalized.lower() == 'assigned':
+            self.rental_status = self.STATUS_ASSIGNED
+        elif normalized.lower() == 'completed':
+            self.rental_status = self.STATUS_COMPLETED
+        elif normalized.lower() == 'failed':
+            self.rental_status = self.STATUS_FAILED
+        else:
+            self.rental_status = normalized
+
     @classmethod
     def set_status(cls, pk, status, **extra):
         """Update status without full save (avoids MongoDB Decimal128 errors on other fields)."""
-        return cls.objects.filter(pk=pk).update(rental_status=status, **extra)
+        rental = cls(pk=pk)
+        rental.status = status
+        return cls.objects.filter(pk=pk).update(rental_status=rental.rental_status, **extra)
 
 
 # 11. DELIVERY STAFF
