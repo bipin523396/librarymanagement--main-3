@@ -103,3 +103,18 @@ Database (MongoDB)    ❌ until test-db shows "success"
 ```
 
 When the database connects, admin dashboard, delivery dashboard, login, rentals, users, categories, and search all get data from MongoDB.
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|--------|-----|
+| **Not Found** + `x-render-routing: no-server` | No running instance | Render → **Resume** → **Manual Deploy** (latest commit) |
+| **503** suspend | Service paused | **Resume** on Render dashboard |
+| UI loads, no books / login fails | MongoDB `bad auth` | Reset Atlas password; update both URI env vars; redeploy |
+| Vercel 404 | Proxy to dead Render | Use https://librarymanagement-main-3.onrender.com |
+
+**Smoke test:** `python project_code/scripts/test_deploy.py`
+
+**URLs:** Liveness `/health/` · Database `/en/library/test-db/?` · App `/en/library/`
