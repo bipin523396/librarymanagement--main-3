@@ -48,6 +48,64 @@ def resolve_user_pk(user, request=None):
 class MongoModelBackend(ModelBackend):
     """Authenticate and reload users from MongoDB without fragile last_login saves."""
 
+    def _check_password_via_mongo(self, username, password):
+        """
+        Directly check username+password against MongoDB Atlas when Djongo ORM fails.
+        Returns a User object or None.
+        """
+        try:
+            from pymongo import MongoClient
+            from bookhub_backend.mongo_config import get_mongodb_uri
+            from django.contrib.auth.hashers import check_password as django_check_password
+            import os
+
+            uri = get_mongodb_uri()
+            if not uri:
+                return None
+            db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+            db = MongoClient(uri, serverSelectionTimeoutMS=8000)[db_name]
+
+            # Try username match, then email match
+            doc = db.auth_user.find_one({'username': username})
+            if not doc:
+                doc = db.auth_user.find_one({'email': username})
+            if not doc:
+                return None
+
+            stored_hash = doc.get('password', '')
+            if not stored_hash:
+                return None
+            if not django_check_password(password, stored_hash):
+                return None
+            if not doc.get('is_active', True):
+                return None
+
+            # Auth OK — load or create a User object from ORM
+            real_username = doc.get('username', username)
+            user = User.objects.filter(username=real_username).first()
+            if user is None:
+                user = User.objects.filter(email=real_username).first()
+            if user is None:
+                # Build an in-memory User so session login can proceed
+                user = User(
+                    username=real_username,
+                    email=doc.get('email', ''),
+                    first_name=doc.get('first_name', ''),
+                    last_name=doc.get('last_name', ''),
+                    is_superuser=bool(doc.get('is_superuser', False)),
+                    is_staff=bool(doc.get('is_staff', False)),
+                    is_active=bool(doc.get('is_active', True)),
+                )
+            else:
+                # Sync flags from MongoDB → ORM object (in memory only, no save)
+                user.is_superuser = bool(doc.get('is_superuser', user.is_superuser))
+                user.is_staff = bool(doc.get('is_staff', user.is_staff))
+                user.is_active = bool(doc.get('is_active', True))
+            return user
+        except Exception as exc:
+            print(f'MongoModelBackend._check_password_via_mongo error: {exc}')
+            return None
+
     def authenticate(self, request, username=None, password=None, **kwargs):
         if username is None or password is None:
             return None
@@ -65,8 +123,13 @@ class MongoModelBackend(ModelBackend):
             if user and user.check_password(password) and self.user_can_authenticate(user):
                 return user
         except Exception as exc:
-            print(f'MongoModelBackend.authenticate error: {exc}')
-        return None
+            print(f'MongoModelBackend.authenticate ORM error: {exc}')
+
+        # Fallback: check password directly against MongoDB Atlas document
+        # This handles cases where Djongo ORM returns stale/empty password hash
+        print(f'MongoModelBackend: ORM auth failed for {login_id!r}, trying direct MongoDB check...')
+        return self._check_password_via_mongo(login_id, password)
+
 
     def get_user(self, user_id):
         if user_id is None:

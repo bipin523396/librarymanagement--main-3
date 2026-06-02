@@ -1147,6 +1147,47 @@ def reseed(request):
     })
 
 
+def debug_admin(request):
+    """Debug: show exactly what Atlas has for user 'admin' and test password check.
+    Visit: /en/library/debug-admin/
+    """
+    import os
+    from django.contrib.auth.hashers import check_password
+    from bookhub_backend.mongo_config import get_mongodb_uri
+    from pymongo import MongoClient
+
+    uri = get_mongodb_uri()
+    if not uri:
+        return JsonResponse({'error': 'No MongoDB URI'}, status=500)
+
+    db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+    db = MongoClient(uri, serverSelectionTimeoutMS=10000)[db_name]
+
+    # Fetch the admin doc
+    doc = db.auth_user.find_one({'username': 'admin'})
+    if not doc:
+        # List all users to help debug
+        all_users = [
+            {'username': d.get('username'), 'is_superuser': d.get('is_superuser')}
+            for d in db.auth_user.find({}, {'username': 1, 'is_superuser': 1})
+        ]
+        return JsonResponse({'error': 'admin user NOT FOUND in MongoDB', 'all_users': all_users})
+
+    stored_hash = doc.get('password', '')
+    password_ok = check_password('admin123', stored_hash)
+
+    return JsonResponse({
+        'found': True,
+        'username': doc.get('username'),
+        'is_superuser': doc.get('is_superuser'),
+        'is_staff': doc.get('is_staff'),
+        'is_active': doc.get('is_active'),
+        'password_hash_prefix': stored_hash[:30] if stored_hash else '(empty)',
+        'password_check_admin123': password_ok,
+        'mongo_id': str(doc.get('_id')),
+    })
+
+
 def test_db_connection(request):
     from django.conf import settings
     from bookhub_backend.mongo_config import get_mongodb_uri, mongodb_username_from_uri, mask_mongodb_uri
