@@ -946,12 +946,17 @@ def test_db_connection(request):
                 '_id_in_dict': str(first_book.__dict__.get('_id')),
             }
             
+        raw_author = db.library_author.find_one()
+        if raw_author and '_id' in raw_author:
+            raw_author['_id'] = str(raw_author['_id'])
+
         return JsonResponse({
             'status': 'success',
             'message': f'Connected to DB. Book count: {count}',
             'mongo_user': mongodb_username_from_uri(uri),
             'raw_doc': raw_doc,
             'book_info': book_info,
+            'raw_author': raw_author,
         })
     except Exception as e:
         payload = {
