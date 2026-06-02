@@ -128,7 +128,7 @@ def split_deliveries_for_dashboard(deliveries, rental_model, assigned_status='as
 
 
 def books_for_display(book_model, author_model=None):
-    """Load books for homepage; skip rows with broken author relations."""
+    """Load books for homepage; never skip books — use fallback author if FK is broken."""
     books = []
     categories = set()
     try:
@@ -142,27 +142,61 @@ def books_for_display(book_model, author_model=None):
             title = getattr(book, 'title', None)
             if not title:
                 continue
+
+            # Try to resolve author — but NEVER skip the book if it fails
             if author_model is not None:
                 try:
                     author = getattr(book, 'author', None)
                     if author is None and getattr(book, 'author_id', None):
                         aid = book.author_id
-                        author = author_model.objects.filter(pk=aid).first()
-                        if not author:
+                        for lookup in [
+                            lambda: author_model.objects.filter(pk=aid).first(),
+                            lambda: author_model.objects.filter(id=aid).first(),
+                            lambda: author_model.objects.filter(id=int(aid)).first(),
+                        ]:
                             try:
-                                author = author_model.objects.filter(id=aid).first()
+                                author = lookup()
+                                if author:
+                                    break
                             except Exception:
                                 pass
-                        if not author:
-                            try:
-                                author = author_model.objects.filter(id=int(aid)).first()
-                            except Exception:
-                                pass
+
+                    # If still None, try a direct MongoDB lookup by ObjectId
                     if author is None:
-                        continue
-                    _ = author.name
-                except Exception:
-                    continue
+                        try:
+                            from bson import ObjectId
+                            from pymongo import MongoClient
+                            from bookhub_backend.mongo_config import get_mongodb_uri
+                            import os
+                            uri = get_mongodb_uri()
+                            if uri:
+                                db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+                                db = MongoClient(uri)[db_name]
+                                # Find the author doc for this book's author_id
+                                book_doc = db.library_book.find_one(
+                                    {'id': getattr(book, 'id', None)},
+                                    {'author_id': 1}
+                                )
+                                if book_doc and book_doc.get('author_id'):
+                                    aid = book_doc['author_id']
+                                    author_doc = db.library_author.find_one({'id': aid})
+                                    if author_doc:
+                                        author = author_model(
+                                            name=author_doc.get('name', 'Unknown'),
+                                            slug=author_doc.get('slug', ''),
+                                        )
+                        except Exception:
+                            pass
+
+                    # If still no author, attach a placeholder so book still shows
+                    if author is None:
+                        author = author_model(name='Unknown Author', slug='unknown')
+                        book.author = author
+
+                except Exception as exc:
+                    logger.warning('Author resolve failed for book %s: %s', getattr(book, 'pk', '?'), exc)
+                    book.author = author_model(name='Unknown Author', slug='unknown')
+
             books.append(book)
             cat = getattr(book, 'category', None)
             if cat:

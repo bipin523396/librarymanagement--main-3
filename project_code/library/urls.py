@@ -14,6 +14,7 @@ urlpatterns = [
     path('test-db/', views.test_db_connection, name='test_db_connection'),
     path('seed-and-setup/', views.seed_and_setup, name='seed_and_setup'),
     path('setup-admin/', views.setup_admin, name='setup_admin'),
+    path('reseed/', views.reseed, name='reseed'),
     
     # Main Pages
     path('', views.home, name='home'),

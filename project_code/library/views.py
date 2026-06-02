@@ -1012,6 +1012,141 @@ def setup_admin(request):
     })
 
 
+def reseed(request):
+    """
+    One-shot fix: wipe + reseed books/authors directly into MongoDB with correct
+    integer FK links, then create admin/admin123.
+    Visit in browser: /en/library/reseed/
+    """
+    import os
+    import datetime
+    from django.contrib.auth.models import User
+    from django.contrib.auth.hashers import make_password
+    from django.utils.text import slugify
+    from bookhub_backend.mongo_config import get_mongodb_uri
+    from pymongo import MongoClient
+
+    results = {}
+
+    BOOKS_DATA = [
+        {"title": "The God of Small Things",      "author": "Arundhati Roy",      "category": "Fiction",      "isbn": "9780812979657", "copies_total": 5,  "copies_available": 5,  "status": "Available"},
+        {"title": "The Book of Lost Friends",      "author": "Lisa Wingate",        "category": "Fiction",      "isbn": "9781984819901", "copies_total": 3,  "copies_available": 3,  "status": "Available"},
+        {"title": "Midnight's Children",           "author": "Salman Rushdie",      "category": "Fiction",      "isbn": "9780812976533", "copies_total": 4,  "copies_available": 2,  "status": "Low Stock"},
+        {"title": "Rich Dad Poor Dad",             "author": "Robert Kiyosaki",     "category": "Business",     "isbn": "9781612680194", "copies_total": 8,  "copies_available": 8,  "status": "Available"},
+        {"title": "Atomic Habits",                 "author": "James Clear",         "category": "Business",     "isbn": "9780735211292", "copies_total": 10, "copies_available": 9,  "status": "Available"},
+        {"title": "Wings of Fire",                 "author": "A.P.J. Abdul Kalam",  "category": "Biographies",  "isbn": "9788173711466", "copies_total": 6,  "copies_available": 6,  "status": "Available"},
+        {"title": "Steve Jobs",                    "author": "Walter Isaacson",     "category": "Biographies",  "isbn": "9781451648539", "copies_total": 4,  "copies_available": 4,  "status": "Available"},
+        {"title": "KPop Demon Hunters",            "author": "Golden Books",        "category": "Toddlers",     "isbn": "9798217233977", "copies_total": 5,  "copies_available": 5,  "status": "Available"},
+        {"title": "The Very Hungry Caterpillar",   "author": "Eric Carle",          "category": "Toddlers",     "isbn": "9780399226908", "copies_total": 7,  "copies_available": 7,  "status": "Available"},
+        {"title": "Introduction to Algorithms",    "author": "Thomas H. Cormen",    "category": "Academic",     "isbn": "9780262033848", "copies_total": 3,  "copies_available": 3,  "status": "Available"},
+    ]
+
+    uri = get_mongodb_uri()
+    if not uri:
+        return JsonResponse({'status': 'error', 'message': 'No MONGODB_URI set on this server'}, status=500)
+
+    db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+    db = MongoClient(uri, serverSelectionTimeoutMS=15000)[db_name]
+
+    # ── Step 1: Wipe existing books & authors ──────────────────────────────────
+    try:
+        db.library_book.delete_many({})
+        db.library_author.delete_many({})
+        results['wipe'] = 'Cleared library_book and library_author'
+    except Exception as e:
+        results['wipe'] = f'ERROR: {e}'
+
+    # ── Step 2: Insert authors & books with matching integer IDs ────────────────
+    now = datetime.datetime.utcnow()
+    author_id = 1
+    book_id = 1
+    author_map = {}   # name → integer id
+    books_inserted = []
+
+    for data in BOOKS_DATA:
+        aname = data['author']
+        if aname not in author_map:
+            slug = slugify(aname)
+            db.library_author.insert_one({
+                'id': author_id,
+                'name': aname,
+                'slug': slug,
+                'bio': '',
+                'nationality': '',
+                'born': '',
+                'website': '',
+                'genres': '',
+                'awards': '',
+            })
+            author_map[aname] = author_id
+            author_id += 1
+
+        db.library_book.insert_one({
+            'id': book_id,
+            'title': data['title'],
+            'author_id': author_map[aname],
+            'category': data['category'],
+            'isbn': data['isbn'],
+            'copies_total': data['copies_total'],
+            'copies_available': data['copies_available'],
+            'status': data['status'],
+            'image': '',
+        })
+        books_inserted.append(data['title'])
+        book_id += 1
+
+    results['books'] = f'Inserted {len(books_inserted)} books: {books_inserted}'
+    results['authors'] = f'Inserted {len(author_map)} authors'
+
+    # ── Step 3: Create admin/admin123 ───────────────────────────────────────────
+    USERNAME = 'admin'
+    PASSWORD = 'admin123'
+    try:
+        user = User.objects.filter(username=USERNAME).first()
+        if user:
+            user.set_password(PASSWORD)
+            user.is_superuser = True
+            user.is_staff = True
+            user.is_active = True
+            user.save()
+            results['admin_orm'] = f'Reset password for existing user (id={user.pk})'
+        else:
+            user = User.objects.create_user(
+                username=USERNAME, email='admin@bookhub.local',
+                password=PASSWORD, first_name='Admin', last_name='User',
+            )
+            user.is_superuser = True
+            user.is_staff = True
+            user.is_active = True
+            user.save()
+            results['admin_orm'] = f'Created new user (id={user.pk})'
+    except Exception as e:
+        results['admin_orm'] = f'ERROR: {e}'
+
+    try:
+        hashed = make_password(PASSWORD)
+        res = db.auth_user.update_one(
+            {'username': USERNAME},
+            {'$set': {
+                'username': USERNAME, 'email': 'admin@bookhub.local',
+                'password': hashed, 'first_name': 'Admin', 'last_name': 'User',
+                'is_superuser': True, 'is_staff': True, 'is_active': True,
+            }},
+            upsert=True,
+        )
+        action = 'inserted' if res.upserted_id else f'updated (matched={res.matched_count})'
+        results['admin_mongodb'] = f'OK — {action}'
+    except Exception as e:
+        results['admin_mongodb'] = f'ERROR: {e}'
+
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Books reseeded + admin account ready!',
+        'credentials': {'username': USERNAME, 'password': PASSWORD, 'login_url': '/en/library/login/'},
+        'results': results,
+    })
+
+
 def test_db_connection(request):
     from django.conf import settings
     from bookhub_backend.mongo_config import get_mongodb_uri, mongodb_username_from_uri, mask_mongodb_uri
