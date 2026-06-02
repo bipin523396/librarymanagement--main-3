@@ -15,4 +15,9 @@ pip install -r requirements.txt
 
 # Run collectstatic
 python manage.py collectstatic --noinput
+
+# Create / reset admin account (username=admin, password=admin123)
+echo "==> Creating admin account..."
+python manage.py create_simple_admin --username admin --password admin123 || true
+
 echo "==> Build completed successfully!"

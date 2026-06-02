@@ -33,21 +33,21 @@ _vercel_url = os.getenv('VERCEL_URL', '')
 if _vercel_url:
     ALLOWED_HOSTS.append(_vercel_url)
 
-# CSRF: Django 3.2 uses domain patterns (e.g. .vercel.app), not https:// URLs
+# CSRF: Django 4.x requires full https:// URLs (not bare domain names)
 _csrf_extra = os.getenv('CSRF_TRUSTED_ORIGINS', '')
 CSRF_TRUSTED_ORIGINS = [
-    '.vercel.app',
-    '.onrender.com',
-    'librarymanagement-main-3.onrender.com',
+    'https://*.vercel.app',
+    'https://*.onrender.com',
+    'https://librarymanagement-main-3.onrender.com',
+    'https://librarymanagement-main-3tx9.onrender.com',
 ]
 for _origin in _csrf_extra.split(','):
     _origin = _origin.strip()
     if not _origin:
         continue
-    if _origin.startswith('https://'):
-        _origin = _origin.replace('https://', '', 1).split('/')[0]
-    elif _origin.startswith('http://'):
-        _origin = _origin.replace('http://', '', 1).split('/')[0]
+    # Ensure it has a scheme prefix
+    if not _origin.startswith(('https://', 'http://')):
+        _origin = 'https://' + _origin
     if _origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(_origin)
 
@@ -56,14 +56,16 @@ if _render_public:
     _host = _render_public.replace('https://', '').replace('http://', '').split('/')[0]
     if _host not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(_host)
-    if _host not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(_host)
+    _csrf_render = 'https://' + _host
+    if _csrf_render not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_csrf_render)
 
 _frontend = os.getenv('FRONTEND_URL', '').strip()
 if _frontend:
     _host = _frontend.replace('https://', '').replace('http://', '').split('/')[0]
-    if _host not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(_host)
+    _csrf_frontend = 'https://' + _host
+    if _csrf_frontend not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_csrf_frontend)
 
 INSTALLED_APPS = [
     'django.contrib.admin',
