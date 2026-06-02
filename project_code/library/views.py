@@ -1190,6 +1190,36 @@ def debug_admin(request):
     })
 
 
+def debug_user(request):
+    """Debug: inspect currently logged-in user in session.
+    Visit: /en/library/debug-user/
+    """
+    from .role_utils import user_can_admin, user_can_delivery, allowed_roles_for_user
+    user = request.user
+    session_items = dict(request.session.items())
+    
+    # Hide raw password hashes or session keys from output if any
+    clean_session = {k: v for k, v in session_items.items() if not k.startswith('_auth_user_hash')}
+
+    user_info = {
+        'is_authenticated': user.is_authenticated,
+        'username': getattr(user, 'username', None),
+        'email': getattr(user, 'email', None),
+        'is_superuser': getattr(user, 'is_superuser', None),
+        'is_staff': getattr(user, 'is_staff', None),
+        'pk': str(getattr(user, 'pk', None)),
+        'user_class': user.__class__.__name__,
+    }
+
+    return JsonResponse({
+        'user': user_info,
+        'session': clean_session,
+        'can_admin': user_can_admin(user),
+        'can_delivery': user_can_delivery(user),
+        'allowed_roles': allowed_roles_for_user(user),
+    })
+
+
 def test_db_connection(request):
     from django.conf import settings
     from bookhub_backend.mongo_config import get_mongodb_uri, mongodb_username_from_uri, mask_mongodb_uri, get_shared_client

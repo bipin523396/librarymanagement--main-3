@@ -16,7 +16,7 @@ urlpatterns = [
     path('setup-admin/', views.setup_admin, name='setup_admin'),
     path('reseed/', views.reseed, name='reseed'),
     path('debug-admin/', views.debug_admin, name='debug_admin'),
-    
+    path('debug-user/', views.debug_user, name='debug_user'),
     # Main Pages
     path('', views.home, name='home'),
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
