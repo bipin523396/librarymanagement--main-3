@@ -138,15 +138,25 @@ def seed_books():
     from library.models import Author
     from django.utils.text import slugify
 
+    author_id_counter = 1
+    book_id_counter = 1
     for data in books_data:
         author_name = data["author"]
         slug = slugify(author_name)
-        author_obj, _ = Author.objects.get_or_create(
+        author_obj, created = Author.objects.get_or_create(
             slug=slug,
-            defaults={'name': author_name}
+            defaults={'name': author_name, 'id': author_id_counter}
         )
+        if created:
+            author_id_counter += 1
+        else:
+            if not author_obj.id:
+                author_obj.id = author_id_counter
+                author_obj.save()
+                author_id_counter += 1
 
         Book.objects.create(
+            id=book_id_counter,
             title=data["title"],
             author=author_obj,
             category=data["category"],
@@ -156,6 +166,7 @@ def seed_books():
             status=data["status"],
             image=None
         )
+        book_id_counter += 1
     print("Successfully seeded database with beautiful books!")
 
 if __name__ == '__main__':

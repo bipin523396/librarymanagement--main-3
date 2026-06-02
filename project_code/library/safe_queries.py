@@ -146,7 +146,18 @@ def books_for_display(book_model, author_model=None):
                 try:
                     author = getattr(book, 'author', None)
                     if author is None and getattr(book, 'author_id', None):
-                        author = author_model.objects.filter(pk=book.author_id).first()
+                        aid = book.author_id
+                        author = author_model.objects.filter(pk=aid).first()
+                        if not author:
+                            try:
+                                author = author_model.objects.filter(id=aid).first()
+                            except Exception:
+                                pass
+                        if not author:
+                            try:
+                                author = author_model.objects.filter(id=int(aid)).first()
+                            except Exception:
+                                pass
                     if author is None:
                         continue
                     _ = author.name
