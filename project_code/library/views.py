@@ -930,10 +930,29 @@ def test_db_connection(request):
         MongoClient(uri, serverSelectionTimeoutMS=10000).admin.command('ping')
         from .models import Book
         count = Book.objects.count()
+        import os
+        db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+        db = MongoClient(uri)[db_name]
+        raw_doc = db.library_book.find_one()
+        if raw_doc and '_id' in raw_doc:
+            raw_doc['_id'] = str(raw_doc['_id'])
+        
+        first_book = Book.objects.first()
+        book_info = None
+        if first_book:
+            book_info = {
+                'pk': str(first_book.pk),
+                'id': str(first_book.id),
+                'dict_keys': list(first_book.__dict__.keys()),
+                'id_in_dict': first_book.__dict__.get('id'),
+            }
+            
         return JsonResponse({
             'status': 'success',
             'message': f'Connected to DB. Book count: {count}',
             'mongo_user': mongodb_username_from_uri(uri),
+            'raw_doc': raw_doc,
+            'book_info': book_info,
         })
     except Exception as e:
         payload = {
