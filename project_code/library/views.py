@@ -270,9 +270,15 @@ def assign_delivery(request, rental_id):
         delivery_staff_id = request.POST.get('delivery_person')
         if delivery_staff_id:
             try:
-                delivery_staff = DeliveryStaff.objects.filter(pk=delivery_staff_id).first()
+                candidates = [delivery_staff_id]
+                try:
+                    candidates.append(int(delivery_staff_id))
+                except (TypeError, ValueError):
+                    pass
+
+                delivery_staff = DeliveryStaff.objects.filter(pk__in=candidates).first()
                 if delivery_staff is None:
-                    delivery_staff = DeliveryStaff.objects.filter(user_id=delivery_staff_id).first()
+                    delivery_staff = DeliveryStaff.objects.filter(user_id__in=candidates).first()
                 if delivery_staff is None:
                     try:
                         from bson import ObjectId

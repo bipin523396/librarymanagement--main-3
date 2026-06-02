@@ -67,7 +67,8 @@ def test_full_assignment_flow():
         if getattr(d.rental, 'rental_status', None) == Rental.STATUS_ASSIGNED
     ]
     
-    if active_deliveries.filter(rental=rental).exists():
+    visible = any(d.rental_id == rental.id for d in active_deliveries)
+    if visible:
         print("✅ Order is VISIBLE in the delivery guy's active deliveries!")
     else:
         print("❌ Error: Order is NOT visible to the delivery guy.")

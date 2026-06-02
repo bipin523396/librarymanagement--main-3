@@ -35,7 +35,14 @@ def run():
     print(f'   Rental #{rental.id} created')
 
     print('2. Admin assigns to ram...')
-    client.force_login(admin)
+    admin.set_password('admin123')
+    admin.save()
+    resp_login = client.post('/en/library/login/', {
+        'username': admin.username,
+        'password': 'admin123'
+    })
+    assert resp_login.status_code == 302, f"Admin login failed: {resp_login.status_code}"
+
     resp = client.post(
         f'/en/library/admin-dashboard/assign-delivery/{rental.id}/',
         {'delivery_person': str(ram_staff.id)},
@@ -48,17 +55,16 @@ def run():
     print(f'   Assigned to ram (user id {ram_user.pk})')
 
     print('3. Ram opens delivery dashboard...')
-    client.logout()
+    client.cookies.clear()
+    ram_user.set_password('ram123')
+    ram_user.save()
     client.post(
         '/en/library/login/',
         {
             'username': 'ram',
-            'password': os.getenv('RAM_TEST_PASSWORD', 'ram123'),
+            'password': 'ram123',
         },
     )
-    if client.session.get('_auth_user_id') is None:
-        client.force_login(ram_user, backend=AUTH_BACKEND)
-        print('   (used force_login — set RAM_TEST_PASSWORD if ram password unknown)')
 
     r1 = client.get('/en/library/delivery/')
     assert r1.status_code == 200, r1.status_code

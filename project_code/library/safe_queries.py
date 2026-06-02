@@ -16,7 +16,12 @@ def get_rental_or_404(rental_id, rental_model):
     rid = str(rental_id).strip()
     if not rid:
         raise Http404
-    for pk in (rental_id, rid):
+    candidates = [rental_id, rid]
+    try:
+        candidates.append(int(rid))
+    except (TypeError, ValueError):
+        pass
+    for pk in candidates:
         rental = rental_model.objects.filter(pk=pk).first()
         if rental:
             return rental
@@ -51,7 +56,12 @@ def get_delivery_or_404(delivery_id, delivery_model):
     did = str(delivery_id).strip()
     if not did:
         raise Http404
-    for pk in (delivery_id, did):
+    candidates = [delivery_id, did]
+    try:
+        candidates.append(int(did))
+    except (TypeError, ValueError):
+        pass
+    for pk in candidates:
         delivery = delivery_model.objects.filter(pk=pk).first()
         if delivery:
             return delivery
@@ -79,6 +89,7 @@ def get_delivery_or_404(delivery_id, delivery_model):
     except Exception as exc:
         logger.warning('get_delivery_or_404: %s', exc)
     raise Http404
+
 
 
 def rental_for_delivery(delivery, rental_model):
