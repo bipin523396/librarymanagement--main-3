@@ -770,7 +770,8 @@ def seed_and_setup(request):
         seed_books()
         book_status = "Successfully seeded 10 books across all categories."
     except Exception as e:
-        book_status = f"Book seeding warning/error: {str(e)}"
+        import traceback
+        book_status = f"Book seeding warning/error: {str(e)}\n{traceback.format_exc()}"
 
     # 2. Setup/Reset Admin User
     admin_email = 'bipinsagarmatha123@gmail.com'
