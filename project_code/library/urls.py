@@ -72,6 +72,7 @@ urlpatterns = [
     path('admin-dashboard/add-delivery-staff/', views.add_delivery_staff, name='add_delivery_staff'),
     path('admin-dashboard/add-admin/', views.add_admin, name='add_admin'),
     path('admin-dashboard/resolve-message/<int:message_id>/', views.resolve_message, name='resolve_message'),
+    path('admin-dashboard/seed-live-data/', views.seed_live_data, name='seed_live_data'),
     path('my-rentals/', views.my_rentals, name='my_rentals'),
     path('track-order/<int:delivery_id>/', views.track_order, name='track_order'),
     path('premium-checkout/', views.premium_checkout, name='premium_checkout'),

@@ -443,6 +443,23 @@ def resolve_message(request, message_id):
         messages.success(request, 'Message marked as resolved.')
     return redirect(reverse('admin_dashboard') + '#contact-management')
 
+@admin_portal_required
+def seed_live_data(request):
+    import sys
+    from django.conf import settings
+    
+    if str(settings.BASE_DIR) not in sys.path:
+        sys.path.insert(0, str(settings.BASE_DIR))
+        
+    try:
+        from seed_books import seed_books
+        seed_books()
+        messages.success(request, 'Successfully seeded the database with beautiful books for each category!')
+    except Exception as e:
+        messages.error(request, f'Failed to seed database: {str(e)}')
+        
+    return redirect('admin_dashboard')
+
 def add_book(request):
     if request.method == 'POST':
         title = request.POST.get('title')

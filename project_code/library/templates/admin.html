@@ -274,9 +274,14 @@
         <section id="book-management" class="content-section">
             <div class="section-header">
                 <h2>Book Inventory</h2>
-                <button class="btn btn-primary" onclick="openBookModal('', '', '', '', '', '')">
-                    <i class="fas fa-plus"></i> Add New Book
-                </button>
+                <div style="display: flex; gap: 10px;">
+                    <a href="{% url 'seed_live_data' %}" class="btn" style="background-color: var(--primary-orange); color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;" onclick="return confirm('This will clear all current rentals and seed 10 beautiful books across all categories (Fiction, Business, Academic, Toddlers, and Biographies). Proceed?')">
+                        <i class="fas fa-database"></i> Seed Books Catalog
+                    </a>
+                    <button class="btn btn-primary" onclick="openBookModal('', '', '', '', '', '')">
+                        <i class="fas fa-plus"></i> Add New Book
+                    </button>
+                </div>
             </div>
             <table class="data-table" id="bookTable">
                 <thead>
