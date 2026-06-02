@@ -143,17 +143,19 @@ def seed_books():
     for data in books_data:
         author_name = data["author"]
         slug = slugify(author_name)
-        author_obj, created = Author.objects.get_or_create(
-            slug=slug,
-            defaults={'name': author_name, 'id': author_id_counter}
-        )
-        if created:
-            author_id_counter += 1
-        else:
+        try:
+            author_obj = Author.objects.get(slug=slug)
             if not author_obj.id:
                 author_obj.id = author_id_counter
                 author_obj.save()
                 author_id_counter += 1
+        except Author.DoesNotExist:
+            author_obj = Author.objects.create(
+                id=author_id_counter,
+                name=author_name,
+                slug=slug
+            )
+            author_id_counter += 1
 
         Book.objects.create(
             id=book_id_counter,
