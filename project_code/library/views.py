@@ -750,6 +750,18 @@ def health_check(request):
     return JsonResponse(payload)
 
 
+def wake_up(request):
+    """Ultra-fast endpoint: no DB queries, just proves the server is awake.
+    Used by the loading splash page to detect when Render has warmed up."""
+    return JsonResponse({'status': 'awake'})
+
+
+def wake_loading_page(request):
+    """Serve the loading splash page. The ?next= param tells JS where to redirect."""
+    redirect_to = request.GET.get('next', '/en/library/')
+    return render(request, 'wake.html', {'redirect_to': redirect_to})
+
+
 def seed_and_setup(request):
     import sys
     from django.conf import settings

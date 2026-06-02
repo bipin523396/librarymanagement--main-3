@@ -19,6 +19,8 @@ PUBLIC_AUTH_PATHS = (
     '/signup/',
     '/password-reset',
     '/health/',
+    '/wake/',
+    '/loading/',
     '/test-db/',
     '/i18n/',
     '/static/',

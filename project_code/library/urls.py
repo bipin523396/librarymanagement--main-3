@@ -9,6 +9,8 @@ urlpatterns = [
 # admin path moved to root urls, removed to avoid duplicate namespace
     path('api/chat/', views.chat_api, name='chat_api'),# Default Django admin
     path('health/', views.health_check, name='health_check'),
+    path('wake/', views.wake_up, name='wake_up'),
+    path('loading/', views.wake_loading_page, name='wake_loading'),
     path('test-db/', views.test_db_connection, name='test_db_connection'),
     path('seed-and-setup/', views.seed_and_setup, name='seed_and_setup'),
     
