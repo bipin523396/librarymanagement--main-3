@@ -27,19 +27,13 @@ def get_rental_or_404(rental_id, rental_model):
             return rental
     try:
         from bson import ObjectId
-
-        oid = ObjectId(rid)
-        rental = rental_model.objects.filter(pk=oid).first()
-        if rental:
-            return rental
-        from pymongo import MongoClient
-        from bookhub_backend.mongo_config import get_mongodb_uri
+        from bookhub_backend.mongo_config import get_shared_client
         import os
 
-        uri = get_mongodb_uri()
-        if uri:
+        client = get_shared_client()
+        if client:
             db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-            doc = MongoClient(uri)[db_name].library_rental.find_one({'_id': oid})
+            doc = client[db_name].library_rental.find_one({'_id': oid})
             if doc:
                 rental = rental_model(pk=oid)
                 rental.rental_status = doc.get('rental_status', rental_model.STATUS_PENDING)
@@ -67,19 +61,13 @@ def get_delivery_or_404(delivery_id, delivery_model):
             return delivery
     try:
         from bson import ObjectId
-
-        oid = ObjectId(did)
-        delivery = delivery_model.objects.filter(pk=oid).first()
-        if delivery:
-            return delivery
-        from pymongo import MongoClient
-        from bookhub_backend.mongo_config import get_mongodb_uri
+        from bookhub_backend.mongo_config import get_shared_client
         import os
 
-        uri = get_mongodb_uri()
-        if uri:
+        client = get_shared_client()
+        if client:
             db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-            doc = MongoClient(uri)[db_name].library_delivery.find_one({'_id': oid})
+            doc = client[db_name].library_delivery.find_one({'_id': oid})
             if doc:
                 delivery = delivery_model(pk=oid)
                 delivery.rental_id = doc.get('rental_id')
@@ -165,13 +153,12 @@ def books_for_display(book_model, author_model=None):
                     if author is None:
                         try:
                             from bson import ObjectId
-                            from pymongo import MongoClient
-                            from bookhub_backend.mongo_config import get_mongodb_uri
+                            from bookhub_backend.mongo_config import get_shared_client
                             import os
-                            uri = get_mongodb_uri()
-                            if uri:
+                            client = get_shared_client()
+                            if client:
                                 db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-                                db = MongoClient(uri)[db_name]
+                                db = client[db_name]
                                 # Find the author doc for this book's author_id
                                 book_doc = db.library_book.find_one(
                                     {'id': getattr(book, 'id', None)},

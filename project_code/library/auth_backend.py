@@ -26,14 +26,13 @@ def resolve_user_pk(user, request=None):
             return sid
 
     try:
-        from pymongo import MongoClient
-        from bookhub_backend.mongo_config import get_mongodb_uri
+        from bookhub_backend.mongo_config import get_shared_client
         import os
 
-        uri = get_mongodb_uri()
-        if uri:
+        client = get_shared_client()
+        if client:
             db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-            doc = MongoClient(uri)[db_name].auth_user.find_one(
+            doc = client[db_name].auth_user.find_one(
                 {'username': user.get_username()},
                 projection={'_id': 1},
             )
@@ -54,16 +53,15 @@ class MongoModelBackend(ModelBackend):
         Returns a User object or None.
         """
         try:
-            from pymongo import MongoClient
-            from bookhub_backend.mongo_config import get_mongodb_uri
+            from bookhub_backend.mongo_config import get_shared_client
             from django.contrib.auth.hashers import check_password as django_check_password
             import os
 
-            uri = get_mongodb_uri()
-            if not uri:
+            client = get_shared_client()
+            if not client:
                 return None
             db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-            db = MongoClient(uri, serverSelectionTimeoutMS=8000)[db_name]
+            db = client[db_name]
 
             # Try username match, then email match
             doc = db.auth_user.find_one({'username': username})
@@ -163,14 +161,12 @@ class MongoModelBackend(ModelBackend):
         if len(uid) == 24:
             try:
                 from bson import ObjectId
-                from pymongo import MongoClient
-                from bookhub_backend.mongo_config import get_mongodb_uri
-
+                from bookhub_backend.mongo_config import get_shared_client
                 import os
-                uri = get_mongodb_uri()
-                if uri:
+                client = get_shared_client()
+                if client:
                     db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-                    doc = MongoClient(uri)[db_name].auth_user.find_one({'_id': ObjectId(uid)})
+                    doc = client[db_name].auth_user.find_one({'_id': ObjectId(uid)})
                     if doc and doc.get('username'):
                         return User.objects.filter(username=doc['username']).first()
             except Exception:

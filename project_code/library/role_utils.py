@@ -23,14 +23,13 @@ def user_can_admin(user):
 def _delivery_staff_active_in_mongo(username):
     try:
         import os
-        from pymongo import MongoClient
-        from bookhub_backend.mongo_config import get_mongodb_uri
+        from bookhub_backend.mongo_config import get_shared_client
 
-        uri = get_mongodb_uri()
-        if not uri:
+        client = get_shared_client()
+        if not client:
             return False
         db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-        db = MongoClient(uri)[db_name]
+        db = client[db_name]
         auth = db.auth_user.find_one({'username': username}, projection={'_id': 1})
         if not auth:
             return False

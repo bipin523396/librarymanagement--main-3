@@ -78,3 +78,24 @@ def mongodb_username_from_uri(uri):
         return unquote(creds.split(':', 1)[0])
     except (IndexError, ValueError):
         return None
+
+
+_cached_client = None
+
+def get_shared_client():
+    """Get a shared, process-global MongoClient instance to prevent connection/socket leaks."""
+    global _cached_client
+    if _cached_client is None:
+        from pymongo import MongoClient
+        uri = get_mongodb_uri()
+        if not uri:
+            return None
+        # Set maxPoolSize to 20 to limit connections on Render free tier/Atlas M0
+        _cached_client = MongoClient(
+            uri,
+            maxPoolSize=20,
+            minPoolSize=1,
+            serverSelectionTimeoutMS=10000,
+            retryWrites=True
+        )
+    return _cached_client

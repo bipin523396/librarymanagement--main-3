@@ -307,15 +307,14 @@ def assign_delivery(request, rental_id):
                 try:
                     import os
                     from bson import ObjectId
-                    from pymongo import MongoClient
-                    from bookhub_backend.mongo_config import get_mongodb_uri
+                    from bookhub_backend.mongo_config import get_shared_client
 
-                    uri = get_mongodb_uri()
-                    if uri:
+                    client = get_shared_client()
+                    if client:
                         db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
                         rental_oid = rental.pk if isinstance(rental.pk, ObjectId) else ObjectId(str(rental.pk))
                         person_oid = person_id if isinstance(person_id, ObjectId) else ObjectId(str(person_id))
-                        MongoClient(uri)[db_name].library_delivery.update_one(
+                        client[db_name].library_delivery.update_one(
                             {'rental_id': rental_oid},
                             {
                                 '$set': {
@@ -733,9 +732,10 @@ def health_check(request):
     db_status = 'unknown'
     uri = get_mongodb_uri()
     try:
-        from pymongo import MongoClient
-        if uri:
-            MongoClient(uri, serverSelectionTimeoutMS=8000).admin.command('ping')
+        from bookhub_backend.mongo_config import get_shared_client
+        client = get_shared_client()
+        if client:
+            client.admin.command('ping')
             db_status = 'connected'
         else:
             db_status = 'no_uri'
@@ -810,11 +810,12 @@ def seed_and_setup(request):
         admin_user.save()
 
     # Sync admin user to MongoDB
-    uri = get_mongodb_uri()
+    from bookhub_backend.mongo_config import get_shared_client
     db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-    if uri:
+    client = get_shared_client()
+    if client:
         try:
-            db = MongoClient(uri)[db_name]
+            db = client[db_name]
             hashed = make_password(admin_password)
             db.auth_user.update_one(
                 {'username': admin_email},
@@ -860,9 +861,9 @@ def seed_and_setup(request):
         delivery_user.is_active = True
         delivery_user.save()
 
-    if uri:
+    if client:
         try:
-            db = MongoClient(uri)[db_name]
+            db = client[db_name]
             hashed = make_password(delivery_password)
             db.auth_user.update_one(
                 {'username': delivery_username},
@@ -973,11 +974,12 @@ def setup_admin(request):
         results['orm'] = f'ERROR: {e}'
 
     # Step 2: MongoDB direct sync
-    uri = get_mongodb_uri()
-    if uri:
+    from bookhub_backend.mongo_config import get_shared_client
+    client = get_shared_client()
+    if client:
         try:
             db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-            coll = MongoClient(uri, serverSelectionTimeoutMS=10000)[db_name].auth_user
+            coll = client[db_name].auth_user
             hashed = make_password(PASSWORD)
             res = coll.update_one(
                 {'username': USERNAME},
@@ -1041,12 +1043,13 @@ def reseed(request):
         {"title": "Introduction to Algorithms",    "author": "Thomas H. Cormen",    "category": "Academic",     "isbn": "9780262033848", "copies_total": 3,  "copies_available": 3,  "status": "Available"},
     ]
 
-    uri = get_mongodb_uri()
-    if not uri:
+    from bookhub_backend.mongo_config import get_shared_client
+    client = get_shared_client()
+    if not client:
         return JsonResponse({'status': 'error', 'message': 'No MONGODB_URI set on this server'}, status=500)
 
     db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-    db = MongoClient(uri, serverSelectionTimeoutMS=15000)[db_name]
+    db = client[db_name]
 
     # ── Step 1: Wipe existing books & authors ──────────────────────────────────
     try:
@@ -1153,15 +1156,14 @@ def debug_admin(request):
     """
     import os
     from django.contrib.auth.hashers import check_password
-    from bookhub_backend.mongo_config import get_mongodb_uri
-    from pymongo import MongoClient
+    from bookhub_backend.mongo_config import get_shared_client
 
-    uri = get_mongodb_uri()
-    if not uri:
+    client = get_shared_client()
+    if not client:
         return JsonResponse({'error': 'No MongoDB URI'}, status=500)
 
     db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-    db = MongoClient(uri, serverSelectionTimeoutMS=10000)[db_name]
+    db = client[db_name]
 
     # Fetch the admin doc
     doc = db.auth_user.find_one({'username': 'admin'})
@@ -1190,13 +1192,12 @@ def debug_admin(request):
 
 def test_db_connection(request):
     from django.conf import settings
-    from bookhub_backend.mongo_config import get_mongodb_uri, mongodb_username_from_uri, mask_mongodb_uri
+    from bookhub_backend.mongo_config import get_mongodb_uri, mongodb_username_from_uri, mask_mongodb_uri, get_shared_client
     try:
-        from pymongo import MongoClient
-        uri = get_mongodb_uri()
-        if not uri:
+        client = get_shared_client()
+        if not client:
             return JsonResponse({'status': 'error', 'message': 'MONGODB_URI not set on server'}, status=500)
-        MongoClient(uri, serverSelectionTimeoutMS=10000).admin.command('ping')
+        client.admin.command('ping')
         from .models import Book
         count = Book.objects.count()
         return JsonResponse({

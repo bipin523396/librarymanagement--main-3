@@ -249,15 +249,14 @@ class Rental(models.Model):
         try:
             import os
             from bson import ObjectId
-            from pymongo import MongoClient
-            from bookhub_backend.mongo_config import get_mongodb_uri
+            from bookhub_backend.mongo_config import get_shared_client
 
-            uri = get_mongodb_uri()
-            if not uri:
+            client = get_shared_client()
+            if not client:
                 return 0
             db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
             oid = pk if isinstance(pk, ObjectId) else ObjectId(str(pk))
-            result = MongoClient(uri)[db_name].library_rental.update_one(
+            result = client[db_name].library_rental.update_one(
                 {'_id': oid},
                 {'$set': fields},
             )

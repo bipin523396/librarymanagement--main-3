@@ -65,16 +65,6 @@ class LibraryConfig(AppConfig):
         except Exception:
             pass
 
-        # Patch MongoClient.close to prevent closure of connections
-        try:
-            from pymongo import MongoClient
-            MongoClient.close = lambda self: None
-        except Exception:
-            pass
-
-        try:
-            from pymongo.synchronous.mongo_client import MongoClient as SyncMongoClient
-            SyncMongoClient.close = lambda self: None
-        except Exception:
-            pass
+        # Patch MongoClient.close was removed to avoid socket leaks on manual clients
+        pass
 

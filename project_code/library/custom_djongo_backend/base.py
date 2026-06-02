@@ -12,11 +12,6 @@ class DatabaseWrapper(DjongoDatabaseWrapper):
     """
 
     def _close(self):
-        # Safely close the underlying connection without invoking bool()
-        conn = getattr(self, "connection", None)
-        if conn is not None:
-            try:
-                conn.close()
-            except Exception:
-                # Silently ignore any error during close to prevent migration crashes
-                pass
+        # Do not close the underlying MongoClient connection pool.
+        # This keeps the main database connection pool alive across requests.
+        pass
