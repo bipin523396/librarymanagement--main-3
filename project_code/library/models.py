@@ -28,7 +28,8 @@ class Book(models.Model):
         ('Fiction', 'Fiction'),
         ('Business', 'Business'),
         ('Toddlers', 'Toddlers'),
-        ('Academic', 'Academic')
+        ('Academic', 'Academic'),
+        ('Biographies', 'Biographies'),
     ]
     STATUS_CHOICES = [
         ('Available', 'Available'),
