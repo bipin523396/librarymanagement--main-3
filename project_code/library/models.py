@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-from djongo.models import ObjectIdField
 
 # 1. MEMBERSHIP PLANS
 class MembershipPlan(models.Model):
@@ -25,7 +24,6 @@ class UserProfile(models.Model):
 
 # 3. BOOKS & INVENTORY
 class Book(models.Model):
-    _id = ObjectIdField(primary_key=True)
     CATEGORY_CHOICES = [
         ('Fiction', 'Fiction'),
         ('Business', 'Business'),
@@ -167,7 +165,6 @@ class Wishlist(models.Model):
 
 # 9. AUTHOR PROFILES
 class Author(models.Model):
-    _id = ObjectIdField(primary_key=True)
     name = models.CharField(max_length=150)
     slug = models.SlugField(unique=True)
     bio = models.TextField(blank=True)
