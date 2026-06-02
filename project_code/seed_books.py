@@ -115,8 +115,24 @@ def seed_books():
         }
     ]
 
-    print("Clearing existing books...")
-    Book.objects.all().delete()
+    print("Clearing existing books and authors...")
+    try:
+        from pymongo import MongoClient
+        from bookhub_backend.mongo_config import get_mongodb_uri
+        import os
+        uri = get_mongodb_uri()
+        if uri:
+            db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+            db = MongoClient(uri)[db_name]
+            res_books = db.library_book.delete_many({})
+            print(f"Bypassed Django delete: cleared {res_books.deleted_count} books from Atlas.")
+            res_authors = db.library_author.delete_many({})
+            print(f"Bypassed Django delete: cleared {res_authors.deleted_count} authors from Atlas.")
+        else:
+            Book.objects.all().delete()
+    except Exception as e:
+        print(f"PyMongo bypass failed, fallback to Django: {e}")
+        Book.objects.all().delete()
 
     print("Seeding books...")
     from library.models import Author
