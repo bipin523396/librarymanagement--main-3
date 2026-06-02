@@ -10,6 +10,7 @@ urlpatterns = [
     path('api/chat/', views.chat_api, name='chat_api'),# Default Django admin
     path('health/', views.health_check, name='health_check'),
     path('test-db/', views.test_db_connection, name='test_db_connection'),
+    path('seed-and-setup/', views.seed_and_setup, name='seed_and_setup'),
     
     # Main Pages
     path('', views.home, name='home'),

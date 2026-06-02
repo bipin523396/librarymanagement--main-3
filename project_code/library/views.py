@@ -750,6 +750,174 @@ def health_check(request):
     return JsonResponse(payload)
 
 
+def seed_and_setup(request):
+    import sys
+    from django.conf import settings
+    from django.contrib.auth.models import User
+    from library.models import DeliveryStaff, Author, Book
+    from django.utils.text import slugify
+    from django.contrib.auth.hashers import make_password
+    from pymongo import MongoClient
+    from bookhub_backend.mongo_config import get_mongodb_uri
+    import os
+
+    # 1. Seed Books Catalog
+    if str(settings.BASE_DIR) not in sys.path:
+        sys.path.insert(0, str(settings.BASE_DIR))
+        
+    try:
+        from seed_books import seed_books
+        seed_books()
+        book_status = "Successfully seeded 10 books across all categories."
+    except Exception as e:
+        book_status = f"Book seeding warning/error: {str(e)}"
+
+    # 2. Setup/Reset Admin User
+    admin_email = 'bipinsagarmatha123@gmail.com'
+    admin_password = 'admin123'
+    
+    admin_user = User.objects.filter(username=admin_email).first() or User.objects.filter(email=admin_email).first()
+    if admin_user:
+        admin_user.set_password(admin_password)
+        admin_user.is_superuser = True
+        admin_user.is_staff = True
+        admin_user.is_active = True
+        admin_user.save()
+    else:
+        admin_user = User.objects.create_user(
+            username=admin_email,
+            email=admin_email,
+            password=admin_password,
+            first_name='System',
+            last_name='Admin'
+        )
+        admin_user.is_superuser = True
+        admin_user.is_staff = True
+        admin_user.is_active = True
+        admin_user.save()
+
+    # Sync admin user to MongoDB
+    uri = get_mongodb_uri()
+    db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+    if uri:
+        try:
+            db = MongoClient(uri)[db_name]
+            hashed = make_password(admin_password)
+            db.auth_user.update_one(
+                {'username': admin_email},
+                {
+                    '$set': {
+                        'username': admin_email,
+                        'email': admin_email,
+                        'password': hashed,
+                        'first_name': 'System',
+                        'last_name': 'Admin',
+                        'is_superuser': True,
+                        'is_staff': True,
+                        'is_active': True,
+                    },
+                },
+                upsert=True,
+            )
+            admin_status = "Admin successfully created/updated and synced to MongoDB Atlas."
+        except Exception as e:
+            admin_status = f"Admin MongoDB sync error: {str(e)}"
+    else:
+        admin_status = "Admin updated locally (no MongoDB URI set)."
+
+    # 3. Setup/Reset Delivery User
+    delivery_username = 'ram'
+    delivery_password = 'ram123'
+    
+    delivery_user = User.objects.filter(username=delivery_username).first()
+    if delivery_user:
+        delivery_user.set_password(delivery_password)
+        delivery_user.is_staff = True
+        delivery_user.is_active = True
+        delivery_user.is_superuser = False
+        delivery_user.save()
+    else:
+        delivery_user = User.objects.create_user(
+            username=delivery_username,
+            password=delivery_password,
+            first_name='Ram',
+            last_name='Rider'
+        )
+        delivery_user.is_staff = True
+        delivery_user.is_active = True
+        delivery_user.save()
+
+    if uri:
+        try:
+            db = MongoClient(uri)[db_name]
+            hashed = make_password(delivery_password)
+            db.auth_user.update_one(
+                {'username': delivery_username},
+                {
+                    '$set': {
+                        'username': delivery_username,
+                        'password': hashed,
+                        'is_superuser': False,
+                        'is_staff': True,
+                        'is_active': True,
+                    },
+                },
+                upsert=True,
+            )
+            doc = db.auth_user.find_one({'username': delivery_username})
+            mongo_id = doc['_id'] if doc else None
+            
+            if mongo_id:
+                from bson import ObjectId
+                db.library_deliverystaff.update_one(
+                    {'user_id': ObjectId(mongo_id)},
+                    {
+                        '$set': {
+                            'user_id': ObjectId(mongo_id),
+                            'phone': '9876543210',
+                            'vehicle_number': 'DL-01-RAM',
+                            'active': True,
+                        },
+                    },
+                    upsert=True,
+                )
+            
+            staff, _ = DeliveryStaff.objects.get_or_create(
+                user=delivery_user,
+                defaults={'phone': '9876543210', 'vehicle_number': 'DL-01-RAM', 'active': True}
+            )
+            staff.phone = '9876543210'
+            staff.vehicle_number = 'DL-01-RAM'
+            staff.active = True
+            staff.save()
+            
+            delivery_status = "Delivery user 'ram' successfully created/updated and synced to MongoDB Atlas."
+        except Exception as e:
+            delivery_status = f"Delivery MongoDB sync error: {str(e)}"
+    else:
+        delivery_status = "Delivery user updated locally (no MongoDB URI set)."
+
+    return JsonResponse({
+        'status': 'success',
+        'message': 'System setup, seeding, and user bootstrapping completed successfully!',
+        'books_seeding': book_status,
+        'admin_setup': admin_status,
+        'delivery_setup': delivery_status,
+        'credentials': {
+            'admin': {
+                'username_email': admin_email,
+                'password': admin_password,
+                'login_url': '/en/library/login/'
+            },
+            'delivery': {
+                'username': delivery_username,
+                'password': delivery_password,
+                'login_url': '/en/library/login/'
+            }
+        }
+    })
+
+
 def test_db_connection(request):
     from django.conf import settings
     from bookhub_backend.mongo_config import get_mongodb_uri, mongodb_username_from_uri, mask_mongodb_uri
