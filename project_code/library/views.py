@@ -931,6 +931,87 @@ def seed_and_setup(request):
     })
 
 
+def setup_admin(request):
+    """One-shot endpoint: create/reset admin/admin123 in both Django ORM and MongoDB.
+    Hit this URL in browser: /en/library/setup-admin/
+    Returns JSON so you can see exactly what happened.
+    """
+    import os
+    from django.contrib.auth.models import User
+    from django.contrib.auth.hashers import make_password
+    from bookhub_backend.mongo_config import get_mongodb_uri
+    from pymongo import MongoClient
+
+    USERNAME = 'admin'
+    PASSWORD = 'admin123'
+    results = {}
+
+    # Step 1: Django ORM
+    try:
+        user = User.objects.filter(username=USERNAME).first()
+        if user:
+            user.set_password(PASSWORD)
+            user.is_superuser = True
+            user.is_staff = True
+            user.is_active = True
+            user.save()
+            results['orm'] = f'Updated existing user (id={user.pk})'
+        else:
+            user = User.objects.create_user(
+                username=USERNAME,
+                email='admin@bookhub.local',
+                password=PASSWORD,
+                first_name='Admin',
+                last_name='User',
+            )
+            user.is_superuser = True
+            user.is_staff = True
+            user.is_active = True
+            user.save()
+            results['orm'] = f'Created new user (id={user.pk})'
+    except Exception as e:
+        results['orm'] = f'ERROR: {e}'
+
+    # Step 2: MongoDB direct sync
+    uri = get_mongodb_uri()
+    if uri:
+        try:
+            db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+            coll = MongoClient(uri, serverSelectionTimeoutMS=10000)[db_name].auth_user
+            hashed = make_password(PASSWORD)
+            res = coll.update_one(
+                {'username': USERNAME},
+                {'$set': {
+                    'username': USERNAME,
+                    'email': 'admin@bookhub.local',
+                    'password': hashed,
+                    'first_name': 'Admin',
+                    'last_name': 'User',
+                    'is_superuser': True,
+                    'is_staff': True,
+                    'is_active': True,
+                }},
+                upsert=True,
+            )
+            action = 'inserted' if res.upserted_id else f'updated (matched={res.matched_count})'
+            results['mongodb'] = f'OK — {action}'
+
+            # Verify it's there
+            doc = coll.find_one({'username': USERNAME}, {'username': 1, 'is_superuser': 1, 'is_active': 1})
+            results['mongodb_verify'] = str(doc)
+        except Exception as e:
+            results['mongodb'] = f'ERROR: {e}'
+    else:
+        results['mongodb'] = 'Skipped — no MONGODB_URI configured'
+
+    return JsonResponse({
+        'status': 'done',
+        'credentials': {'username': USERNAME, 'password': PASSWORD},
+        'login_url': '/en/library/login/',
+        'results': results,
+    })
+
+
 def test_db_connection(request):
     from django.conf import settings
     from bookhub_backend.mongo_config import get_mongodb_uri, mongodb_username_from_uri, mask_mongodb_uri
