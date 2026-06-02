@@ -942,9 +942,8 @@ def test_db_connection(request):
         if first_book:
             book_info = {
                 'pk': str(first_book.pk),
-                'id': str(first_book.id),
                 'dict_keys': list(first_book.__dict__.keys()),
-                'id_in_dict': first_book.__dict__.get('id'),
+                '_id_in_dict': str(first_book.__dict__.get('_id')),
             }
             
         return JsonResponse({
