@@ -150,15 +150,15 @@ def seed_books():
                 author_obj.save()
                 author_id_counter += 1
         except Author.DoesNotExist:
-            author_obj = Author.objects.create(
-                id=author_id_counter,
+            author_obj = Author(
                 name=author_name,
                 slug=slug
             )
+            author_obj.id = author_id_counter
+            author_obj.save()
             author_id_counter += 1
 
-        Book.objects.create(
-            id=book_id_counter,
+        book_obj = Book(
             title=data["title"],
             author=author_obj,
             category=data["category"],
@@ -166,8 +166,9 @@ def seed_books():
             copies_total=data["copies_total"],
             copies_available=data["copies_available"],
             status=data["status"],
-            image=None
         )
+        book_obj.id = book_id_counter
+        book_obj.save()
         book_id_counter += 1
     print("Successfully seeded database with beautiful books!")
 
