@@ -119,18 +119,26 @@ def seed_books():
     Book.objects.all().delete()
 
     print("Seeding books...")
+    from library.models import Author
+    from django.utils.text import slugify
+
     for data in books_data:
-        # Save image URL directly or simulate upload - here we'll save simple placeholder or use full unsplash paths
-        # Let's save a book
+        author_name = data["author"]
+        slug = slugify(author_name)
+        author_obj, _ = Author.objects.get_or_create(
+            slug=slug,
+            defaults={'name': author_name}
+        )
+
         Book.objects.create(
             title=data["title"],
-            author=data["author"],
+            author=author_obj,
             category=data["category"],
             isbn=data["isbn"],
             copies_total=data["copies_total"],
             copies_available=data["copies_available"],
             status=data["status"],
-            image=None  # We will use direct image URL property or a template fallback, which is cleaner
+            image=None
         )
     print("Successfully seeded database with beautiful books!")
 
