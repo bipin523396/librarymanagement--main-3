@@ -10,17 +10,20 @@ CUSTOMER_HOME = 'home'
 
 
 def user_can_admin(user):
-    if user is None:
+    if user is None or not user.is_authenticated:
         return False
-    try:
-        if not user.is_authenticated:
-            return False
-    except Exception:
-        return False
-    return bool(getattr(user, 'is_superuser', False))
+    # Superusers are always admins
+    if getattr(user, 'is_superuser', False):
+        return True
+    # Staff users are admins in this app
+    if getattr(user, 'is_staff', False):
+        return True
+    return False
 
 
 def _delivery_staff_active_in_mongo(username):
+    if not username:
+        return False
     try:
         import os
         from bookhub_backend.mongo_config import get_shared_client
@@ -30,43 +33,34 @@ def _delivery_staff_active_in_mongo(username):
             return False
         db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
         db = client[db_name]
-        auth = db.auth_user.find_one({'username': username}, projection={'_id': 1})
+        # Optimized: only fetch necessary fields
+        auth = db.auth_user.find_one({'username': username}, {'_id': 1})
         if not auth:
             return False
         uid = auth['_id']
-        return db.library_deliverystaff.find_one({'user_id': uid, 'active': True}) is not None
+        return db.library_deliverystaff.find_one({'user_id': uid, 'active': True}, {'_id': 1}) is not None
     except Exception:
         return False
 
 
 def user_can_delivery(user):
-    if not user.is_authenticated:
+    if user is None or not user.is_authenticated:
         return False
-    if _delivery_staff_active_in_mongo(user.get_username()):
-        return True
+    
+    # 1) Try simple ORM check first (cached by Django usually)
     try:
-        if user.deliverystaff.active:
+        if hasattr(user, 'deliverystaff') and user.deliverystaff.active:
             return True
     except Exception:
         pass
-    try:
-        from bson import ObjectId
-        from library.models import DeliveryStaff
-        from library.auth_backend import resolve_user_pk
 
-        uid = resolve_user_pk(user)
-        if uid:
-            ids = [uid]
-            try:
-                ids.append(ObjectId(str(uid)))
-            except Exception:
-                pass
-            if DeliveryStaff.objects.filter(user_id__in=ids, active=True).exists():
-                return True
-    except Exception:
-        pass
+    # 2) Try MongoDB direct check
+    if _delivery_staff_active_in_mongo(user.get_username()):
+        return True
+
+    # 3) Legacy check
     try:
-        return bool(user.deliveryrider)
+        return bool(getattr(user, 'deliveryrider', False))
     except Exception:
         return False
 

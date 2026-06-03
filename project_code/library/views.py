@@ -146,13 +146,21 @@ def signup_view(request):
 
 def login_view(request):
     if request.user.is_authenticated:
-        role = request.session.get('login_role') or detect_login_role(request.user)
-        return redirect(home_url_name_for_role(role))
+        try:
+            role = request.session.get('login_role') or detect_login_role(request.user)
+            return redirect(home_url_name_for_role(role))
+        except Exception as e:
+            print(f"DEBUG: Login redirect error: {e}")
+            return redirect('home')
 
     if request.method == "POST":
-        username = request.POST.get('username')
+        username = (request.POST.get('username') or '').strip()
         password = request.POST.get('password')
         
+        if not username or not password:
+            messages.error(request, "Please enter both username and password.")
+            return render(request, 'login.html')
+
         print(f"DEBUG: Login attempt for username: {username}")
 
         try:
@@ -161,45 +169,43 @@ def login_view(request):
             print(f"DEBUG: Authenticate error: {str(e)}")
             user = None
         
-        # Fallback: if username was actually an email, lookup the user's real username
+        # Fallback: if username was actually an email
         if user is None and '@' in username:
-            print(f"DEBUG: Username '{username}' not found, trying as email...")
             try:
-                user_obj = User.objects.get(email=username)
-                print(f"DEBUG: Found user with email: {user_obj.username}")
-                user = authenticate(request, username=user_obj.username, password=password)
-            except User.DoesNotExist:
-                print(f"DEBUG: No user found with email: {username}")
+                user_obj = User.objects.filter(email=username).first()
+                if user_obj:
+                    user = authenticate(request, username=user_obj.username, password=password)
             except Exception as e:
                 print(f"DEBUG: Email fallback error: {str(e)}")
 
         if user is not None:
-            print(f"DEBUG: Authentication successful for: {user.username}")
             from .mongo_auth import mongo_session_login
 
             try:
                 mongo_session_login(request, user)
-                print(f"DEBUG: session login successful for: {user.username}")
+                
+                # Detect and STORE role immediately to avoid future lookups
+                login_as = detect_login_role(user)
+                request.session['login_role'] = login_as
+                
+                if request.POST.get('remember_me'):
+                    request.session.set_expiry(60 * 60 * 24 * 14)
+                else:
+                    request.session.set_expiry(0)
+                
+                request.session.save()
+
+                next_url = request.POST.get('next') or request.session.get('last_portal_path')
+                if next_url and next_url.startswith('/') and not next_url.startswith('//'):
+                    return redirect(next_url)
+                
+                return redirect(home_url_name_for_role(login_as))
             except Exception as e:
-                print(f"DEBUG: session login failed: {str(e)}")
-                messages.error(request, f"Login failed: {str(e)}")
+                print(f"DEBUG: login processing failed: {str(e)}")
+                messages.error(request, "Login system error. Please try again later.")
                 return render(request, 'login.html', {'username_value': username})
 
-            login_as = detect_login_role(user)
-            request.session['login_role'] = login_as
-            request.session.save()
-            if request.POST.get('remember_me'):
-                request.session.set_expiry(60 * 60 * 24 * 14)
-            else:
-                request.session.set_expiry(0)
-
-            next_url = request.POST.get('next') or request.session.get('last_portal_path')
-            if next_url and next_url.startswith('/'):
-                return redirect(next_url)
-            return redirect(home_url_name_for_role(login_as))
-
-        print(f"DEBUG: Authentication failed for: {username}")
-        messages.error(request, "Invalid username or password. Check email/username and password.")
+        messages.error(request, "Invalid username or password.")
         return render(request, 'login.html', {'username_value': username})
 
     return render(request, 'login.html')
