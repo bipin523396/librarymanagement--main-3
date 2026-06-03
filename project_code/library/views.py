@@ -1618,96 +1618,105 @@ def process_checkout(request):
             # Generate unique order ID
             order_id = "RNT-" + str(uuid.uuid4())[:8].upper()
             
-            # Create Order
-            order = Order.objects.create(
-                order_id=order_id,
-                customer=profile,
-                book=book,
-                order_type='Delivery Only',
-                status='Pending'
-            )
-            
-            # Create Payment record
             try:
-                Payment.objects.create(
-                    user=user_instance,
-                    order=order,
-                    amount=decimal_total,
-                    reference_id=str(uuid.uuid4()),
-                    payment_type=payment_method,
-                    status='success' # Mocking instant success
-                )
-            except Exception as pay_err:
-                print(f"ORM Checkout Payment Failed: {pay_err}")
-                from bookhub_backend.mongo_config import get_shared_client
-                client = get_shared_client()
-                if client:
-                    db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-                    db = client[db_name]
-                    from bson import Decimal128
-                    db.library_payment.insert_one({
-                        'user_id': user_instance.id,
-                        'order_id': order.id,
-                        'amount': Decimal128(str(decimal_total)),
-                        'reference_id': str(uuid.uuid4()),
-                        'payment_type': payment_method,
-                        'status': 'success',
-                        'created_at': timezone.now()
-                    })
-            
-            # Calculate return date
-            from datetime import timedelta
-            try:
-                days = int(duration)
-            except (TypeError, ValueError):
-                days = 7
-            return_date = timezone.now() + timedelta(days=days)
-            
-            # Create Rental and Delivery entries for the professional workflow
-            from .models import Rental, Delivery
-            try:
-                rental = Rental.objects.create(
-                    user=user_instance,
+                # Create Order
+                print("DEBUG: Creating Order...")
+                order = Order.objects.create(
+                    order_id=order_id,
+                    customer=profile,
                     book=book,
-                    duration_days=days,
-                    total_amount=decimal_total,
-                    payment_status='Paid',
-                    rental_status='Pending',
-                    due_date=return_date.date()
+                    order_type='Delivery Only',
+                    status='Pending'
                 )
-                Delivery.objects.create(rental=rental)
-            except Exception as rent_err:
-                print(f"ORM Rental Create Failed: {rent_err}")
-                from bookhub_backend.mongo_config import get_shared_client
-                client = get_shared_client()
-                if client:
-                    db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-                    db = client[db_name]
-                    from bson import Decimal128
-                    rental_res = db.library_rental.insert_one({
-                        'user_id': user_instance.id,
-                        'book_id': book.id,
-                        'duration_days': days,
-                        'total_amount': Decimal128(str(decimal_total)),
-                        'payment_status': 'Paid',
-                        'rental_status': 'Pending',
-                        'rented_at': timezone.now(),
-                        'due_date': str(return_date.date()),
-                        'returned': False,
-                        'late_fee': Decimal128('0.00')
-                    })
-                    db.library_delivery.insert_one({
-                        'rental_id': rental_res.inserted_id,
-                        'status': 'Pending',
-                        'assigned_at': timezone.now()
-                    })
-            
-            print(f"DEBUG: Checkout successful for Order ID: {order_id}")
-            return JsonResponse({
-                'status': 'success',
-                'order_id': order_id,
-                'return_date': return_date.strftime("%B %d, %Y")
-            })
+                print(f"DEBUG: Order created: {order.id}")
+                
+                # Create Payment record
+                print("DEBUG: Creating Payment...")
+                try:
+                    Payment.objects.create(
+                        user_id=user_instance.id,
+                        order=order,
+                        amount=decimal_total,
+                        reference_id=str(uuid.uuid4()),
+                        payment_type=payment_method,
+                        status='success'
+                    )
+                except Exception as pay_err:
+                    print(f"ORM Checkout Payment Failed: {pay_err}")
+                    from bookhub_backend.mongo_config import get_shared_client
+                    client = get_shared_client()
+                    if client:
+                        db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+                        db = client[db_name]
+                        from bson import Decimal128
+                        db.library_payment.insert_one({
+                            'user_id': user_instance.id,
+                            'order_id': order.id,
+                            'amount': Decimal128(str(decimal_total)),
+                            'reference_id': str(uuid.uuid4()),
+                            'payment_type': payment_method,
+                            'status': 'success',
+                            'created_at': timezone.now()
+                        })
+                
+                # Calculate return date
+                from datetime import timedelta
+                try:
+                    days = int(duration)
+                except (TypeError, ValueError):
+                    days = 7
+                return_date = timezone.now() + timedelta(days=days)
+                
+                # Create Rental and Delivery entries
+                from .models import Rental, Delivery
+                print("DEBUG: Creating Rental...")
+                try:
+                    rental = Rental.objects.create(
+                        user_id=user_instance.id,
+                        book=book,
+                        duration_days=days,
+                        total_amount=decimal_total,
+                        payment_status='Paid',
+                        rental_status='Pending',
+                        due_date=return_date.date()
+                    )
+                    Delivery.objects.create(rental=rental)
+                except Exception as rent_err:
+                    print(f"ORM Rental Create Failed: {rent_err}")
+                    from bookhub_backend.mongo_config import get_shared_client
+                    client = get_shared_client()
+                    if client:
+                        db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+                        db = client[db_name]
+                        from bson import Decimal128
+                        rental_res = db.library_rental.insert_one({
+                            'user_id': user_instance.id,
+                            'book_id': book.id,
+                            'duration_days': days,
+                            'total_amount': Decimal128(str(decimal_total)),
+                            'payment_status': 'Paid',
+                            'rental_status': 'Pending',
+                            'rented_at': timezone.now(),
+                            'due_date': str(return_date.date()),
+                            'returned': False,
+                            'late_fee': Decimal128('0.00')
+                        })
+                        db.library_delivery.insert_one({
+                            'rental_id': rental_res.inserted_id,
+                            'status': 'Pending',
+                            'assigned_at': timezone.now()
+                        })
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'order_id': order_id,
+                    'return_date': return_date.strftime("%B %d, %Y")
+                })
+            except Exception as e:
+                import traceback
+                print(f"DEBUG: Checkout Transaction Error: {str(e)}")
+                print(traceback.format_exc())
+                return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
             
         except Book.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Book not found'}, status=404)
