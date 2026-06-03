@@ -84,6 +84,7 @@ MIDDLEWARE = [
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
     'library.session_middleware.MongoAuthSessionMiddleware',
     'library.middleware.RolePortalMiddleware',
     'library.middleware.LoginNextMiddleware',

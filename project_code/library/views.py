@@ -2,6 +2,8 @@
 from django.views.decorators.csrf import csrf_exempt
 import json
 import uuid
+import traceback
+from decimal import Decimal
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from .bot_engine import super_ai
@@ -1413,8 +1415,20 @@ def add_to_cart(request, id):
 def view_cart(request):
     cart = Cart.objects.filter(user=request.user).first()
     items = cart.cartitem_set.all() if cart else []
-    total = sum(item.book.price_per_day * item.quantity for item in items)
-    return render(request, 'cart.html', {'items': items, 'total': total})
+    
+    # Calculate total and subtotal for each item
+    cart_items = []
+    total = 0
+    for item in items:
+        subtotal = item.book.price_per_day * item.quantity
+        total += subtotal
+        cart_items.append({
+            'book': item.book,
+            'quantity': item.quantity,
+            'subtotal': subtotal
+        })
+        
+    return render(request, 'view_cart.html', {'items': cart_items, 'total': total})
 
 @login_required
 def add_to_wishlist(request, id):
@@ -1490,8 +1504,12 @@ def payment_page(request):
         return redirect('view_cart')
     items = cart.cartitem_set.all()
     total_amount = sum(item.book.price_per_day * item.quantity for item in items)
+    
+    # Convert to Decimal for model storage
+    decimal_total = Decimal(str(total_amount))
+    
     reference_id = str(uuid.uuid4())
-    payment = Payment.objects.create(user=request.user, amount=total_amount, reference_id=reference_id, status='initiated')
+    payment = Payment.objects.create(user=request.user, amount=decimal_total, reference_id=reference_id, status='initiated')
     # In a real app, integrate with Stripe/Razorpay here.
     return render(request, 'payment.html', {'payment': payment, 'total': total_amount})
 
@@ -1535,15 +1553,24 @@ def process_checkout(request):
     if request.method == "POST":
         try:
             print(f"DEBUG: Process Checkout received: {request.body}")
-            data = json.loads(request.body)
+            data = json.loads(request.body or '{}')
             book_id = data.get('book_id')
             duration = data.get('duration')
             total = data.get('total')
-            payment_method = data.get('payment_method')
+            payment_method = data.get('payment_method', 'razorpay')
             
+            if not book_id or not duration:
+                return JsonResponse({'status': 'error', 'message': 'Missing book_id or duration'}, status=400)
+
             book = Book.objects.get(id=book_id)
             profile, _ = UserProfile.objects.get_or_create(user=request.user)
             
+            # Convert total to Decimal
+            try:
+                decimal_total = Decimal(str(total))
+            except (TypeError, ValueError):
+                decimal_total = Decimal('0.00')
+
             # Generate unique order ID
             order_id = "RNT-" + str(uuid.uuid4())[:8].upper()
             
@@ -1560,7 +1587,7 @@ def process_checkout(request):
             Payment.objects.create(
                 user=request.user,
                 order=order,
-                amount=total,
+                amount=decimal_total,
                 reference_id=str(uuid.uuid4()),
                 payment_type=payment_method,
                 status='success' # Mocking instant success
@@ -1568,15 +1595,19 @@ def process_checkout(request):
             
             # Calculate return date
             from datetime import timedelta
-            return_date = timezone.now() + timedelta(days=int(duration))
+            try:
+                days = int(duration)
+            except (TypeError, ValueError):
+                days = 7
+            return_date = timezone.now() + timedelta(days=days)
             
             # Create Rental and Delivery entries for the professional workflow
             from .models import Rental, Delivery
             rental = Rental.objects.create(
                 user=request.user,
                 book=book,
-                duration_days=int(duration),
-                total_amount=total,
+                duration_days=days,
+                total_amount=decimal_total,
                 payment_status='Paid',
                 rental_status='Pending',
                 due_date=return_date.date()
@@ -1590,8 +1621,9 @@ def process_checkout(request):
                 'return_date': return_date.strftime("%B %d, %Y")
             })
             
+        except Book.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Book not found'}, status=404)
         except Exception as e:
-            import traceback
             print(f"DEBUG: Checkout Error: {str(e)}")
             print(traceback.format_exc())
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
@@ -1673,15 +1705,15 @@ def premium_checkout(request):
 def activate_premium(request):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
+            data = json.loads(request.body or '{}')
             plan_name = data.get('plan', 'Premium')
             amount = data.get('amount', 500)
             
-            # Ensure amount is a float for MongoDB compatibility
+            # Ensure amount is a Decimal for MongoDB/Django compatibility
             try:
-                amount = float(amount)
+                decimal_amount = Decimal(str(amount))
             except (TypeError, ValueError):
-                amount = 500.0
+                decimal_amount = Decimal('500.00')
             
             # Get or create profile
             profile = _ensure_user_profile(request.user)
@@ -1689,7 +1721,7 @@ def activate_premium(request):
             # Get or create the membership plan
             plan, _ = MembershipPlan.objects.get_or_create(
                 name=plan_name,
-                defaults={'price': amount, 'max_books_at_a_time': 10 if plan_name == 'Premium' else 2}
+                defaults={'price': decimal_amount, 'max_books_at_a_time': 10 if plan_name == 'Premium' else 2}
             )
             profile.membership = plan
             
@@ -1701,7 +1733,7 @@ def activate_premium(request):
             # Record payment
             Payment.objects.create(
                 user=request.user,
-                amount=amount,
+                amount=decimal_amount,
                 reference_id='PREM-' + str(uuid.uuid4())[:8].upper(),
                 status='success'
             )
@@ -1712,6 +1744,8 @@ def activate_premium(request):
                 'expiry': profile.membership_expiry.strftime('%B %d, %Y')
             })
         except Exception as e:
+            print(f"DEBUG: Activate Premium Error: {str(e)}")
+            print(traceback.format_exc())
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
@@ -1741,23 +1775,23 @@ def gift_card_checkout(request):
         data = json.loads(request.body or '{}')
         amount = data.get('amount') or 0
         
-        # Ensure amount is a float for MongoDB compatibility
+        # Ensure amount is a Decimal for MongoDB/Django compatibility
         try:
-            amount = float(amount)
+            decimal_amount = Decimal(str(amount))
         except (TypeError, ValueError):
-            amount = 0.0
+            decimal_amount = Decimal('0.00')
             
         recipient_name = (data.get('recipient_name') or '').strip()
         recipient_email = (data.get('recipient_email') or '').strip()
         message_text = (data.get('message') or '').strip()
 
-        if amount <= 0 or not recipient_name or not recipient_email:
+        if decimal_amount <= 0 or not recipient_name or not recipient_email:
             return JsonResponse({'status': 'error', 'message': 'Recipient name, email, and amount are required.'}, status=400)
 
         reference_id = 'GIFT-' + str(uuid.uuid4())[:8].upper()
         Payment.objects.create(
             user=request.user,
-            amount=amount,
+            amount=decimal_amount,
             reference_id=reference_id,
             payment_type=f'Gift Card to {recipient_name}',
             status='success',
