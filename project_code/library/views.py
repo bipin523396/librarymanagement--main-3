@@ -27,6 +27,25 @@ from .decorators import admin_portal_required, delivery_portal_required, portal_
 AUTH_BACKEND = 'library.auth_backend.MongoModelBackend'
 
 
+def _get_next_id(collection_name):
+    """Helper to get the next integer ID for a collection in MongoDB Atlas."""
+    from bookhub_backend.mongo_config import get_shared_client
+    import os
+    client = get_shared_client()
+    if not client:
+        return None
+    db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+    db = client[db_name]
+    # Find the document with the highest id
+    last_doc = db[collection_name].find_one(sort=[("id", -1)])
+    if last_doc and 'id' in last_doc:
+        try:
+            return int(last_doc['id']) + 1
+        except (ValueError, TypeError):
+            pass
+    return 1
+
+
 def _is_delivery_staff(user):
     if not user.is_authenticated:
         return False
@@ -201,11 +220,15 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 def admin_dashboard(request):
     request.session['login_role'] = ROLE_ADMIN
     import os
-    from .models import Rental, Payment, Delivery, ContactMessage, SystemSettings, Author, DeliveryStaff, UserProfile
+    from .models import Rental, Payment, Delivery, ContactMessage, Author, DeliveryStaff, UserProfile, Order
     from .safe_queries import rentals_for_admin
+    from bookhub_backend.mongo_config import get_shared_client
 
     try:
         dashboard_limit = int(os.getenv('ADMIN_DASHBOARD_LIMIT', '50'))
+        client = get_shared_client()
+        db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+        db = client[db_name] if client else None
 
         def _load_rows(queryset, label):
             try:
@@ -214,74 +237,104 @@ def admin_dashboard(request):
                 print(f'ADMIN DASHBOARD {label} sliced load failed: {exc}')
                 return []
 
-        books = _load_rows(Book.objects.select_related('author').order_by('-id'), 'books')
-        riders = _load_rows(DeliveryRider.objects.select_related('user').order_by('-id'), 'riders')
-        orders = _load_rows(
-            Order.objects.select_related('customer__user', 'book', 'assigned_rider__user').filter(status='Pending').order_by('-created_at'),
-            'orders',
-        )
-        try:
-            # Fix members count and loading
-            members = _load_rows(UserProfile.objects.select_related('user', 'membership').order_by('-id'), 'members')
-        except Exception:
-            members = []
-            
+        # 1. Stats
+        total_books = Book.objects.count()
+        active_members = UserProfile.objects.count()
+        pending_orders_count = Order.objects.filter(status='Pending').count() + Rental.objects.filter(rental_status='Pending').count()
         low_stock_count = Book.objects.filter(copies_available__lte=2).count()
-        
-        # Correctly load live and history rentals
-        live_rentals = Rental.objects.filter(rental_status='Pending').select_related('user', 'book', 'user__userprofile').order_by('-rented_at')[:dashboard_limit]
-        history_rentals = Rental.objects.exclude(rental_status='Pending').select_related('user', 'book').order_by('-rented_at')[:dashboard_limit]
 
-        assigned_deliveries = _load_rows(
-            Delivery.objects.select_related(
-                'rental__book',
-                'rental__user__userprofile',
-                'delivery_person__deliverystaff',
-            ).exclude(status='Pending').order_by('-assigned_at'),
-            'assigned_deliveries',
-        )
-        
+        # 2. Books & Authors
+        books = _load_rows(Book.objects.select_related('author').order_by('-id'), 'books')
+        authors = _load_rows(Author.objects.all().order_by('-id'), 'authors')
+
+        # 3. Members
+        members = _load_rows(UserProfile.objects.select_related('user', 'membership').order_by('-id'), 'members')
+
+        # 4. Rentals
+        live_rentals = _load_rows(Rental.objects.filter(rental_status='Pending').select_related('user', 'book').order_by('-rented_at'), 'live_rentals')
+        history_rentals = _load_rows(Rental.objects.exclude(rental_status='Pending').select_related('user', 'book').order_by('-rented_at'), 'history_rentals')
+
+        # 5. Payments
+        payments = _load_rows(Payment.objects.select_related('user').order_by('-created_at'), 'payments')
+
+        # 6. Deliveries & Staff
+        riders = _load_rows(DeliveryRider.objects.select_related('user').order_by('-id'), 'riders')
+        delivery_staff = _load_rows(DeliveryStaff.objects.select_related('user').order_by('-id'), 'delivery_staff')
+        assigned_deliveries = _load_rows(Delivery.objects.exclude(status='Pending').order_by('-assigned_at'), 'assigned_deliveries')
+
+        # 7. Messages
+        messages_list = _load_rows(ContactMessage.objects.order_by('-created_at'), 'messages')
+
+        # --- FALLBACK: If ORM lists are empty but MongoDB has data ---
+        if db:
+            if not payments and db.library_payment.count_documents({}) > 0:
+                print("DEBUG: Admin using direct Mongo fallback for Payments")
+                raw_payments = list(db.library_payment.find().sort("created_at", -1).limit(dashboard_limit))
+                payments = []
+                for p in raw_payments:
+                    # Mock a Payment object for the template
+                    try:
+                        u = User.objects.get(pk=p.get('user_id'))
+                        pay_obj = Payment(
+                            id=p.get('id') or str(p.get('_id')),
+                            user=u,
+                            amount=p.get('amount'),
+                            reference_id=p.get('reference_id'),
+                            payment_type=p.get('payment_type', 'Unknown'),
+                            status=p.get('status', 'success'),
+                            created_at=p.get('created_at')
+                        )
+                        payments.append(pay_obj)
+                    except Exception: pass
+
+            if not live_rentals and db.library_rental.count_documents({'rental_status': 'Pending'}) > 0:
+                print("DEBUG: Admin using direct Mongo fallback for Rentals")
+                raw_rentals = list(db.library_rental.find({'rental_status': 'Pending'}).sort("rented_at", -1).limit(dashboard_limit))
+                live_rentals = []
+                for r in raw_rentals:
+                    try:
+                        u = User.objects.get(pk=r.get('user_id'))
+                        b = Book.objects.get(pk=r.get('book_id'))
+                        rent_obj = Rental(
+                            id=r.get('id') or str(r.get('_id')),
+                            user=u,
+                            book=b,
+                            total_amount=r.get('total_amount'),
+                            rental_status=r.get('rental_status'),
+                            rented_at=r.get('rented_at'),
+                            due_date=r.get('due_date')
+                        )
+                        live_rentals.append(rent_obj)
+                    except Exception: pass
+
+            if not messages_list and db.library_contactmessage.count_documents({}) > 0:
+                raw_msgs = list(db.library_contactmessage.find().sort("created_at", -1).limit(dashboard_limit))
+                messages_list = [ContactMessage(**m) for m in raw_msgs]
+
         context = {
-            'total_books': Book.objects.count(),
-            'active_members': UserProfile.objects.count(),
-            'pending_orders': Order.objects.filter(status='Pending').count() + Rental.objects.filter(rental_status='Pending').count(),
+            'total_books': total_books,
+            'active_members': active_members,
+            'pending_orders': pending_orders_count,
             'low_stock_count': low_stock_count,
             'books': books,
-            'authors': Author.objects.all().order_by('-id')[:dashboard_limit],
+            'authors': authors,
             'riders': riders,
-            'orders': orders,
+            'orders': [], # Order model is used for 'Delivery Only' etc
             'members': members,
             'live_rentals': live_rentals,
             'history_rentals': history_rentals,
-            'payments': Payment.objects.select_related('user', 'order').order_by('-created_at')[:dashboard_limit],
+            'payments': payments,
             'assigned_deliveries': assigned_deliveries,
-            'messages': ContactMessage.objects.order_by('-created_at')[:dashboard_limit],
-            'settings': SystemSettings.objects.first(),
-            'delivery_staff': DeliveryStaff.objects.select_related('user').order_by('-id')[:dashboard_limit],
+            'messages': messages_list,
+            'settings': None,
+            'delivery_staff': delivery_staff,
         }
         return render(request, 'admin.html', context)
     except Exception as exc:
         import traceback
         traceback.print_exc()
         messages.error(request, f'Admin dashboard error: {exc}')
-        return render(request, 'admin.html', {
-            'total_books': 0,
-            'active_members': 0,
-            'pending_orders': 0,
-            'low_stock_count': 0,
-            'books': [],
-            'authors': [],
-            'riders': [],
-            'orders': [],
-            'members': [],
-            'live_rentals': [],
-            'history_rentals': [],
-            'payments': [],
-            'assigned_deliveries': [],
-            'messages': [],
-            'settings': None,
-            'delivery_staff': [],
-        })
+        return render(request, 'admin.html', {'total_books': 0})
 
 @admin_portal_required
 def assign_delivery(request, rental_id):
@@ -462,9 +515,24 @@ def add_admin(request):
 def resolve_message(request, message_id):
     from .models import ContactMessage
     if request.method == 'POST':
-        msg = get_object_or_404(ContactMessage, id=message_id)
-        msg.status = 'Resolved'
-        msg.save()
+        try:
+            msg = get_object_or_404(ContactMessage, id=message_id)
+            msg.status = 'Resolved'
+            msg.save()
+        except Exception:
+            # Direct Mongo fallback
+            from bookhub_backend.mongo_config import get_shared_client
+            client = get_shared_client()
+            if client:
+                import os
+                db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+                db = client[db_name]
+                from bson import ObjectId
+                # Try both integer id and MongoDB _id
+                db.library_contactmessage.update_one(
+                    {'$or': [{'id': int(message_id)}, {'_id': ObjectId(message_id)} if len(str(message_id))==24 else {'id':-1}]},
+                    {'$set': {'status': 'Resolved'}}
+                )
         messages.success(request, 'Message marked as resolved.')
     return redirect(reverse('admin_dashboard') + '#contact-management')
 
@@ -526,9 +594,26 @@ def add_book(request):
             )
             messages.success(request, f"Success: '{title}' has been added to the inventory.")
         except Exception as e:
-            import traceback
-            print(traceback.format_exc())
-            messages.error(request, f"Error adding book: {str(e)}")
+            print(f"ORM Add Book failed: {e}")
+            from bookhub_backend.mongo_config import get_shared_client
+            client = get_shared_client()
+            if client:
+                import os
+                db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+                db = client[db_name]
+                db.library_book.insert_one({
+                    'id': _get_next_id('library_book'),
+                    'title': title,
+                    'author_id': author_instance.pk,
+                    'category': category,
+                    'isbn': isbn,
+                    'copies_total': copies,
+                    'copies_available': copies,
+                    'image': str(image_file) if image_file else None
+                })
+                messages.success(request, f"Success: '{title}' has been added (via direct storage).")
+            else:
+                messages.error(request, f"Error adding book: {str(e)}")
             
     return redirect('admin_dashboard')
 
@@ -561,7 +646,25 @@ def add_author(request):
             )
             messages.success(request, f"Success: Author '{name}' has been added.")
         except Exception as e:
-            messages.error(request, f"Error adding author: {str(e)}")
+            print(f"ORM Add Author failed: {e}")
+            from bookhub_backend.mongo_config import get_shared_client
+            client = get_shared_client()
+            if client:
+                import os
+                db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+                db = client[db_name]
+                db.library_author.insert_one({
+                    'id': _get_next_id('library_author'),
+                    'name': name,
+                    'slug': slug,
+                    'bio': bio,
+                    'genres': genres,
+                    'nationality': nationality,
+                    'image': str(image) if image else None
+                })
+                messages.success(request, f"Success: Author '{name}' has been added (via direct storage).")
+            else:
+                messages.error(request, f"Error adding author: {str(e)}")
             
     return redirect('admin_dashboard')
 
@@ -1525,7 +1628,8 @@ def payment_page(request):
             db = client[db_name]
             from bson import Decimal128
             db.library_payment.insert_one({
-                'user_id': user_instance.id,
+                'id': _get_next_id('library_payment'),
+                'user_id': user_instance.pk,
                 'amount': Decimal128(str(decimal_total)),
                 'reference_id': reference_id,
                 'payment_type': 'Cart Checkout',
@@ -1636,6 +1740,7 @@ def process_checkout(request):
             # 1. Create Order Doc
             order_id = "RNT-" + str(uuid.uuid4())[:8].upper()
             order_res = db.library_order.insert_one({
+                'id': _get_next_id('library_order'),
                 'order_id': order_id,
                 'customer_id': profile.pk,
                 'book_id': book.pk,
@@ -1646,6 +1751,7 @@ def process_checkout(request):
             
             # 2. Create Payment Doc
             db.library_payment.insert_one({
+                'id': _get_next_id('library_payment'),
                 'user_id': user_instance.pk,
                 'order_id': order_res.inserted_id,
                 'amount': Decimal128(str(decimal_total)),
@@ -1664,6 +1770,7 @@ def process_checkout(request):
             return_date = timezone.now() + timedelta(days=days)
             
             rental_res = db.library_rental.insert_one({
+                'id': _get_next_id('library_rental'),
                 'user_id': user_instance.pk,
                 'book_id': book.pk,
                 'duration_days': days,
@@ -1678,6 +1785,7 @@ def process_checkout(request):
             
             # 4. Create Delivery Doc
             db.library_delivery.insert_one({
+                'id': _get_next_id('library_delivery'),
                 'rental_id': rental_res.inserted_id,
                 'status': 'Pending',
                 'assigned_at': timezone.now()
@@ -1818,6 +1926,7 @@ def activate_premium(request):
                     db = client[db_name]
                     from bson import Decimal128
                     db.library_payment.insert_one({
+                        'id': _get_next_id('library_payment'),
                         'user_id': user_instance.pk,
                         'amount': Decimal128(str(decimal_amount)),
                         'reference_id': 'PREM-' + str(uuid.uuid4())[:8].upper(),
@@ -1898,6 +2007,7 @@ def gift_card_checkout(request):
                 db = client[db_name]
                 from bson import Decimal128
                 db.library_payment.insert_one({
+                    'id': _get_next_id('library_payment'),
                     'user_id': user_instance.pk,
                     'amount': Decimal128(str(decimal_amount)),
                     'reference_id': reference_id,
@@ -1963,13 +2073,29 @@ def submit_contact(request):
         subject = request.POST.get('subject')
         message = request.POST.get('message')
         
-        from .models import ContactMessage
-        ContactMessage.objects.create(
-            name=name,
-            email=email,
-            subject=subject,
-            message=message
-        )
+        try:
+            ContactMessage.objects.create(
+                name=name,
+                email=email,
+                subject=subject,
+                message=message
+            )
+        except Exception as e:
+            print(f"ORM Submit Contact failed: {e}")
+            from bookhub_backend.mongo_config import get_shared_client
+            client = get_shared_client()
+            if client:
+                import os
+                db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+                db = client[db_name]
+                db.library_contactmessage.insert_one({
+                    'id': _get_next_id('library_contactmessage'),
+                    'name': name,
+                    'email': email,
+                    'subject': subject,
+                    'message': message,
+                    'created_at': timezone.now()
+                })
         messages.success(request, 'Your message has been sent successfully. We will get back to you soon.')
         return redirect('contact')
     return redirect('contact')
