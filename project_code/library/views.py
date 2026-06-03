@@ -244,22 +244,47 @@ def admin_dashboard(request):
         low_stock_count = Book.objects.filter(copies_available__lte=2).count()
 
         # 2. Books & Authors
-        books = _load_rows(Book.objects.select_related('author').order_by('-id'), 'books')
+        try:
+            books = _load_rows(Book.objects.select_related('author').order_by('-id'), 'books')
+        except Exception:
+            books = _load_rows(Book.objects.all().order_by('-id'), 'books')
+        
         authors = _load_rows(Author.objects.all().order_by('-id'), 'authors')
 
         # 3. Members
-        members = _load_rows(UserProfile.objects.select_related('user', 'membership').order_by('-id'), 'members')
+        try:
+            members = _load_rows(UserProfile.objects.select_related('user', 'membership').order_by('-id'), 'members')
+        except Exception:
+            members = _load_rows(UserProfile.objects.all().order_by('-id'), 'members')
 
         # 4. Rentals
-        live_rentals = _load_rows(Rental.objects.filter(rental_status='Pending').select_related('user', 'book').order_by('-rented_at'), 'live_rentals')
-        history_rentals = _load_rows(Rental.objects.exclude(rental_status='Pending').select_related('user', 'book').order_by('-rented_at'), 'history_rentals')
+        try:
+            live_rentals = _load_rows(Rental.objects.filter(rental_status='Pending').select_related('user', 'book').order_by('-rented_at'), 'live_rentals')
+        except Exception:
+            live_rentals = _load_rows(Rental.objects.filter(rental_status='Pending').order_by('-rented_at'), 'live_rentals')
+            
+        try:
+            history_rentals = _load_rows(Rental.objects.exclude(rental_status='Pending').select_related('user', 'book').order_by('-rented_at'), 'history_rentals')
+        except Exception:
+            history_rentals = _load_rows(Rental.objects.exclude(rental_status='Pending').order_by('-rented_at'), 'history_rentals')
 
         # 5. Payments
-        payments = _load_rows(Payment.objects.select_related('user').order_by('-created_at'), 'payments')
+        try:
+            payments = _load_rows(Payment.objects.select_related('user').order_by('-created_at'), 'payments')
+        except Exception:
+            payments = _load_rows(Payment.objects.all().order_by('-created_at'), 'payments')
 
         # 6. Deliveries & Staff
-        riders = _load_rows(DeliveryRider.objects.select_related('user').order_by('-id'), 'riders')
-        delivery_staff = _load_rows(DeliveryStaff.objects.select_related('user').order_by('-id'), 'delivery_staff')
+        try:
+            riders = _load_rows(DeliveryRider.objects.select_related('user').order_by('-id'), 'riders')
+        except Exception:
+            riders = _load_rows(DeliveryRider.objects.all().order_by('-id'), 'riders')
+            
+        try:
+            delivery_staff = _load_rows(DeliveryStaff.objects.select_related('user').order_by('-id'), 'delivery_staff')
+        except Exception:
+            delivery_staff = _load_rows(DeliveryStaff.objects.all().order_by('-id'), 'delivery_staff')
+            
         assigned_deliveries = _load_rows(Delivery.objects.exclude(status='Pending').order_by('-assigned_at'), 'assigned_deliveries')
 
         # 7. Messages
