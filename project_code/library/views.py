@@ -1602,7 +1602,12 @@ def process_checkout(request):
                 print(f"DEBUG: Book lookup error: {e}")
 
             if not book:
-                return JsonResponse({'status': 'error', 'message': f'Book with ID {book_id} not found'}, status=404)
+                all_ids = list(Book.objects.values_list('id', flat=True)[:10])
+                all_pks = list(Book.objects.values_list('pk', flat=True)[:10])
+                return JsonResponse({
+                    'status': 'error', 
+                    'message': f'Book with ID {book_id} not found. Available IDs: {all_ids}, PKs: {all_pks}'
+                }, status=404)
 
             profile, _ = UserProfile.objects.get_or_create(user=request.user)
             

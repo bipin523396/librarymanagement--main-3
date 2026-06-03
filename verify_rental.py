@@ -46,9 +46,18 @@ def test_rental():
 
     # 3. Get a book ID from Home Page
     print("Step 3: Fetching book ID from home page...")
-    # Based on curl output, we know id: "1" exists
-    book_id = "1"
-    print(f"OK: Using Hardcoded Book ID: {book_id}")
+    r = session.get(HOME_URL)
+    
+    # Let's find the first instance of 'id: "..."'
+    matches = re.findall(r'id:\s*"([^"]+)"', r.text)
+    if not matches:
+        print("FAIL: Could not find any book ID in the HTML.")
+        return
+    
+    # Filter out small integers if possible, or just take the first one
+    book_id = matches[0]
+    print(f"OK: Found Book IDs: {matches[:5]}")
+    print(f"OK: Using Book ID: {book_id}")
 
     # 4. Process Checkout
     print("Step 4: Attempting to rent the book...")
