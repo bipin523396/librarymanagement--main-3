@@ -220,7 +220,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 def admin_dashboard(request):
     request.session['login_role'] = ROLE_ADMIN
     import os
-    from .models import Rental, Payment, Delivery, ContactMessage, Author, DeliveryStaff, UserProfile, Order
+    from .models import Rental, Payment, Delivery, ContactMessage, Author, DeliveryStaff, UserProfile, Order, SystemSettings
     from .safe_queries import rentals_for_admin
     from bookhub_backend.mongo_config import get_shared_client
 
@@ -267,25 +267,34 @@ def admin_dashboard(request):
 
         # --- FALLBACK: If ORM lists are empty but MongoDB has data ---
         if db:
+            from bson import Decimal128
+            def _to_decimal(val):
+                if isinstance(val, Decimal128):
+                    return Decimal(str(val))
+                try:
+                    return Decimal(str(val))
+                except Exception:
+                    return Decimal('0.00')
+
             if not payments and db.library_payment.count_documents({}) > 0:
                 print("DEBUG: Admin using direct Mongo fallback for Payments")
                 raw_payments = list(db.library_payment.find().sort("created_at", -1).limit(dashboard_limit))
                 payments = []
                 for p in raw_payments:
-                    # Mock a Payment object for the template
                     try:
                         u = User.objects.get(pk=p.get('user_id'))
                         pay_obj = Payment(
                             id=p.get('id') or str(p.get('_id')),
                             user=u,
-                            amount=p.get('amount'),
+                            amount=_to_decimal(p.get('amount')),
                             reference_id=p.get('reference_id'),
                             payment_type=p.get('payment_type', 'Unknown'),
                             status=p.get('status', 'success'),
                             created_at=p.get('created_at')
                         )
                         payments.append(pay_obj)
-                    except Exception: pass
+                    except Exception as e:
+                        print(f"Fallback payment skip: {e}")
 
             if not live_rentals and db.library_rental.count_documents({'rental_status': 'Pending'}) > 0:
                 print("DEBUG: Admin using direct Mongo fallback for Rentals")
@@ -299,17 +308,28 @@ def admin_dashboard(request):
                             id=r.get('id') or str(r.get('_id')),
                             user=u,
                             book=b,
-                            total_amount=r.get('total_amount'),
+                            total_amount=_to_decimal(r.get('total_amount')),
                             rental_status=r.get('rental_status'),
                             rented_at=r.get('rented_at'),
                             due_date=r.get('due_date')
                         )
+                        # Mock delivery if it exists in Mongo
+                        d_raw = db.library_delivery.find_one({'rental_id': r.get('_id')})
+                        if d_raw:
+                            rent_obj.delivery = Delivery(status=d_raw.get('status', 'Pending'))
                         live_rentals.append(rent_obj)
-                    except Exception: pass
+                    except Exception as e:
+                        print(f"Fallback rental skip: {e}")
 
             if not messages_list and db.library_contactmessage.count_documents({}) > 0:
                 raw_msgs = list(db.library_contactmessage.find().sort("created_at", -1).limit(dashboard_limit))
-                messages_list = [ContactMessage(**m) for m in raw_msgs]
+                messages_list = []
+                for m in raw_msgs:
+                    m.pop('_id', None)
+                    try:
+                        messages_list.append(ContactMessage(**m))
+                    except Exception as e:
+                        print(f"Fallback message skip: {e}")
 
         context = {
             'total_books': total_books,
@@ -326,7 +346,7 @@ def admin_dashboard(request):
             'payments': payments,
             'assigned_deliveries': assigned_deliveries,
             'messages': messages_list,
-            'settings': None,
+            'settings': SystemSettings.objects.first(),
             'delivery_staff': delivery_staff,
         }
         return render(request, 'admin.html', context)
