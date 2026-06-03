@@ -1509,9 +1509,10 @@ def payment_page(request):
     # Convert to Decimal for model storage
     decimal_total = Decimal(str(total_amount))
     
+    user_instance = User.objects.get(id=request.user.id)
     reference_id = str(uuid.uuid4())
     try:
-        payment = Payment.objects.create(user=request.user, amount=decimal_total, reference_id=reference_id, status='initiated')
+        payment = Payment.objects.create(user=user_instance, amount=decimal_total, reference_id=reference_id, status='initiated')
     except Exception as pay_err:
         print(f"ORM Payment Page Failed: {pay_err}")
         from bookhub_backend.mongo_config import get_shared_client
@@ -1521,7 +1522,7 @@ def payment_page(request):
             db = client[db_name]
             from bson import Decimal128
             db.library_payment.insert_one({
-                'user_id': request.user.id,
+                'user_id': user_instance.id,
                 'amount': Decimal128(str(decimal_total)),
                 'reference_id': reference_id,
                 'payment_type': 'Cart Checkout',
@@ -1530,7 +1531,7 @@ def payment_page(request):
             })
         # For the template to work, we need a payment object or mock it
         from .models import Payment
-        payment = Payment(user=request.user, amount=decimal_total, reference_id=reference_id, status='initiated')
+        payment = Payment(user=user_instance, amount=decimal_total, reference_id=reference_id, status='initiated')
 
     # In a real app, integrate with Stripe/Razorpay here.
     return render(request, 'payment.html', {'payment': payment, 'total': total_amount})
@@ -1602,14 +1603,11 @@ def process_checkout(request):
                 print(f"DEBUG: Book lookup error: {e}")
 
             if not book:
-                all_ids = list(Book.objects.values_list('id', flat=True)[:10])
-                all_pks = list(Book.objects.values_list('pk', flat=True)[:10])
-                return JsonResponse({
-                    'status': 'error', 
-                    'message': f'Book with ID {book_id} not found. Available IDs: {all_ids}, PKs: {all_pks}'
-                }, status=404)
+                return JsonResponse({'status': 'error', 'message': f'Book with ID {book_id} not found.'}, status=404)
 
-            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            # Ensure we have a concrete user instance for ORM relations
+            user_instance = User.objects.get(id=request.user.id)
+            profile, _ = UserProfile.objects.get_or_create(user=user_instance)
             
             # Convert total to Decimal
             try:
@@ -1632,7 +1630,7 @@ def process_checkout(request):
             # Create Payment record
             try:
                 Payment.objects.create(
-                    user=request.user,
+                    user=user_instance,
                     order=order,
                     amount=decimal_total,
                     reference_id=str(uuid.uuid4()),
@@ -1648,7 +1646,7 @@ def process_checkout(request):
                     db = client[db_name]
                     from bson import Decimal128
                     db.library_payment.insert_one({
-                        'user_id': request.user.id,
+                        'user_id': user_instance.id,
                         'order_id': order.id,
                         'amount': Decimal128(str(decimal_total)),
                         'reference_id': str(uuid.uuid4()),
@@ -1669,7 +1667,7 @@ def process_checkout(request):
             from .models import Rental, Delivery
             try:
                 rental = Rental.objects.create(
-                    user=request.user,
+                    user=user_instance,
                     book=book,
                     duration_days=days,
                     total_amount=decimal_total,
@@ -1687,7 +1685,7 @@ def process_checkout(request):
                     db = client[db_name]
                     from bson import Decimal128
                     rental_res = db.library_rental.insert_one({
-                        'user_id': request.user.id,
+                        'user_id': user_instance.id,
                         'book_id': book.id,
                         'duration_days': days,
                         'total_amount': Decimal128(str(decimal_total)),
@@ -1805,8 +1803,9 @@ def activate_premium(request):
             except (TypeError, ValueError):
                 decimal_amount = Decimal('500.00')
             
-            # Get or create profile
-            profile = _ensure_user_profile(request.user)
+            # Ensure we have a concrete user instance
+            user_instance = User.objects.get(id=request.user.id)
+            profile = _ensure_user_profile(user_instance)
             
             # Get or create the membership plan
             plan, _ = MembershipPlan.objects.get_or_create(
@@ -1823,7 +1822,7 @@ def activate_premium(request):
             # Record payment
             try:
                 Payment.objects.create(
-                    user=request.user,
+                    user=user_instance,
                     amount=decimal_amount,
                     reference_id='PREM-' + str(uuid.uuid4())[:8].upper(),
                     status='success'
@@ -1838,7 +1837,7 @@ def activate_premium(request):
                     db = client[db_name]
                     from bson import Decimal128
                     db.library_payment.insert_one({
-                        'user_id': request.user.id,
+                        'user_id': user_instance.id,
                         'amount': Decimal128(str(decimal_amount)),
                         'reference_id': 'PREM-' + str(uuid.uuid4())[:8].upper(),
                         'payment_type': 'Premium Subscription',
@@ -1896,10 +1895,11 @@ def gift_card_checkout(request):
         if decimal_amount <= 0 or not recipient_name or not recipient_email:
             return JsonResponse({'status': 'error', 'message': 'Recipient name, email, and amount are required.'}, status=400)
 
+        user_instance = User.objects.get(id=request.user.id)
         reference_id = 'GIFT-' + str(uuid.uuid4())[:8].upper()
         try:
             Payment.objects.create(
-                user=request.user,
+                user=user_instance,
                 amount=decimal_amount,
                 reference_id=reference_id,
                 payment_type=f'Gift Card to {recipient_name}',
@@ -1914,7 +1914,7 @@ def gift_card_checkout(request):
                 db = client[db_name]
                 from bson import Decimal128
                 db.library_payment.insert_one({
-                    'user_id': request.user.id,
+                    'user_id': user_instance.id,
                     'amount': Decimal128(str(decimal_amount)),
                     'reference_id': reference_id,
                     'payment_type': f'Gift Card to {recipient_name}',
