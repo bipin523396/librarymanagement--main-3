@@ -3,6 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import uuid
 import traceback
+import os
 from decimal import Decimal
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
@@ -1509,7 +1510,28 @@ def payment_page(request):
     decimal_total = Decimal(str(total_amount))
     
     reference_id = str(uuid.uuid4())
-    payment = Payment.objects.create(user=request.user, amount=decimal_total, reference_id=reference_id, status='initiated')
+    try:
+        payment = Payment.objects.create(user=request.user, amount=decimal_total, reference_id=reference_id, status='initiated')
+    except Exception as pay_err:
+        print(f"ORM Payment Page Failed: {pay_err}")
+        from bookhub_backend.mongo_config import get_shared_client
+        client = get_shared_client()
+        if client:
+            db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+            db = client[db_name]
+            from bson import Decimal128
+            db.library_payment.insert_one({
+                'user_id': request.user.id,
+                'amount': Decimal128(str(decimal_total)),
+                'reference_id': reference_id,
+                'payment_type': 'Cart Checkout',
+                'status': 'initiated',
+                'created_at': timezone.now()
+            })
+        # For the template to work, we need a payment object or mock it
+        from .models import Payment
+        payment = Payment(user=request.user, amount=decimal_total, reference_id=reference_id, status='initiated')
+
     # In a real app, integrate with Stripe/Razorpay here.
     return render(request, 'payment.html', {'payment': payment, 'total': total_amount})
 
@@ -1584,14 +1606,32 @@ def process_checkout(request):
             )
             
             # Create Payment record
-            Payment.objects.create(
-                user=request.user,
-                order=order,
-                amount=decimal_total,
-                reference_id=str(uuid.uuid4()),
-                payment_type=payment_method,
-                status='success' # Mocking instant success
-            )
+            try:
+                Payment.objects.create(
+                    user=request.user,
+                    order=order,
+                    amount=decimal_total,
+                    reference_id=str(uuid.uuid4()),
+                    payment_type=payment_method,
+                    status='success' # Mocking instant success
+                )
+            except Exception as pay_err:
+                print(f"ORM Checkout Payment Failed: {pay_err}")
+                from bookhub_backend.mongo_config import get_shared_client
+                client = get_shared_client()
+                if client:
+                    db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+                    db = client[db_name]
+                    from bson import Decimal128
+                    db.library_payment.insert_one({
+                        'user_id': request.user.id,
+                        'order_id': order.id,
+                        'amount': Decimal128(str(decimal_total)),
+                        'reference_id': str(uuid.uuid4()),
+                        'payment_type': payment_method,
+                        'status': 'success',
+                        'created_at': timezone.now()
+                    })
             
             # Calculate return date
             from datetime import timedelta
@@ -1603,16 +1643,42 @@ def process_checkout(request):
             
             # Create Rental and Delivery entries for the professional workflow
             from .models import Rental, Delivery
-            rental = Rental.objects.create(
-                user=request.user,
-                book=book,
-                duration_days=days,
-                total_amount=decimal_total,
-                payment_status='Paid',
-                rental_status='Pending',
-                due_date=return_date.date()
-            )
-            Delivery.objects.create(rental=rental)
+            try:
+                rental = Rental.objects.create(
+                    user=request.user,
+                    book=book,
+                    duration_days=days,
+                    total_amount=decimal_total,
+                    payment_status='Paid',
+                    rental_status='Pending',
+                    due_date=return_date.date()
+                )
+                Delivery.objects.create(rental=rental)
+            except Exception as rent_err:
+                print(f"ORM Rental Create Failed: {rent_err}")
+                from bookhub_backend.mongo_config import get_shared_client
+                client = get_shared_client()
+                if client:
+                    db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+                    db = client[db_name]
+                    from bson import Decimal128
+                    rental_res = db.library_rental.insert_one({
+                        'user_id': request.user.id,
+                        'book_id': book.id,
+                        'duration_days': days,
+                        'total_amount': Decimal128(str(decimal_total)),
+                        'payment_status': 'Paid',
+                        'rental_status': 'Pending',
+                        'rented_at': timezone.now(),
+                        'due_date': str(return_date.date()),
+                        'returned': False,
+                        'late_fee': Decimal128('0.00')
+                    })
+                    db.library_delivery.insert_one({
+                        'rental_id': rental_res.inserted_id,
+                        'status': 'Pending',
+                        'assigned_at': timezone.now()
+                    })
             
             print(f"DEBUG: Checkout successful for Order ID: {order_id}")
             return JsonResponse({
@@ -1731,12 +1797,30 @@ def activate_premium(request):
             profile.save()
             
             # Record payment
-            Payment.objects.create(
-                user=request.user,
-                amount=decimal_amount,
-                reference_id='PREM-' + str(uuid.uuid4())[:8].upper(),
-                status='success'
-            )
+            try:
+                Payment.objects.create(
+                    user=request.user,
+                    amount=decimal_amount,
+                    reference_id='PREM-' + str(uuid.uuid4())[:8].upper(),
+                    status='success'
+                )
+            except Exception as pay_err:
+                print(f"ORM Payment Create Failed: {pay_err}")
+                # Fallback to direct MongoDB insert if ORM fails due to Decimal128
+                from bookhub_backend.mongo_config import get_shared_client
+                client = get_shared_client()
+                if client:
+                    db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+                    db = client[db_name]
+                    from bson import Decimal128
+                    db.library_payment.insert_one({
+                        'user_id': request.user.id,
+                        'amount': Decimal128(str(decimal_amount)),
+                        'reference_id': 'PREM-' + str(uuid.uuid4())[:8].upper(),
+                        'payment_type': 'Premium Subscription',
+                        'status': 'success',
+                        'created_at': timezone.now()
+                    })
             
             return JsonResponse({
                 'status': 'success',
@@ -1789,13 +1873,30 @@ def gift_card_checkout(request):
             return JsonResponse({'status': 'error', 'message': 'Recipient name, email, and amount are required.'}, status=400)
 
         reference_id = 'GIFT-' + str(uuid.uuid4())[:8].upper()
-        Payment.objects.create(
-            user=request.user,
-            amount=decimal_amount,
-            reference_id=reference_id,
-            payment_type=f'Gift Card to {recipient_name}',
-            status='success',
-        )
+        try:
+            Payment.objects.create(
+                user=request.user,
+                amount=decimal_amount,
+                reference_id=reference_id,
+                payment_type=f'Gift Card to {recipient_name}',
+                status='success',
+            )
+        except Exception as pay_err:
+            print(f"ORM Gift Payment Failed: {pay_err}")
+            from bookhub_backend.mongo_config import get_shared_client
+            client = get_shared_client()
+            if client:
+                db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+                db = client[db_name]
+                from bson import Decimal128
+                db.library_payment.insert_one({
+                    'user_id': request.user.id,
+                    'amount': Decimal128(str(decimal_amount)),
+                    'reference_id': reference_id,
+                    'payment_type': f'Gift Card to {recipient_name}',
+                    'status': 'success',
+                    'created_at': timezone.now()
+                })
 
         messages.success(request, f'Gift card for {recipient_name} is ready and visible in admin payments.')
         return JsonResponse({
