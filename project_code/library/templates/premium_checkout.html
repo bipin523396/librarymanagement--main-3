@@ -47,7 +47,7 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Phone" %}</label>
-                                <input id="premPhone" type="tel" value="{{ request.user.userprofile.phone }}"
+                                    <input id="premPhone" type="tel" value="{{ profile.phone|default:request.user.userprofile.phone }}"
                                        class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition">
                             </div>
                         </div>

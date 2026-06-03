@@ -87,6 +87,7 @@ urlpatterns = [
     path('services/', views.services, name='services'),
     path('branches/', views.branches, name='branches'),
     path('gift-card/', views.gift_card, name='gift_card'),
+     path('gift-card/checkout/', views.gift_card_checkout, name='gift_card_checkout'),
     path('about/', views.about, name='about'),
     path('contact/', views.contact, name='contact'),
     path('submit-contact/', views.submit_contact, name='submit_contact'),

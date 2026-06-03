@@ -233,6 +233,13 @@
             </div>
         </header>
 
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px;">
+            <a href="{% url 'home' %}#plans-section" class="btn btn-outline" style="justify-content:center; text-decoration:none;">Open Plans</a>
+            <a href="{% url 'premium_checkout' %}" class="btn btn-outline" style="justify-content:center; text-decoration:none;">Premium Checkout</a>
+            <a href="{% url 'gift_card' %}" class="btn btn-outline" style="justify-content:center; text-decoration:none;">Gift Card</a>
+            <a href="{% url 'contact' %}" class="btn btn-outline" style="justify-content:center; text-decoration:none;">Contact Page</a>
+        </div>
+
         {% if messages %}
         <div class="message-container">
             {% for message in messages %}
@@ -726,7 +733,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Author</label>
-                    <select name="author" id="bookAuthor" class="form-input" required>
+                    <select name="author_id" id="bookAuthor" class="form-input" required>
                         <option value="">Select Author...</option>
                         {% for author in authors %}
                             <option value="{{ author.id }}">{{ author.name }}</option>
@@ -737,10 +744,10 @@
                     <label class="form-label">Category</label>
                     <select name="category" id="bookCategory" class="form-input">
                         <option value="Fiction">Fiction</option>
-                        <option value="Toddler">Toddler</option>
+                        <option value="Toddlers">Toddlers</option>
                         <option value="Business">Business</option>
-                        <option value="Self Help">Self Help</option>
                         <option value="Academic">Academic</option>
+                        <option value="Biographies">Biographies</option>
                     </select>
                 </div>
                 <div class="form-group">

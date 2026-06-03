@@ -480,10 +480,11 @@ def seed_live_data(request):
         
     return redirect('admin_dashboard')
 
+@admin_portal_required
 def add_book(request):
     if request.method == 'POST':
         title = request.POST.get('title')
-        author_id = request.POST.get('author_id')
+        author_id = request.POST.get('author_id') or request.POST.get('author')
         category = request.POST.get('category')
         isbn = request.POST.get('isbn')
         copies = request.POST.get('copies', 1)
@@ -494,8 +495,19 @@ def add_book(request):
             messages.error(request, f"Error: A book with ISBN '{isbn}' already exists in the inventory.")
             return redirect('admin_dashboard')
 
+        if not title or not author_id or not category or not isbn:
+            messages.error(request, 'Please fill in title, author, category, and ISBN.')
+            return redirect('admin_dashboard')
+
         try:
-            author_instance = Author.objects.get(id=author_id)
+            author_instance = None
+            for candidate in Author.objects.all():
+                if str(getattr(candidate, 'pk', '')) == str(author_id) or str(getattr(candidate, 'id', '')) == str(author_id):
+                    author_instance = candidate
+                    break
+            if author_instance is None:
+                raise Author.DoesNotExist
+            copies = int(copies)
             Book.objects.create(
                 title=title,
                 author=author_instance,
@@ -512,6 +524,7 @@ def add_book(request):
     return redirect('admin_dashboard')
 
 
+@admin_portal_required
 def add_author(request):
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -544,6 +557,7 @@ def add_author(request):
     return redirect('admin_dashboard')
 
 
+@admin_portal_required
 def edit_book(request, book_id):
     book = get_object_or_404(Book, id=book_id)
     
@@ -557,9 +571,16 @@ def edit_book(request, book_id):
 
         try:
             book.title = request.POST.get('title')
-            author_id = request.POST.get('author')
+            author_id = request.POST.get('author_id') or request.POST.get('author')
             if author_id:
-                book.author = Author.objects.get(id=author_id)
+                author_instance = None
+                for candidate in Author.objects.all():
+                    if str(getattr(candidate, 'pk', '')) == str(author_id) or str(getattr(candidate, 'id', '')) == str(author_id):
+                        author_instance = candidate
+                        break
+                if author_instance is None:
+                    raise Author.DoesNotExist
+                book.author = author_instance
             book.category = request.POST.get('category')
             book.isbn = new_isbn
             
@@ -582,12 +603,14 @@ def edit_book(request, book_id):
     return redirect('admin_dashboard')
 
 
+@admin_portal_required
 def delete_book(request, book_id):
     book = get_object_or_404(Book, id=book_id)
     book.delete()
     return redirect('admin_dashboard')
 
 
+@admin_portal_required
 def add_rider(request):
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -607,6 +630,7 @@ def add_rider(request):
     return redirect('admin_dashboard')
 
 
+@admin_portal_required
 def assign_order(request):
     if request.method == 'POST':
         order_id = request.POST.get('order_id')
@@ -1347,6 +1371,14 @@ from django.urls import reverse
 import uuid
 from .models import Cart, CartItem, Wishlist, Subscription, Payment, Order, UserProfile, Book
 
+
+def _ensure_user_profile(user):
+    profile, _ = UserProfile.objects.get_or_create(
+        user=user,
+        defaults={'phone': '', 'address': '', 'pincode': ''},
+    )
+    return profile
+
 # --- NEW VIEW FUNCTIONS ---
 
 @login_required
@@ -1418,18 +1450,29 @@ def books_by_author(request, slug):
 
 @login_required
 def select_plan(request, plan):
-    # plan is 'free' or 'premium'
-    try:
-        membership = MembershipPlan.objects.get(name__iexact=plan)
-    except MembershipPlan.DoesNotExist:
+    normalized_plan = (plan or '').strip().title()
+    if normalized_plan not in {'Basic', 'Premium'}:
         messages.error(request, "Invalid plan selected.")
         return redirect('settings')
-    subscription, created = Subscription.objects.get_or_create(user=request.user, defaults={'plan': membership, 'active': plan != 'free'})
+
+    try:
+        defaults = {
+            'price': 0 if normalized_plan == 'Basic' else 500,
+            'max_books_at_a_time': 2 if normalized_plan == 'Basic' else 10,
+        }
+        membership, _ = MembershipPlan.objects.get_or_create(name=normalized_plan, defaults=defaults)
+    except Exception as exc:
+        messages.error(request, f"Unable to select plan: {exc}")
+        return redirect('settings')
+    profile = _ensure_user_profile(request.user)
+    subscription, created = Subscription.objects.get_or_create(user=request.user, defaults={'plan': membership, 'active': True})
     if not created:
         subscription.plan = membership
-        subscription.active = plan != 'free'
+        subscription.active = True
         subscription.save()
-    messages.success(request, f"Subscribed to {plan.title()} plan.")
+    profile.membership = membership
+    profile.save()
+    messages.success(request, f"Subscribed to {normalized_plan} plan.")
     return redirect('settings')
 
 @login_required
@@ -1476,7 +1519,8 @@ def payment_callback(request):
 
 @login_required
 def checkout_view(request):
-    return render(request, 'checkout.html')
+    profile = _ensure_user_profile(request.user)
+    return render(request, 'checkout.html', {'profile': profile})
 
 @csrf_exempt
 @login_required
@@ -1614,7 +1658,8 @@ def track_order(request, delivery_id):
 
 @login_required
 def premium_checkout(request):
-    return render(request, 'premium_checkout.html')
+    profile = _ensure_user_profile(request.user)
+    return render(request, 'premium_checkout.html', {'profile': profile})
 
 @csrf_exempt
 @login_required
@@ -1626,7 +1671,7 @@ def activate_premium(request):
             amount = data.get('amount', 500)
             
             # Get or create profile
-            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            profile = _ensure_user_profile(request.user)
             
             # Get or create the membership plan
             plan, _ = MembershipPlan.objects.get_or_create(
@@ -1668,8 +1713,46 @@ def services(request):
 def branches(request):
     return render(request, 'branches.html')
 
+@login_required
 def gift_card(request):
-    return render(request, 'gift_card.html')
+    profile = _ensure_user_profile(request.user)
+    return render(request, 'gift_card.html', {'profile': profile})
+
+
+@login_required
+def gift_card_checkout(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+
+    try:
+        data = json.loads(request.body or '{}')
+        amount = int(data.get('amount') or 0)
+        recipient_name = (data.get('recipient_name') or '').strip()
+        recipient_email = (data.get('recipient_email') or '').strip()
+        message_text = (data.get('message') or '').strip()
+
+        if amount <= 0 or not recipient_name or not recipient_email:
+            return JsonResponse({'status': 'error', 'message': 'Recipient name, email, and amount are required.'}, status=400)
+
+        reference_id = 'GIFT-' + str(uuid.uuid4())[:8].upper()
+        Payment.objects.create(
+            user=request.user,
+            amount=amount,
+            reference_id=reference_id,
+            payment_type=f'Gift Card to {recipient_name}',
+            status='success',
+        )
+
+        messages.success(request, f'Gift card for {recipient_name} is ready and visible in admin payments.')
+        return JsonResponse({
+            'status': 'success',
+            'reference_id': reference_id,
+            'recipient_name': recipient_name,
+            'recipient_email': recipient_email,
+            'message': message_text,
+        })
+    except Exception as exc:
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=400)
 
 @login_required
 def settings_view(request):

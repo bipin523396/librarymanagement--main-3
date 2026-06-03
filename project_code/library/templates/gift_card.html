@@ -149,12 +149,32 @@
         const name = document.getElementById("receiverName").value;
         const email = document.getElementById("receiverEmail").value;
         const msg = document.getElementById("giftMessage").value;
-        
-        // Dynamic success alert and redirection to payment page
-        alert(`🎉 Gift card of ₹${giftAmount} successfully prepared for ${name} (${email})! Redirecting to checkout...`);
-        
-        // Redirect to standard backend checkout/payment
-        window.location.href = `${window.BOOKHUB_PREFIX || '/en/library'}/payment/`;
+
+        try {
+            const response = await fetch("{% url 'gift_card_checkout' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({
+                    amount: giftAmount,
+                    recipient_name: name,
+                    recipient_email: email,
+                    message: msg
+                })
+            });
+
+            const result = await response.json();
+            if (result.status === 'success') {
+                alert(`🎉 Gift card for ${name} has been saved and will appear in admin payments.`);
+                window.location.href = "{% url 'home' %}";
+            } else {
+                throw new Error(result.message || 'Gift card checkout failed.');
+            }
+        } catch (error) {
+            alert(error.message);
+        }
     }
 </script>
 {% endblock %}

@@ -70,13 +70,13 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Phone Number" %}</label>
-                                <input type="tel" id="phone" value="{{ request.user.userprofile.phone }}" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition-colors">
+                                <input type="tel" id="phone" value="{{ profile.phone|default:request.user.userprofile.phone }}" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition-colors">
                             </div>
                         </div>
 
                         <div class="mb-6 relative">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Delivery Address" %}</label>
-                            <textarea id="address" required rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition-colors">{{ request.user.userprofile.address }}</textarea>
+                            <textarea id="address" required rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition-colors">{{ profile.address|default:request.user.userprofile.address }}</textarea>
                             
                             <button type="button" onclick="detectLocation()" class="absolute right-3 top-9 text-orange-600 hover:bg-orange-50 p-2 rounded-lg text-sm font-bold flex items-center transition-colors">
                                 <i class="fas fa-crosshairs mr-2"></i> {% trans "Detect" %}
@@ -90,7 +90,7 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{% trans "Pincode" %}</label>
-                                <input type="text" id="pincode" value="{{ request.user.userprofile.pincode }}" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition-colors">
+                                <input type="text" id="pincode" value="{{ profile.pincode|default:request.user.userprofile.pincode }}" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 font-semibold text-gray-800 focus:ring-orange-500 focus:border-orange-500 transition-colors">
                             </div>
                         </div>
 
