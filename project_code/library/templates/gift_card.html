@@ -144,7 +144,7 @@
         document.getElementById("previewMessage").innerText = msgVal.trim() ? `"${msgVal}"` : '"Have a wonderful reading experience!"';
     }
     
-    function handleGiftSubmit(e) {
+    async function handleGiftSubmit(e) {
         e.preventDefault();
         const name = document.getElementById("receiverName").value;
         const email = document.getElementById("receiverEmail").value;

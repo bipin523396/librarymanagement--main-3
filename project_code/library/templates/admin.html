@@ -233,13 +233,6 @@
             </div>
         </header>
 
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px;">
-            <a href="{% url 'home' %}#plans-section" class="btn btn-outline" style="justify-content:center; text-decoration:none;">Open Plans</a>
-            <a href="{% url 'premium_checkout' %}" class="btn btn-outline" style="justify-content:center; text-decoration:none;">Premium Checkout</a>
-            <a href="{% url 'gift_card' %}" class="btn btn-outline" style="justify-content:center; text-decoration:none;">Gift Card</a>
-            <a href="{% url 'contact' %}" class="btn btn-outline" style="justify-content:center; text-decoration:none;">Contact Page</a>
-        </div>
-
         {% if messages %}
         <div class="message-container">
             {% for message in messages %}

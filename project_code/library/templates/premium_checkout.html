@@ -156,25 +156,24 @@
         try {
             const response = await fetch("{% url 'activate_premium' %}", {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-                body: JSON.stringify({ plan: plan, amount: parseInt(price) })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    plan: 'Premium',
+                    amount: 500
+                })
             });
             const result = await response.json();
-
             if (result.status === 'success') {
-                localStorage.removeItem('selectedPlan');
-                localStorage.removeItem('selectedPlanPrice');
-                document.getElementById('successPlan').innerText = result.plan;
-                document.getElementById('successExpiry').innerText = result.expiry;
-                document.getElementById('premSuccessModal').classList.remove('hidden');
+                alert(`Success! You are now a ${result.plan} member. Expiry: ${result.expiry}`);
+                window.location.href = "{% url 'dashboard' %}";
             } else {
-                throw new Error(result.message || 'Activation failed.');
+                alert('Error: ' + result.message);
             }
-        } catch (err) {
-            errorDiv.innerText = err.message;
-            errorDiv.classList.remove('hidden');
-            btn.disabled = false;
-            btn.innerHTML = '<span>{% trans "Proceed To Pay" %} <i class="fas fa-arrow-right ml-2"></i></span>';
+        } catch (error) {
+            alert('Checkout failed. Please try again.');
         }
     }
 </script>
