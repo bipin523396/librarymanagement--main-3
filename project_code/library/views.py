@@ -1632,8 +1632,8 @@ def process_checkout(request):
                 print("DEBUG: Creating Order...")
                 order = Order.objects.create(
                     order_id=order_id,
-                    customer=profile,
-                    book=book,
+                    customer_id=profile.pk,
+                    book_id=book.pk,
                     order_type='Delivery Only',
                     status='Pending'
                 )
@@ -1643,8 +1643,8 @@ def process_checkout(request):
                 print("DEBUG: Creating Payment...")
                 try:
                     Payment.objects.create(
-                        user_id=user_instance.id,
-                        order=order,
+                        user_id=user_instance.pk,
+                        order_id=order.pk,
                         amount=decimal_total,
                         reference_id=str(uuid.uuid4()),
                         payment_type=payment_method,
@@ -1659,8 +1659,8 @@ def process_checkout(request):
                         db = client[db_name]
                         from bson import Decimal128
                         db.library_payment.insert_one({
-                            'user_id': user_instance.id,
-                            'order_id': order.id,
+                            'user_id': user_instance.pk,
+                            'order_id': order.pk,
                             'amount': Decimal128(str(decimal_total)),
                             'reference_id': str(uuid.uuid4()),
                             'payment_type': payment_method,
@@ -1681,15 +1681,15 @@ def process_checkout(request):
                 print("DEBUG: Creating Rental...")
                 try:
                     rental = Rental.objects.create(
-                        user_id=user_instance.id,
-                        book=book,
+                        user_id=user_instance.pk,
+                        book_id=book.pk,
                         duration_days=days,
                         total_amount=decimal_total,
                         payment_status='Paid',
                         rental_status='Pending',
                         due_date=return_date.date()
                     )
-                    Delivery.objects.create(rental=rental)
+                    Delivery.objects.create(rental_id=rental.pk)
                 except Exception as rent_err:
                     print(f"ORM Rental Create Failed: {rent_err}")
                     from bookhub_backend.mongo_config import get_shared_client
@@ -1843,7 +1843,7 @@ def activate_premium(request):
             # Record payment
             try:
                 Payment.objects.create(
-                    user=user_instance,
+                    user_id=user_instance.pk,
                     amount=decimal_amount,
                     reference_id='PREM-' + str(uuid.uuid4())[:8].upper(),
                     status='success'
@@ -1858,7 +1858,7 @@ def activate_premium(request):
                     db = client[db_name]
                     from bson import Decimal128
                     db.library_payment.insert_one({
-                        'user_id': user_instance.id,
+                        'user_id': user_instance.pk,
                         'amount': Decimal128(str(decimal_amount)),
                         'reference_id': 'PREM-' + str(uuid.uuid4())[:8].upper(),
                         'payment_type': 'Premium Subscription',
@@ -1924,7 +1924,7 @@ def gift_card_checkout(request):
         reference_id = 'GIFT-' + str(uuid.uuid4())[:8].upper()
         try:
             Payment.objects.create(
-                user=user_instance,
+                user_id=user_instance.pk,
                 amount=decimal_amount,
                 reference_id=reference_id,
                 payment_type=f'Gift Card to {recipient_name}',
@@ -1939,7 +1939,7 @@ def gift_card_checkout(request):
                 db = client[db_name]
                 from bson import Decimal128
                 db.library_payment.insert_one({
-                    'user_id': user_instance.id,
+                    'user_id': user_instance.pk,
                     'amount': Decimal128(str(decimal_amount)),
                     'reference_id': reference_id,
                     'payment_type': f'Gift Card to {recipient_name}',
