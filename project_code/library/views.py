@@ -1509,7 +1509,11 @@ def payment_page(request):
     # Convert to Decimal for model storage
     decimal_total = Decimal(str(total_amount))
     
-    user_instance = User.objects.get(pk=request.user.pk)
+    try:
+        user_instance = User.objects.get(pk=request.user.pk)
+    except Exception:
+        user_instance = request.user
+        
     reference_id = str(uuid.uuid4())
     try:
         payment = Payment.objects.create(user=user_instance, amount=decimal_total, reference_id=reference_id, status='initiated')
@@ -1606,7 +1610,12 @@ def process_checkout(request):
                 return JsonResponse({'status': 'error', 'message': f'Book with ID {book_id} not found.'}, status=404)
 
             # Ensure we have a concrete user instance for ORM relations
-            user_instance = User.objects.get(pk=request.user.pk)
+            try:
+                user_instance = User.objects.get(pk=request.user.pk)
+            except Exception as e:
+                print(f"DEBUG: User lookup by PK failed: {e}")
+                user_instance = request.user
+            
             profile, _ = UserProfile.objects.get_or_create(user=user_instance)
             
             # Convert total to Decimal
@@ -1813,7 +1822,10 @@ def activate_premium(request):
                 decimal_amount = Decimal('500.00')
             
             # Ensure we have a concrete user instance
-            user_instance = User.objects.get(pk=request.user.pk)
+            try:
+                user_instance = User.objects.get(pk=request.user.pk)
+            except Exception:
+                user_instance = request.user
             profile = _ensure_user_profile(user_instance)
             
             # Get or create the membership plan
@@ -1904,7 +1916,11 @@ def gift_card_checkout(request):
         if decimal_amount <= 0 or not recipient_name or not recipient_email:
             return JsonResponse({'status': 'error', 'message': 'Recipient name, email, and amount are required.'}, status=400)
 
-        user_instance = User.objects.get(pk=request.user.pk)
+        try:
+            user_instance = User.objects.get(pk=request.user.pk)
+        except Exception:
+            user_instance = request.user
+            
         reference_id = 'GIFT-' + str(uuid.uuid4())[:8].upper()
         try:
             Payment.objects.create(
