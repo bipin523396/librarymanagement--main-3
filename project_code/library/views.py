@@ -1584,7 +1584,26 @@ def process_checkout(request):
             if not book_id or not duration:
                 return JsonResponse({'status': 'error', 'message': 'Missing book_id or duration'}, status=400)
 
-            book = Book.objects.get(id=book_id)
+            # Flexible book lookup
+            book = None
+            try:
+                # Try as primary key directly
+                book = Book.objects.filter(pk=book_id).first()
+                if not book:
+                    # Try as integer ID
+                    try:
+                        book = Book.objects.filter(id=int(book_id)).first()
+                    except (ValueError, TypeError):
+                        pass
+                if not book:
+                    # Try as string ID
+                    book = Book.objects.filter(id=str(book_id)).first()
+            except Exception as e:
+                print(f"DEBUG: Book lookup error: {e}")
+
+            if not book:
+                return JsonResponse({'status': 'error', 'message': f'Book with ID {book_id} not found'}, status=404)
+
             profile, _ = UserProfile.objects.get_or_create(user=request.user)
             
             # Convert total to Decimal
