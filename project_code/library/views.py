@@ -1533,7 +1533,7 @@ def payment_callback(request):
                     customer=profile,
                     book=item.book,
                     order_type='Delivery Only',
-                    status='pending'
+                    status='Pending'
                 )
             cart.delete()
         messages.success(request, "Payment successful and order placed.")

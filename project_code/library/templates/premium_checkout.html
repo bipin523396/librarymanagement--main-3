@@ -161,8 +161,8 @@
                     'X-CSRFToken': '{{ csrf_token }}'
                 },
                 body: JSON.stringify({
-                    plan: 'Premium',
-                    amount: 500
+                    plan: plan,
+                    amount: price
                 })
             });
             const result = await response.json();

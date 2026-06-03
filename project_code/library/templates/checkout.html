@@ -181,6 +181,7 @@
         e.preventDefault();
         
         const btn = document.getElementById('submitBtn');
+        const originalText = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
         
@@ -210,20 +211,18 @@
             });
 
             const result = await response.json();
-
             if (result.status === 'success') {
-                // Clear localStorage
                 localStorage.removeItem("checkoutData");
-                // Redirect to success
-                window.location.href = `{% url 'checkout_success' %}?order_id=${result.order_id}&return_date=${result.return_date}`;
+                window.location.href = `{% url 'checkout_success' %}?order_id=${result.order_id}&return_date=${encodeURIComponent(result.return_date)}`;
             } else {
-                throw new Error(result.message || "An error occurred during checkout.");
+                throw new Error(result.message || 'Checkout failed.');
             }
         } catch (error) {
-            errorDiv.innerText = error.message;
+            console.error("Checkout Error:", error);
+            errorDiv.innerText = error.message || "An unexpected error occurred. Please try again.";
             errorDiv.classList.remove('hidden');
             btn.disabled = false;
-            btn.innerHTML = '<span>{% trans "Proceed To Pay" %} <i class="fas fa-arrow-right ml-2"></i></span>';
+            btn.innerHTML = originalText;
         }
     }
 </script>

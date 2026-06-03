@@ -146,7 +146,7 @@ class Subscription(models.Model):
 class Payment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True, blank=True)
-    payment_type = models.CharField(max_length=50, default='Book Rental')
+    payment_type = models.CharField(max_length=255, default='Book Rental')
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     reference_id = models.CharField(max_length=100, unique=True)
     status = models.CharField(max_length=20, choices=[('initiated', 'Initiated'), ('success', 'Success'), ('failed', 'Failed')], default='initiated')
