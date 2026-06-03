@@ -1691,9 +1691,9 @@ def process_checkout(request):
             
         except Exception as e:
             import traceback
-            error_msg = f"CRITICAL ERROR: {str(e)}\n{traceback.format_exc()}"
-            print(error_msg)
-            return JsonResponse({'status': 'error', 'message': error_msg}, status=400)
+            print(f"DEBUG: Checkout Error: {str(e)}")
+            print(traceback.format_exc())
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
 @login_required
