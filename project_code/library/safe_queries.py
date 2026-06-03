@@ -194,15 +194,22 @@ def books_for_display(book_model, author_model=None):
     return books, sorted(categories), None
 
 
-def rentals_for_admin(rental_model, status_filter):
-    """Load rentals for admin tables without select_related (Djongo-safe)."""
+def rentals_for_admin(rental_model, status_filter, limit=50):
+    """Load bounded rental rows for admin tables without expensive relation scans."""
     rows = []
     allowed = None
     simple_filter = dict(status_filter)
     if 'rental_status__in' in simple_filter:
         allowed = set(simple_filter.pop('rental_status__in'))
     try:
-        qs = rental_model.objects.filter(**simple_filter).order_by('-rented_at')
+        try:
+            qs = rental_model.objects.filter(**simple_filter).select_related('user', 'book').order_by('-rented_at')
+        except Exception:
+            qs = rental_model.objects.filter(**simple_filter).order_by('-rented_at')
+        try:
+            qs = qs[:limit]
+        except Exception:
+            pass
     except Exception as exc:
         logger.warning('rentals_for_admin failed: %s', exc)
         return rows
@@ -210,10 +217,6 @@ def rentals_for_admin(rental_model, status_filter):
         try:
             if allowed is not None and getattr(rental, 'rental_status', None) not in allowed:
                 continue
-            if getattr(rental, 'user_id', None):
-                _ = rental.user
-            if getattr(rental, 'book_id', None):
-                _ = rental.book
             rows.append(rental)
         except Exception as exc:
             logger.warning('Skipping rental id=%s: %s', getattr(rental, 'pk', '?'), exc)

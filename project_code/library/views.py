@@ -197,41 +197,62 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 @admin_portal_required
 def admin_dashboard(request):
     request.session['login_role'] = ROLE_ADMIN
+    import os
     from .models import Rental, Payment, Delivery, ContactMessage, SystemSettings, Author, DeliveryStaff
     from .safe_queries import rentals_for_admin
 
     try:
-        books = list(Book.objects.all().order_by('-id'))
-        riders = list(DeliveryRider.objects.all())
-        orders = list(Order.objects.filter(status='Pending'))
+        dashboard_limit = int(os.getenv('ADMIN_DASHBOARD_LIMIT', '50'))
+
+        def _load_rows(queryset, label):
+            try:
+                return list(queryset[:dashboard_limit])
+            except Exception as exc:
+                print(f'ADMIN DASHBOARD {label} sliced load failed: {exc}')
+                return []
+
+        books = _load_rows(Book.objects.select_related('author').order_by('-id'), 'books')
+        riders = _load_rows(DeliveryRider.objects.select_related('user').order_by('-id'), 'riders')
+        orders = _load_rows(
+            Order.objects.select_related('customer__user', 'book', 'assigned_rider__user').filter(status='Pending').order_by('-created_at'),
+            'orders',
+        )
         try:
-            members = list(UserProfile.objects.all())
+            members = _load_rows(UserProfile.objects.select_related('user', 'membership').order_by('-id'), 'members')
         except Exception:
             members = []
-        low_stock_count = sum(1 for b in books if getattr(b, 'copies_available', 0) <= 2)
-        live_rentals = rentals_for_admin(Rental, {'rental_status': Rental.STATUS_PENDING})
+        low_stock_count = Book.objects.filter(copies_available__lte=2).count()
+        live_rentals = rentals_for_admin(Rental, {'rental_status': Rental.STATUS_PENDING}, limit=dashboard_limit)
         history_rentals = rentals_for_admin(
             Rental,
             {'rental_status__in': [Rental.STATUS_COMPLETED, Rental.STATUS_FAILED]},
+            limit=dashboard_limit,
         )
-        assigned_deliveries = list(Delivery.objects.exclude(status='Pending'))
+        assigned_deliveries = _load_rows(
+            Delivery.objects.select_related(
+                'rental__book',
+                'rental__user__userprofile',
+                'delivery_person__deliverystaff',
+            ).exclude(status='Pending').order_by('-assigned_at'),
+            'assigned_deliveries',
+        )
         context = {
             'total_books': len(books),
             'active_members': len(members),
             'pending_orders': len(orders),
             'low_stock_count': low_stock_count,
             'books': books,
-            'authors': Author.objects.all(),
+            'authors': Author.objects.order_by('-id')[:dashboard_limit],
             'riders': riders,
             'orders': orders,
             'members': members,
             'live_rentals': live_rentals,
             'history_rentals': history_rentals,
-            'payments': Payment.objects.all().order_by('-created_at'),
+            'payments': Payment.objects.select_related('user', 'order').order_by('-created_at')[:dashboard_limit],
             'assigned_deliveries': assigned_deliveries,
-            'messages': ContactMessage.objects.all().order_by('-created_at'),
+            'messages': ContactMessage.objects.order_by('-created_at')[:dashboard_limit],
             'settings': SystemSettings.objects.first(),
-            'delivery_staff': DeliveryStaff.objects.all(),
+            'delivery_staff': DeliveryStaff.objects.select_related('user').order_by('-id')[:dashboard_limit],
         }
         return render(request, 'admin.html', context)
     except Exception as exc:
@@ -1223,6 +1244,7 @@ def debug_user(request):
 def test_db_connection(request):
     from django.conf import settings
     from bookhub_backend.mongo_config import get_mongodb_uri, mongodb_username_from_uri, mask_mongodb_uri, get_shared_client
+    uri = get_mongodb_uri()
     try:
         client = get_shared_client()
         if not client:
