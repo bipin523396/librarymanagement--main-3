@@ -1576,8 +1576,6 @@ def checkout_view(request):
 @csrf_exempt
 @login_required
 def process_checkout(request):
-    return JsonResponse({'status': 'debug', 'message': 'Reached process_checkout'})
-    
     if request.method == "POST":
         try:
             print(f"DEBUG: Process Checkout received: {request.body}")
@@ -1691,12 +1689,11 @@ def process_checkout(request):
                 'return_date': return_date.strftime("%B %d, %Y")
             })
             
-        except Book.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Book not found'}, status=404)
         except Exception as e:
-            print(f"DEBUG: Checkout Error: {str(e)}")
-            print(traceback.format_exc())
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+            import traceback
+            error_msg = f"CRITICAL ERROR: {str(e)}\n{traceback.format_exc()}"
+            print(error_msg)
+            return JsonResponse({'status': 'error', 'message': error_msg}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
 @login_required
