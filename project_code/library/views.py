@@ -1576,6 +1576,8 @@ def checkout_view(request):
 @csrf_exempt
 @login_required
 def process_checkout(request):
+    return JsonResponse({'status': 'debug', 'message': 'Reached process_checkout'})
+    
     if request.method == "POST":
         try:
             print(f"DEBUG: Process Checkout received: {request.body}")
