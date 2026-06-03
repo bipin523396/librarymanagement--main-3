@@ -1384,7 +1384,7 @@ from .models import Cart, CartItem, Wishlist, Subscription, Payment, Order, User
 
 def _ensure_user_profile(user):
     profile, _ = UserProfile.objects.get_or_create(
-        user=user,
+        user_id=user.pk,
         defaults={'phone': '', 'address': '', 'pincode': ''},
     )
     return profile
@@ -1613,7 +1613,7 @@ def process_checkout(request):
             if hasattr(user_instance, '_wrapped'):
                 user_instance = user_instance._wrapped
             
-            profile, _ = UserProfile.objects.get_or_create(user=user_instance)
+            profile, _ = UserProfile.objects.get_or_create(user_id=user_instance.pk)
             
             # Convert total to Decimal
             try:
