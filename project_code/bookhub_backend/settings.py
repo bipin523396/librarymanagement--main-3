@@ -123,6 +123,8 @@ if not _MONGO_URI and not DEBUG:
 elif _MONGO_URI:
     print(f'MongoDB: user={mongodb_username_from_uri(_MONGO_URI)} uri={mask_mongodb_uri(_MONGO_URI)}')
 
+_MONGODB_TIMEOUT_MS = int(os.getenv('MONGODB_TIMEOUT_MS', '10000'))
+
 DATABASES = {
     'default': {
         'ENGINE': 'library.custom_djongo_backend',
@@ -130,9 +132,9 @@ DATABASES = {
         'ENFORCE_SCHEMA': False,
         'CLIENT': {
             'host': _MONGO_URI,
-            'connectTimeoutMS': 30000,
-            'socketTimeoutMS': 30000,
-            'serverSelectionTimeoutMS': 30000,
+            'connectTimeoutMS': _MONGODB_TIMEOUT_MS,
+            'socketTimeoutMS': _MONGODB_TIMEOUT_MS,
+            'serverSelectionTimeoutMS': _MONGODB_TIMEOUT_MS,
             'retryWrites': True,
         },
     }
@@ -221,3 +223,29 @@ else:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
     SECURE_SSL_REDIRECT = False
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'library': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}

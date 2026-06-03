@@ -1,8 +1,53 @@
 """Safe ORM helpers for Djongo/MongoDB (avoid crashes on broken relations)."""
 
 import logging
+import os
 
 logger = logging.getLogger(__name__)
+
+
+class _DisplayImage:
+    def __init__(self, url):
+        url = str(url or '')
+        if url and not url.startswith(('http://', 'https://', '/')):
+            url = '/media/' + url
+        self.url = url
+
+    def __bool__(self):
+        return bool(self.url)
+
+
+class _DisplayAuthor:
+    def __init__(self, name='Unknown Author', slug='unknown'):
+        self.name = name or 'Unknown Author'
+        self.slug = slug or 'unknown'
+
+    def __str__(self):
+        return self.name
+
+
+class _DisplayBook:
+    def __init__(self, doc, author):
+        self.id = doc.get('id') or str(doc.get('_id', ''))
+        self.pk = self.id
+        self.title = doc.get('title') or ''
+        self.author = author
+        self.category = doc.get('category') or ''
+        self.isbn = doc.get('isbn') or ''
+        self.copies_available = doc.get('copies_available') or 0
+        self.status = doc.get('status') or 'Available'
+        self.image = _DisplayImage(doc.get('image') or '')
+
+    @property
+    def price_per_day(self):
+        prices = {
+            'Fiction': 15.00,
+            'Business': 25.00,
+            'Toddlers': 10.00,
+            'Biographies': 20.00,
+            'Academic': 30.00,
+        }
+        return prices.get(self.category, 15.00)
 
 
 def normalize_rental_status(value):
@@ -33,11 +78,18 @@ def get_rental_or_404(rental_id, rental_model):
         client = get_shared_client()
         if client:
             db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-            doc = client[db_name].library_rental.find_one({'_id': oid})
-            if doc:
-                rental = rental_model(pk=oid)
-                rental.rental_status = doc.get('rental_status', rental_model.STATUS_PENDING)
-                return rental
+            # Fix: rid might not be a valid ObjectId hex string
+            try:
+                oid = ObjectId(rid)
+            except Exception:
+                oid = None
+
+            if oid:
+                doc = client[db_name].library_rental.find_one({'_id': oid})
+                if doc:
+                    rental = rental_model(pk=oid)
+                    rental.rental_status = doc.get('rental_status', rental_model.STATUS_PENDING)
+                    return rental
     except Exception as exc:
         logger.warning('get_rental_or_404: %s', exc)
     raise Http404
@@ -67,13 +119,19 @@ def get_delivery_or_404(delivery_id, delivery_model):
         client = get_shared_client()
         if client:
             db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
-            doc = client[db_name].library_delivery.find_one({'_id': oid})
-            if doc:
-                delivery = delivery_model(pk=oid)
-                delivery.rental_id = doc.get('rental_id')
-                delivery.status = doc.get('status', 'Pending')
-                delivery.delivery_person_id = doc.get('delivery_person_id')
-                return delivery
+            try:
+                oid = ObjectId(did)
+            except Exception:
+                oid = None
+
+            if oid:
+                doc = client[db_name].library_delivery.find_one({'_id': oid})
+                if doc:
+                    delivery = delivery_model(pk=oid)
+                    delivery.rental_id = doc.get('rental_id')
+                    delivery.status = doc.get('status', 'Pending')
+                    delivery.delivery_person_id = doc.get('delivery_person_id')
+                    return delivery
     except Exception as exc:
         logger.warning('get_delivery_or_404: %s', exc)
     raise Http404
@@ -115,12 +173,93 @@ def split_deliveries_for_dashboard(deliveries, rental_model, assigned_status='as
     return active, history
 
 
+def _author_lookup_query(author_ids):
+    if not author_ids:
+        return {}
+
+    object_ids = []
+    try:
+        from bson import ObjectId
+        for aid in author_ids:
+            sid = str(aid)
+            if len(sid) == 24:
+                try:
+                    object_ids.append(ObjectId(sid))
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    query = {'id': {'$in': list(author_ids)}}
+    if object_ids:
+        query = {'$or': [query, {'_id': {'$in': object_ids}}]}
+    return query
+
+
+def _books_for_display_from_mongo():
+    from bookhub_backend.mongo_config import get_shared_client
+
+    client = get_shared_client()
+    if not client:
+        return None
+
+    db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+    limit = int(os.getenv('HOME_BOOK_LIMIT', '60'))
+    db = client[db_name]
+
+    projection = {
+        'id': 1,
+        'title': 1,
+        'author_id': 1,
+        'category': 1,
+        'isbn': 1,
+        'copies_available': 1,
+        'status': 1,
+        'image': 1,
+    }
+    raw_books = list(db.library_book.find({}, projection).sort('id', 1).limit(limit))
+
+    author_ids = {book.get('author_id') for book in raw_books if book.get('author_id') is not None}
+    authors_by_key = {}
+    if author_ids:
+        for author_doc in db.library_author.find(
+            _author_lookup_query(author_ids),
+            {'id': 1, 'name': 1, 'slug': 1},
+        ):
+            author = _DisplayAuthor(author_doc.get('name'), author_doc.get('slug'))
+            if author_doc.get('id') is not None:
+                authors_by_key[str(author_doc.get('id'))] = author
+            authors_by_key[str(author_doc.get('_id'))] = author
+
+    books = []
+    categories = set()
+    for doc in raw_books:
+        if not doc.get('title'):
+            continue
+        author = authors_by_key.get(str(doc.get('author_id'))) or _DisplayAuthor()
+        book = _DisplayBook(doc, author)
+        books.append(book)
+        if book.category:
+            categories.add(book.category)
+
+    return books, sorted(categories), None
+
+
 def books_for_display(book_model, author_model=None):
-    """Load books for homepage; never skip books — use fallback author if FK is broken."""
+    """Load books for homepage; never skip books, and avoid slow FK scans on Render."""
+    try:
+        mongo_result = _books_for_display_from_mongo()
+        if mongo_result is not None:
+            return mongo_result
+    except Exception as exc:
+        logger.warning('books_for_display direct Mongo load failed: %s', exc)
+        return [], [], str(exc)
+
     books = []
     categories = set()
     try:
-        qs = book_model.objects.all()
+        limit = int(os.getenv('HOME_BOOK_LIMIT', '60'))
+        qs = book_model.objects.all().order_by('id')[:limit]
     except Exception as exc:
         logger.warning('books_for_display query failed: %s', exc)
         return [], [], str(exc)

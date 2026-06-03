@@ -17,7 +17,13 @@ def resolve_user_pk(user, request=None):
     """Primary key for FK lookups when Djongo leaves user.pk empty."""
     if user is None:
         return None
+        
+    # Check if already resolved in this request/object
+    if hasattr(user, '_resolved_pk'):
+        return user._resolved_pk
+
     if user.pk is not None:
+        user._resolved_pk = user.pk
         return user.pk
 
     if request is not None:

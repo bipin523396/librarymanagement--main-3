@@ -19,22 +19,30 @@ class MongoAuthSessionMiddleware:
             if not sid:
                 return AnonymousUser()
 
-            User = get_user_model()
-            user = None
             try:
-                # Optimized lookup strategy: try most likely fields first
-                # Use filter().first() to avoid exceptions and potentially use indexes better
+                User = get_user_model()
+                user = None
                 
+                # Optimized lookup strategy: try most likely fields first
                 # 1) Try username (most common for this app)
-                user = User.objects.filter(username=sid).first()
+                try:
+                    user = User.objects.filter(username=sid).first()
+                except Exception:
+                    pass
                 
                 # 2) If not found and sid looks like an email
                 if not user and '@' in sid:
-                    user = User.objects.filter(email=sid).first()
+                    try:
+                        user = User.objects.filter(email=sid).first()
+                    except Exception:
+                        pass
                 
                 # 3) If not found and sid is digit (legacy/ORM pk)
                 if not user and sid.isdigit():
-                    user = User.objects.filter(pk=int(sid)).first()
+                    try:
+                        user = User.objects.filter(pk=int(sid)).first()
+                    except Exception:
+                        pass
 
                 # 4) Last resort: MongoDB ObjectId lookup (only if sid is 24-char hex)
                 if not user and len(sid) == 24 and all(c in '0123456789abcdef' for c in sid.lower()):
@@ -54,7 +62,9 @@ class MongoAuthSessionMiddleware:
                 final_user = user or AnonymousUser()
                 request._cached_user = final_user
                 return final_user
-            except Exception:
+            except Exception as e:
+                # CRITICAL: Never let the middleware crash the site
+                print(f"CRITICAL MIDDLEWARE ERROR: {e}")
                 return AnonymousUser()
 
         request.user = SimpleLazyObject(get_user)

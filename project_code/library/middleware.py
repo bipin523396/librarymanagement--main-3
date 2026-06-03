@@ -80,10 +80,21 @@ class RolePortalMiddleware:
 
         try:
             return self.get_response(request)
-        except Exception:
-            if not _is_public(path):
+        except Exception as e:
+            import logging
+            logger = logging.getLogger('library')
+            logger.error(f"Global Middleware Exception on {path}: {e}", exc_info=True)
+            
+            # If the site crashes, don't show a 500. Try to redirect home or login.
+            if _is_public(path):
+                raise # Let public paths (like health checks) fail normally
+            
+            # For private paths, try to recover
+            try:
                 request.session.flush()
-            raise
+                return redirect('home')
+            except Exception:
+                raise e # Last resort: standard 500
 
     def _blocked_redirect(self, request, role, path):
         if role == ROLE_ADMIN:

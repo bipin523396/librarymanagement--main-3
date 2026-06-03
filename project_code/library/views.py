@@ -79,25 +79,25 @@ def home(request):
     })
 
 def categories_view(request):
+    from .safe_queries import books_for_display
+
     # Support both '?category=' and '?type=' from the URL
     requested_category = request.GET.get('category') or request.GET.get('type')
 
-    # Always pass all books for JS real-time filtering
-    all_books = Book.objects.all()
-    
+    # Always pass all books for JS real-time filtering, but avoid slow FK scans.
+    all_books, categories, err = books_for_display(Book, Author)
+
     if requested_category:
         page_title = f"{requested_category.capitalize()} Books"
     else:
         page_title = "All Books"
-
-    # Get distinct categories for navigation
-    categories = Book.objects.values_list('category', flat=True).distinct()
 
     context = {
         'all_books': all_books,
         'page_title': page_title,
         'active_category': requested_category,
         'categories': categories,
+        'error': err,
     }
     return render(request, 'categories.html', context)
 
@@ -244,10 +244,25 @@ def admin_dashboard(request):
                 return []
 
         # 1. Stats
-        total_books = Book.objects.count()
-        active_members = UserProfile.objects.count()
-        pending_orders_count = Order.objects.filter(status='Pending').count() + Rental.objects.filter(rental_status='Pending').count()
-        low_stock_count = Book.objects.filter(copies_available__lte=2).count()
+        try:
+            total_books = Book.objects.count()
+        except Exception:
+            total_books = 0
+            
+        try:
+            active_members = UserProfile.objects.count()
+        except Exception:
+            active_members = 0
+            
+        try:
+            pending_orders_count = Order.objects.filter(status='Pending').count() + Rental.objects.filter(rental_status='Pending').count()
+        except Exception:
+            pending_orders_count = 0
+            
+        try:
+            low_stock_count = Book.objects.filter(copies_available__lte=2).count()
+        except Exception:
+            low_stock_count = 0
 
         # 2. Books & Authors
         try:
