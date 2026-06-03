@@ -293,7 +293,6 @@ def books_for_display(book_model, author_model=None):
                         try:
                             from bson import ObjectId
                             from bookhub_backend.mongo_config import get_shared_client
-                            import os
                             client = get_shared_client()
                             if client:
                                 db_name = os.getenv('MONGODB_NAME', 'bookhub_db')

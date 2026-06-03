@@ -21,11 +21,13 @@ ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(',') if h.strip()]
 if 'testserver' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('testserver')
 
-_render_host = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'librarymanagement-main-3.onrender.com')
+_render_host = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'librarymanagement-main-3tx9.onrender.com')
 if _render_host and _render_host not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_render_host)
 if 'librarymanagement-main-3.onrender.com' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('librarymanagement-main-3.onrender.com')
+if 'librarymanagement-main-3tx9.onrender.com' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('librarymanagement-main-3tx9.onrender.com')
 if 'librarymanagement-main-3.vercel.app' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('librarymanagement-main-3.vercel.app')
 

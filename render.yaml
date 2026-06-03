@@ -24,9 +24,9 @@ services:
       - key: MONGODB_NAME
         value: bookhub_db
       - key: FRONTEND_URL
-        value: https://librarymanagement-main-3.onrender.com
+        value: https://librarymanagement-main-3tx9.onrender.com
       - key: ALLOWED_HOSTS
-        value: ".onrender.com,librarymanagement-main-3.onrender.com"
+        value: ".onrender.com,librarymanagement-main-3tx9.onrender.com"
       - key: SECRET_KEY
         sync: false
       - key: MONGODB_URI

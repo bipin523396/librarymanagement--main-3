@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/:path*",
-      "destination": "https://librarymanagement-main-3.onrender.com/:path*"
+      "destination": "https://librarymanagement-main-3tx9.onrender.com/:path*"
     }
   ]
 }
