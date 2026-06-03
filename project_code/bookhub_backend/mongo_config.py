@@ -90,7 +90,7 @@ def get_shared_client():
         uri = get_mongodb_uri()
         if not uri:
             return None
-        timeout_ms = int(os.getenv('MONGODB_TIMEOUT_MS', '10000'))
+        timeout_ms = int(os.getenv('MONGODB_TIMEOUT_MS', '3000'))
         # Set maxPoolSize to 20 to limit connections on Render free tier/Atlas M0
         _cached_client = MongoClient(
             uri,

@@ -123,7 +123,7 @@ if not _MONGO_URI and not DEBUG:
 elif _MONGO_URI:
     print(f'MongoDB: user={mongodb_username_from_uri(_MONGO_URI)} uri={mask_mongodb_uri(_MONGO_URI)}')
 
-_MONGODB_TIMEOUT_MS = int(os.getenv('MONGODB_TIMEOUT_MS', '10000'))
+_MONGODB_TIMEOUT_MS = int(os.getenv('MONGODB_TIMEOUT_MS', '3000'))
 
 DATABASES = {
     'default': {

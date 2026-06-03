@@ -58,7 +58,7 @@
 
         <!-- Book Cover -->
         <div class="md:w-1/2 bg-gray-100 relative min-h-[300px]">
-            <img id="modalBookImage" src="" alt="Book Cover" class="w-full h-full object-cover">
+            <img id="modalBookImage" src="" alt="Book Cover" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=400&q=80'" class="w-full h-full object-cover">
             <div class="absolute top-4 left-4">
                 <span id="modalBookStatus" class="px-3 py-1 text-xs font-black uppercase rounded-full shadow-md text-white"></span>
             </div>
@@ -143,18 +143,8 @@
         {% endfor %}
     ];
 
-    const coverImages = {
-        "The God of Small Things": "https://images4.penguinrandomhouse.com/cover/9780812979657",
-        "The Book of Lost Friends": "https://images4.penguinrandomhouse.com/cover/9781984819901",
-        "Midnight's Children": "https://images4.penguinrandomhouse.com/cover/9780812976533",
-        "Rich Dad Poor Dad": "https://images-na.ssl-images-amazon.com/images/I/81bwtQdkWGL.jpg",
-        "Atomic Habits": "https://images-na.ssl-images-amazon.com/images/I/91bYsX41hL.jpg",
-        "Wings of Fire": "https://images-na.ssl-images-amazon.com/images/I/81dDw1YqByL.jpg",
-        "Steve Jobs": "https://images-na.ssl-images-amazon.com/images/I/41dKpzcoamL._SX323_BO1,204,203,200_.jpg",
-        "KPop Demon Hunters": "https://images3.penguinrandomhouse.com/cover/9798217233977",
-        "The Very Hungry Caterpillar": "https://images-na.ssl-images-amazon.com/images/I/71Koy6rWv7L.jpg",
-        "Introduction to Algorithms": "https://images-na.ssl-images-amazon.com/images/I/61Mw352+WPL.jpg"
-    };
+    const fallbackCoverImage = "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=400&q=80";
+    const coverImages = {};
 
     // 2. State
     let currentCategory = "{{ active_category|default:'All'|escapejs }}";
@@ -245,7 +235,7 @@
             const pageBooks = filteredBooks.slice(startIndex, endIndex);
 
             pageBooks.forEach(book => {
-                const resolvedImage = coverImages[book.title] || book.image;
+                const resolvedImage = coverImages[book.title] || book.image || fallbackCoverImage;
                 
                 let badgeColor = "bg-green-500 text-white";
                 if (book.status === "Low Stock") badgeColor = "bg-yellow-400 text-gray-900";
@@ -254,7 +244,7 @@
                 container.innerHTML += `
                     <div class="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full transform hover:-translate-y-1">
                         <div class="relative aspect-[3/4] overflow-hidden bg-gray-100">
-                            <img src="${resolvedImage}" alt="${book.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <img src="${resolvedImage}" alt="${book.title}" onerror="this.onerror=null;this.src='${fallbackCoverImage}'" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                             <div class="absolute top-3 right-3">
                                 <span class="px-3 py-1 text-[10px] font-black uppercase rounded-full shadow-sm ${badgeColor}">
                                     ${book.status}
@@ -332,7 +322,7 @@
         
         currentSelectedBook = book;
         
-        document.getElementById("modalBookImage").src = coverImages[book.title] || book.image;
+        document.getElementById("modalBookImage").src = coverImages[book.title] || book.image || fallbackCoverImage;
         document.getElementById("modalBookTitle").innerText = book.title;
         document.getElementById("modalBookAuthor").innerText = "by " + book.author;
         document.getElementById("modalBookCategory").innerText = book.category;

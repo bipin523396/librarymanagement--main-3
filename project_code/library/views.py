@@ -1480,17 +1480,26 @@ def chat_api(request):
     if request.method == "POST":
         try:
             print(f"DEBUG: Chat API received: {request.body}")
-            data = json.loads(request.body)
-            user_message = data.get('message', '')
-            has_image = data.get('has_image', False)
-            
+            data = json.loads(request.body or '{}')
+            user_message = (data.get('message') or '').strip()
+            has_image = bool(data.get('has_image') or data.get('image'))
+
+            if not user_message and not has_image:
+                return JsonResponse({
+                    'status': 'success',
+                    'response': 'Please type a message and I will help.',
+                })
+
             bot_response = super_ai(user_message, has_image=has_image)
             return JsonResponse({'status': 'success', 'response': bot_response})
         except Exception as e:
             import traceback
             print(f"DEBUG: Chat API Error: {str(e)}")
             print(traceback.format_exc())
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+            return JsonResponse({
+                'status': 'success',
+                'response': 'Chat is temporarily limited, but I can still help with books, plans, checkout, and delivery.',
+            })
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
 @login_required
