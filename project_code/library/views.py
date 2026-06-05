@@ -265,13 +265,6 @@ def admin_dashboard(request):
         db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
         db = client[db_name] if client else None
 
-        # CLEANUP: Delete ALL delivery staff
-        try:
-            db.library_deliverystaff.delete_many({})
-            db.library_deliveryrider.delete_many({})
-        except Exception:
-            pass
-
         def _load_rows(queryset, label):
             try:
                 return list(queryset[:dashboard_limit])
