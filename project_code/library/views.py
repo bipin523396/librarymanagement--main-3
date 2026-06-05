@@ -2148,6 +2148,7 @@ def submit_contact(request):
         subject = request.POST.get('subject')
         message = request.POST.get('message')
         
+        from .models import ContactMessage
         try:
             ContactMessage.objects.create(
                 name=name,

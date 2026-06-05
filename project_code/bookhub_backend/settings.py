@@ -119,6 +119,10 @@ WSGI_APPLICATION = 'bookhub_backend.wsgi.application'
 from bookhub_backend.mongo_config import get_mongodb_uri, mask_mongodb_uri, mongodb_username_from_uri
 
 _MONGO_URI = get_mongodb_uri()
+if not _MONGO_URI:
+    # Fallback to local MongoDB instance for development/testing
+    _MONGO_URI = 'mongodb://localhost:27017'
+    print('WARNING: MONGODB_URI not set; using fallback local MongoDB.')
 if not _MONGO_URI and not DEBUG:
     import sys
     print('FATAL: Set MONGODB_URI and DJANGO_DATABASE_URL on Render (see DEPLOYMENT.md)', file=sys.stderr)
