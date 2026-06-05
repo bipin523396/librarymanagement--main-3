@@ -753,20 +753,40 @@ def add_delivery_staff(request):
         # MongoDB direct insert fallback just in case
         try:
             from bookhub_backend.mongo_config import get_shared_client
+            from django.contrib.auth.hashers import make_password
             import os
             client = get_shared_client()
             if client:
                 db = client[os.getenv('MONGODB_NAME', 'bookhub_db')]
-                db.library_deliverystaff.update_one(
-                    {'user_id': user.pk},
+                
+                # 1. Ensure auth_user has the password and is_staff=False
+                hashed = make_password(password)
+                db.auth_user.update_one(
+                    {'username': username},
                     {'$set': {
-                        'user_id': user.pk,
-                        'phone': phone,
-                        'vehicle_number': vehicle,
-                        'active': True
+                        'username': username,
+                        'password': hashed,
+                        'is_staff': False,
+                        'is_active': True,
                     }},
                     upsert=True
                 )
+                
+                # 2. Get the clean ObjectId
+                doc = db.auth_user.find_one({'username': username})
+                if doc and '_id' in doc:
+                    from bson import ObjectId
+                    mongo_id = doc['_id']
+                    db.library_deliverystaff.update_one(
+                        {'user_id': mongo_id},
+                        {'$set': {
+                            'user_id': mongo_id,
+                            'phone': phone,
+                            'vehicle_number': vehicle,
+                            'active': True
+                        }},
+                        upsert=True
+                    )
         except Exception as e:
             print(f"Mongo delivery staff sync error: {e}")
             
