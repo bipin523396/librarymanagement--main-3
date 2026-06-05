@@ -562,9 +562,8 @@ def assign_delivery(request, rental_id):
                         vehicle_number=s.get('vehicle_number', ''),
                         active=s.get('active', True)
                     )
-                    # Try fetch username
                     try:
-                        u = db.auth_user.find_one({'id': s.get('user_id')})
+                        u = db.auth_user.find_one({'$or': [{'id': s.get('user_id')}, {'_id': s.get('user_id')}]})
                         if u:
                             staff_obj.user = type('U', (), {'username': u.get('username', 'Unknown')})()
                         else:
@@ -731,15 +730,15 @@ def add_delivery_staff(request):
         
         user = User.objects.filter(username=username).first()
         if not user:
-            # Create user with is_staff=True
+            # Create user for delivery staff (DO NOT set is_staff=True, otherwise they get admin portal)
             user = User.objects.create_user(username=username, password=password)
-            user.is_staff = True
+            user.is_staff = False
             user.save()
         else:
             # Update password if provided
             if password:
                 user.set_password(password)
-            user.is_staff = True
+            user.is_staff = False
             user.save()
             
         # Create or update linked DeliveryStaff
