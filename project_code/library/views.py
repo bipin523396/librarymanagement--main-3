@@ -541,7 +541,39 @@ def assign_delivery(request, rental_id):
     from .safe_queries import get_rental_or_404
 
     rental = get_rental_or_404(rental_id, Rental)
-    delivery_boys = [staff for staff in DeliveryStaff.objects.all() if staff.active]
+    try:
+        delivery_boys = [staff for staff in DeliveryStaff.objects.all() if staff.active]
+    except Exception:
+        delivery_boys = []
+    
+    if not delivery_boys:
+        try:
+            from bookhub_backend.mongo_config import get_shared_client
+            import os
+            client = get_shared_client()
+            if client:
+                db = client[os.getenv('MONGODB_NAME', 'bookhub_db')]
+                raw_staff = list(db.library_deliverystaff.find({'active': True}))
+                for s in raw_staff:
+                    staff_obj = DeliveryStaff(
+                        id=s.get('id') or str(s.get('_id')),
+                        user_id=s.get('user_id'),
+                        phone=s.get('phone', ''),
+                        vehicle_number=s.get('vehicle_number', ''),
+                        active=s.get('active', True)
+                    )
+                    # Try fetch username
+                    try:
+                        u = db.auth_user.find_one({'id': s.get('user_id')})
+                        if u:
+                            staff_obj.user = type('U', (), {'username': u.get('username', 'Unknown')})()
+                        else:
+                            staff_obj.user = type('U', (), {'username': 'Delivery Boy'})()
+                    except:
+                        staff_obj.user = type('U', (), {'username': 'Delivery Boy'})()
+                    delivery_boys.append(staff_obj)
+        except Exception as e:
+            print(f"Mongo fallback for delivery boys failed: {e}")
 
     if request.method == 'POST':
         delivery_staff_id = request.POST.get('delivery_person')
@@ -697,22 +729,51 @@ def add_delivery_staff(request):
         phone = request.POST.get('phone')
         vehicle = request.POST.get('vehicle')
         
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already exists!')
-        else:
+        user = User.objects.filter(username=username).first()
+        if not user:
             # Create user with is_staff=True
             user = User.objects.create_user(username=username, password=password)
             user.is_staff = True
             user.save()
+        else:
+            # Update password if provided
+            if password:
+                user.set_password(password)
+            user.is_staff = True
+            user.save()
             
-            # Create linked DeliveryStaff
-            from .models import DeliveryStaff
-            DeliveryStaff.objects.create(
-                user=user,
-                phone=phone,
-                vehicle_number=vehicle
-            )
-            messages.success(request, f'Delivery staff {username} added successfully!')
+        # Create or update linked DeliveryStaff
+        from .models import DeliveryStaff
+        DeliveryStaff.objects.update_or_create(
+            user=user,
+            defaults={
+                'phone': phone,
+                'vehicle_number': vehicle,
+                'active': True
+            }
+        )
+        
+        # MongoDB direct insert fallback just in case
+        try:
+            from bookhub_backend.mongo_config import get_shared_client
+            import os
+            client = get_shared_client()
+            if client:
+                db = client[os.getenv('MONGODB_NAME', 'bookhub_db')]
+                db.library_deliverystaff.update_one(
+                    {'user_id': user.pk},
+                    {'$set': {
+                        'user_id': user.pk,
+                        'phone': phone,
+                        'vehicle_number': vehicle,
+                        'active': True
+                    }},
+                    upsert=True
+                )
+        except Exception as e:
+            print(f"Mongo delivery staff sync error: {e}")
+            
+        messages.success(request, f'Delivery staff {username} added/updated successfully!')
     return redirect(reverse('admin_dashboard') + '#delivery-staff-management')
 
 def add_admin(request):
