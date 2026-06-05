@@ -577,8 +577,15 @@
                             <a href="{% url 'assign_delivery' rental.id %}" class="btn btn-sm btn-outline">
                                 Assign Delivery
                             </a>
+                            {% elif rental.rental_status == 'Assigned' %}
+                            <form method="post" action="{% url 'complete_rental' rental.id %}" style="display:inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm" style="background:#16a34a;color:#fff;border:none;cursor:pointer;padding:6px 12px;border-radius:6px;" onclick="return confirm('Mark this rental as Completed/Delivered?')">
+                                    ✓ Mark Delivered
+                                </button>
+                            </form>
                             {% else %}
-                            <span class="text-gray-500 text-sm">Assigned</span>
+                            <span class="text-gray-500 text-sm">—</span>
                             {% endif %}
                         </td>
                     </tr>

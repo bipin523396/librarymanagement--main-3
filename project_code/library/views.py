@@ -265,6 +265,13 @@ def admin_dashboard(request):
         db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
         db = client[db_name] if client else None
 
+        # CLEANUP: Delete ALL delivery staff
+        try:
+            db.library_deliverystaff.delete_many({})
+            db.library_deliveryrider.delete_many({})
+        except Exception:
+            pass
+
         def _load_rows(queryset, label):
             try:
                 return list(queryset[:dashboard_limit])
@@ -319,14 +326,76 @@ def admin_dashboard(request):
 
         # 4. Rentals
         try:
-            live_rentals = _load_rows(Rental.objects.filter(rental_status='Pending').select_related('user', 'book').order_by('-rented_at'), 'live_rentals')
+            live_rentals = _load_rows(Rental.objects.filter(rental_status__in=['Pending', 'Assigned']).select_related('user', 'book').order_by('-rented_at'), 'live_rentals')
         except Exception:
-            live_rentals = _load_rows(Rental.objects.filter(rental_status='Pending').order_by('-rented_at'), 'live_rentals')
+            try:
+                live_rentals = _load_rows(Rental.objects.filter(rental_status__in=['Pending', 'Assigned']).order_by('-rented_at'), 'live_rentals')
+            except Exception:
+                # MongoDB fallback for live rentals
+                live_rentals = []
+                if db is not None:
+                    try:
+                        from .safe_queries import _DisplayBook
+                        raw = list(db.library_rental.find({'rental_status': {'$in': ['Pending', 'Assigned']}}).sort('rented_at', -1).limit(dashboard_limit))
+                        for r in raw:
+                            rental_obj = Rental(pk=r.get('id') or str(r.get('_id')))
+                            rental_obj.rental_status = r.get('rental_status', 'Pending')
+                            rental_obj.rented_at = r.get('rented_at')
+                            rental_obj.due_date = r.get('due_date')
+                            rental_obj.total_amount = r.get('total_amount', 0)
+                            # Try load user
+                            try:
+                                u = db.auth_user.find_one({'id': r.get('user_id')})
+                                if u:
+                                    rental_obj.user = type('U', (), {'username': u.get('username', 'Unknown'), 'id': u.get('id')})()
+                                else:
+                                    rental_obj.user = type('U', (), {'username': 'Unknown', 'id': None})()
+                            except Exception:
+                                rental_obj.user = type('U', (), {'username': 'Unknown', 'id': None})()
+                            # Try load book
+                            try:
+                                b = db.library_book.find_one({'id': r.get('book_id')})
+                                if b:
+                                    rental_obj.book = type('B', (), {'title': b.get('title', 'Unknown')})()
+                                else:
+                                    rental_obj.book = type('B', (), {'title': 'Unknown'})()
+                            except Exception:
+                                rental_obj.book = type('B', (), {'title': 'Unknown'})()
+                            live_rentals.append(rental_obj)
+                    except Exception as exc:
+                        print(f'live_rentals mongo fallback failed: {exc}')
             
         try:
-            history_rentals = _load_rows(Rental.objects.exclude(rental_status='Pending').select_related('user', 'book').order_by('-rented_at'), 'history_rentals')
+            history_rentals = _load_rows(Rental.objects.filter(rental_status__in=['Completed', 'Failed']).select_related('user', 'book').order_by('-rented_at'), 'history_rentals')
         except Exception:
-            history_rentals = _load_rows(Rental.objects.exclude(rental_status='Pending').order_by('-rented_at'), 'history_rentals')
+            try:
+                history_rentals = _load_rows(Rental.objects.filter(rental_status__in=['Completed', 'Failed']).order_by('-rented_at'), 'history_rentals')
+            except Exception:
+                # MongoDB fallback for history
+                history_rentals = []
+                if db is not None:
+                    try:
+                        raw = list(db.library_rental.find({'rental_status': {'$in': ['Completed', 'Failed']}}).sort('rented_at', -1).limit(dashboard_limit))
+                        for r in raw:
+                            rental_obj = Rental(pk=r.get('id') or str(r.get('_id')))
+                            rental_obj.rental_status = r.get('rental_status', 'Completed')
+                            rental_obj.rented_at = r.get('rented_at')
+                            rental_obj.due_date = r.get('due_date')
+                            rental_obj.total_amount = r.get('total_amount', 0)
+                            try:
+                                u = db.auth_user.find_one({'id': r.get('user_id')})
+                                rental_obj.user = type('U', (), {'username': u.get('username', 'Unknown') if u else 'Unknown', 'id': None})()
+                            except Exception:
+                                rental_obj.user = type('U', (), {'username': 'Unknown', 'id': None})()
+                            try:
+                                b = db.library_book.find_one({'id': r.get('book_id')})
+                                rental_obj.book = type('B', (), {'title': b.get('title', 'Unknown') if b else 'Unknown'})()
+                            except Exception:
+                                rental_obj.book = type('B', (), {'title': 'Unknown'})()
+                            history_rentals.append(rental_obj)
+                    except Exception as exc:
+                        print(f'history_rentals mongo fallback failed: {exc}')
+
 
         # 5. Payments
         try:
@@ -587,6 +656,38 @@ def update_delivery_status(request, delivery_id):
 
     if _is_delivery_staff(request.user):
         return redirect('delivery_dashboard')
+    return redirect(reverse('admin_dashboard') + '#history-rental-management')
+
+@admin_portal_required
+def complete_rental(request, rental_id):
+    """Mark a rental as Completed directly from the Live Rentals panel."""
+    from django.urls import reverse
+    from .models import Rental, Delivery
+    if request.method == 'POST':
+        # Mark the rental completed
+        updated = Rental.set_status(rental_id, Rental.STATUS_COMPLETED, returned=True)
+        # Also update any delivery record
+        try:
+            Delivery.objects.filter(rental_id=rental_id).update(status='Delivered')
+        except Exception:
+            try:
+                from bookhub_backend.mongo_config import get_shared_client
+                import os
+                client = get_shared_client()
+                if client:
+                    from bson import ObjectId
+                    db = client[os.getenv('MONGODB_NAME', 'bookhub_db')]
+                    db.library_delivery.update_one(
+                        {'rental_id': ObjectId(str(rental_id))},
+                        {'$set': {'status': 'Delivered'}},
+                        upsert=False
+                    )
+            except Exception:
+                pass
+        if updated:
+            messages.success(request, 'Rental marked as Completed! It will now appear in Rental History.')
+        else:
+            messages.warning(request, 'Rental status update attempted - check history for result.')
     return redirect(reverse('admin_dashboard') + '#history-rental-management')
 
 def add_delivery_staff(request):
@@ -1749,24 +1850,52 @@ def books_by_category(request, slug):
     return render(request, 'categories.html', {'books': books, 'page_title': f"{slug.capitalize()} Books", 'active_category': slug})
 
 def books_by_author(request, slug):
-    from .models import Author
+    from .models import Author, Book
+    from .safe_queries import books_for_display
     
-    # Try to find a proper Author profile
     author_profile = None
     try:
         author_profile = Author.objects.get(slug=slug)
-        # Filter books by Author object
-        books = Book.objects.filter(author=author_profile)
     except Author.DoesNotExist:
-        # Fallback: use slug as a name search (replace hyphens with spaces)
-        author_name = slug.replace('-', ' ')
-        books = Book.objects.filter(author__name__icontains=author_name)
+        try:
+            # MongoDB fallback for Author
+            from bookhub_backend.mongo_config import get_shared_client
+            import os
+            client = get_shared_client()
+            if client:
+                db = client[os.getenv('MONGODB_NAME', 'bookhub_db')]
+                a = db.library_author.find_one({'slug': slug})
+                if a:
+                    author_profile = Author(
+                        id=a.get('id') or str(a.get('_id')),
+                        name=a.get('name', ''),
+                        slug=a.get('slug', ''),
+                        bio=a.get('bio', ''),
+                        genres=a.get('genres', '')
+                    )
+        except Exception:
+            pass
+
+    all_books, _, _ = books_for_display(Book, Author)
+    author_name = author_profile.name if author_profile else slug.replace('-', ' ').title()
     
+    # Filter books from all_books manually to catch all variations
+    author_books = []
+    for b in all_books:
+        # all_books contains _DisplayBook objects from Mongo or normal ORM Book objects
+        b_author_name = getattr(b, 'author_name', getattr(b.author, 'name', '')) if getattr(b, 'author', None) else 'Unknown'
+        if not b_author_name:
+            if isinstance(getattr(b, 'author', None), str):
+                b_author_name = b.author
+                
+        if b_author_name and b_author_name.lower() == author_name.lower():
+            author_books.append(b)
+            
     return render(request, 'author_detail.html', {
         'author_profile': author_profile,
         'author_slug': slug,
-        'author_name': author_profile.name if author_profile else slug.replace('-', ' ').title(),
-        'books': books,
+        'author_name': author_name,
+        'books': author_books,
     })
 
 @login_required

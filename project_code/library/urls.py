@@ -79,6 +79,7 @@ urlpatterns = [
     path('payment-success/<str:book_id>/', views.payment_success, name='payment_success'),
     path('admin-dashboard/assign-delivery/<str:rental_id>/', views.assign_delivery, name='assign_delivery'),
     path('admin-dashboard/update-delivery/<str:delivery_id>/', views.update_delivery_status, name='update_delivery_status'),
+    path('admin-dashboard/complete-rental/<str:rental_id>/', views.complete_rental, name='complete_rental'),
     path('admin-dashboard/add-delivery-staff/', views.add_delivery_staff, name='add_delivery_staff'),
     path('admin-dashboard/add-admin/', views.add_admin, name='add_admin'),
     path('admin-dashboard/resolve-message/<str:message_id>/', views.resolve_message, name='resolve_message'),

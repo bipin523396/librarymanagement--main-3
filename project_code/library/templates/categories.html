@@ -58,7 +58,7 @@
 
         <!-- Book Cover -->
         <div class="md:w-1/2 bg-gray-100 relative min-h-[300px]">
-            <img id="modalBookImage" src="" alt="Book Cover" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=400&q=80'" class="w-full h-full object-cover">
+            <img id="modalBookImage" src="" alt="Book Cover" onerror="this.onerror=null;" class="w-full h-full object-cover">
             <div class="absolute top-4 left-4">
                 <span id="modalBookStatus" class="px-3 py-1 text-xs font-black uppercase rounded-full shadow-md text-white"></span>
             </div>
@@ -138,12 +138,14 @@
             price: {{ book.price_per_day|floatformat:2 }},
             copies_available: {{ book.copies_available }},
             status: "{{ book.status|escapejs }}",
-            image: "{% if book.image %}{{ book.image.url }}{% else %}https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=400&q=80{% endif %}"
+            image: "{% if book.image %}{{ book.image.url }}{% else %}{% endif %}"
         }{% if not forloop.last %},{% endif %}
         {% endfor %}
     ];
 
-    const fallbackCoverImage = "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=400&q=80";
+    function getFallbackCover(title) {
+        return `https://picsum.photos/seed/${encodeURIComponent(title)}/400/600`;
+    }
     const coverImages = {};
 
     // 2. State
@@ -235,7 +237,7 @@
             const pageBooks = filteredBooks.slice(startIndex, endIndex);
 
             pageBooks.forEach(book => {
-                const resolvedImage = coverImages[book.title] || book.image || fallbackCoverImage;
+                const resolvedImage = coverImages[book.title] || book.image || getFallbackCover(book.title);
                 
                 let badgeColor = "bg-green-500 text-white";
                 if (book.status === "Low Stock") badgeColor = "bg-yellow-400 text-gray-900";
@@ -244,7 +246,7 @@
                 container.innerHTML += `
                     <div class="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full transform hover:-translate-y-1">
                         <div class="relative aspect-[3/4] overflow-hidden bg-gray-100">
-                            <img src="${resolvedImage}" alt="${book.title}" onerror="this.onerror=null;this.src='${fallbackCoverImage}'" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <img src="${resolvedImage}" alt="${book.title}" onerror="this.onerror=null;this.src='${getFallbackCover(book.title)}'" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                             <div class="absolute top-3 right-3">
                                 <span class="px-3 py-1 text-[10px] font-black uppercase rounded-full shadow-sm ${badgeColor}">
                                     ${book.status}
@@ -322,7 +324,7 @@
         
         currentSelectedBook = book;
         
-        document.getElementById("modalBookImage").src = coverImages[book.title] || book.image || fallbackCoverImage;
+        document.getElementById("modalBookImage").src = coverImages[book.title] || book.image || getFallbackCover(book.title);
         document.getElementById("modalBookTitle").innerText = book.title;
         document.getElementById("modalBookAuthor").innerText = "by " + book.author;
         document.getElementById("modalBookCategory").innerText = book.category;
