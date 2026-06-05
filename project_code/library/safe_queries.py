@@ -217,7 +217,7 @@ def _books_for_display_from_mongo():
         'status': 1,
         'image': 1,
     }
-    raw_books = list(db.library_book.find({}, projection).sort('id', 1).limit(limit))
+    raw_books = list(db.library_book.find({}, projection).sort('id', -1).limit(limit))
 
     author_ids = {book.get('author_id') for book in raw_books if book.get('author_id') is not None}
     authors_by_key = {}
@@ -259,7 +259,7 @@ def books_for_display(book_model, author_model=None):
     categories = set()
     try:
         limit = int(os.getenv('HOME_BOOK_LIMIT', '60'))
-        qs = book_model.objects.all().order_by('id')[:limit]
+        qs = book_model.objects.all().order_by('-id')[:limit]
     except Exception as exc:
         logger.warning('books_for_display query failed: %s', exc)
         return [], [], str(exc)

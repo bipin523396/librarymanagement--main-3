@@ -234,11 +234,12 @@
         </header>
 
         {% if messages %}
-        <div class="message-container">
+        <div class="message-container" id="flashMessages">
             {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
+            <div class="alert alert-{{ message.tags }}" style="cursor:pointer;" onclick="this.style.display='none'">
                 <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
                 {{ message }}
+                <span style="margin-left:auto; font-size:18px; opacity:0.6;">&times;</span>
             </div>
             {% endfor %}
         </div>
@@ -257,6 +258,12 @@
                 </div>
                 <div class="stat-card">
                     <h3>Low Stock Alerts</h3><div class="value" style="color: var(--danger-red);">{{ low_stock_count }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Admins</h3><div class="value" style="color: #7c3aed;">{{ total_admins }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Delivery Staff</h3><div class="value" style="color: #0891b2;">{{ total_delivery_staff }}</div>
                 </div>
             </div>
             <h3 style="margin-bottom: 15px;">Recent Alerts</h3>
@@ -364,9 +371,18 @@
                         <td>{{ author.nationality }}</td>
                         <td>{{ author.book_set.count }}</td>
                         <td>
-                            <button class="btn btn-sm btn-outline">
-                                <i class="fas fa-edit"></i>
-                            </button>
+                            <div style="display: flex; gap: 5px;">
+                                {% if author.id %}
+                                <button class="btn btn-sm btn-outline" onclick="openEditAuthorModal('{{ author.id }}', '{{ author.name|escapejs }}', '{{ author.bio|escapejs }}', '{{ author.genres|escapejs }}', '{{ author.nationality|escapejs }}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <a href="{% url 'delete_author' author.id %}" onclick="return confirm('Delete author {{ author.name|escapejs }}? This will also delete all their books.')">
+                                    <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                </a>
+                                {% else %}
+                                <span style="font-size:12px;color:#999;">—</span>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
@@ -453,6 +469,7 @@
                         <th>Phone</th>
                         <th>Vehicle</th>
                         <th>Active</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -466,9 +483,23 @@
                                 {% if staff.active %}Yes{% else %}No{% endif %}
                             </span>
                         </td>
+                        <td>
+                            <div style="display: flex; gap: 5px;">
+                                {% if staff.id %}
+                                <button class="btn btn-sm btn-outline" onclick="openEditStaffModal('{{ staff.id }}', '{{ staff.user.username|escapejs }}', '{{ staff.phone|escapejs }}', '{{ staff.vehicle_number|escapejs }}', {{ staff.active|yesno:'true,false' }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <a href="{% url 'delete_delivery_staff' staff.id %}" onclick="return confirm('Remove delivery staff {{ staff.user.username|escapejs }}?')">
+                                    <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                </a>
+                                {% else %}
+                                <span style="font-size:12px;color:#999;">—</span>
+                                {% endif %}
+                            </div>
+                        </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;">No delivery staff registered.</td></tr>
+                    <tr><td colspan="5" style="text-align: center; padding: 20px; color: #999;">No delivery staff registered.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -650,7 +681,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for msg in messages %}
+                    {% for msg in contact_messages %}
                     <tr>
                         <td>{{ msg.name }}</td>
                         <td>{{ msg.email }}</td>
@@ -853,6 +884,65 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="editAuthorModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Author</h3>
+                <button class="close-modal" onclick="closeModal('editAuthorModal')">&times;</button>
+            </div>
+            <form id="editAuthorForm" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label">Author Name</label>
+                    <input type="text" name="name" id="editAuthorName" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Photo</label>
+                    <input type="file" name="image" class="form-input" accept="image/*">
+                    <p style="font-size: 11px; color: gray; margin-top: 4px;">Leave blank to keep current photo.</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Bio</label>
+                    <textarea name="bio" id="editAuthorBio" class="form-input" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Genre</label>
+                    <input type="text" name="genres" id="editAuthorGenres" class="form-input" placeholder="Fiction, Thriller">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nationality</label>
+                    <input type="text" name="nationality" id="editAuthorNationality" class="form-input">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Update Author</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="editStaffModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Delivery Staff</h3>
+                <button class="close-modal" onclick="closeModal('editStaffModal')">&times;</button>
+            </div>
+            <form id="editStaffForm" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    <input type="text" name="phone" id="editStaffPhone" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Vehicle Details</label>
+                    <input type="text" name="vehicle" id="editStaffVehicle" class="form-input" required>
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" name="active" id="editStaffActive">
+                    <label for="editStaffActive" class="form-label" style="margin-bottom: 0;">Active Status</label>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Update Staff</button>
+            </form>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="addStaffModal">
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
@@ -1001,6 +1091,31 @@
             document.getElementById('bookCopies').value = copies || '1';
 
             openModal('addBookModal');
+        }
+
+        function openEditAuthorModal(id, name, bio, genres, nationality) {
+            const form = document.getElementById('editAuthorForm');
+            const editUrlTemplate = "{% url 'edit_author' author_id=999999 %}";
+            form.action = editUrlTemplate.replace('999999', id);
+            
+            document.getElementById('editAuthorName').value = name;
+            document.getElementById('editAuthorBio').value = bio;
+            document.getElementById('editAuthorGenres').value = genres;
+            document.getElementById('editAuthorNationality').value = nationality;
+            
+            openModal('editAuthorModal');
+        }
+
+        function openEditStaffModal(id, username, phone, vehicle, isActive) {
+            const form = document.getElementById('editStaffForm');
+            const editUrlTemplate = "{% url 'edit_delivery_staff' staff_id=999999 %}";
+            form.action = editUrlTemplate.replace('999999', id);
+            
+            document.getElementById('editStaffPhone').value = phone;
+            document.getElementById('editStaffVehicle').value = vehicle;
+            document.getElementById('editStaffActive').checked = isActive;
+            
+            openModal('editStaffModal');
         }
 
         function viewMemberDetails(name, email, phone, address, pincode, plan, expiry, rentals, fines) {

@@ -57,6 +57,10 @@ urlpatterns = [
     path('admin-dashboard/edit-book/<str:book_id>/', views.edit_book, name='edit_book'),
     path('admin-dashboard/add-rider/', views.add_rider, name='add_rider'),
     path('admin-dashboard/assign-order/', views.assign_order, name='assign_order'),
+    path('admin-dashboard/edit-author/<str:author_id>/', views.edit_author, name='edit_author'),
+    path('admin-dashboard/delete-author/<str:author_id>/', views.delete_author, name='delete_author'),
+    path('admin-dashboard/edit-delivery-staff/<str:staff_id>/', views.edit_delivery_staff, name='edit_delivery_staff'),
+    path('admin-dashboard/delete-delivery-staff/<str:staff_id>/', views.delete_delivery_staff, name='delete_delivery_staff'),
 # New backend routes
     path('book/<str:id>/', views.book_detail, name='book_detail'),
     path('rent/<str:id>/', views.rent_book, name='rent_book'),

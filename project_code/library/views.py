@@ -264,6 +264,16 @@ def admin_dashboard(request):
         except Exception:
             low_stock_count = 0
 
+        try:
+            total_admins = User.objects.filter(is_staff=True).count()
+        except Exception:
+            total_admins = 0
+
+        try:
+            total_delivery_staff = DeliveryStaff.objects.count()
+        except Exception:
+            total_delivery_staff = 0
+
         # 2. Books & Authors
         try:
             books = _load_rows(Book.objects.select_related('author').order_by('-id'), 'books')
@@ -377,21 +387,45 @@ def admin_dashboard(request):
                     except Exception as e:
                         print(f"Fallback message skip: {e}")
 
+            if not members and db.library_userprofile.count_documents({}) > 0:
+                raw_members = list(db.library_userprofile.find().sort("id", -1).limit(dashboard_limit))
+                members = []
+                for m in raw_members:
+                    try:
+                        u = User.objects.get(pk=m.get('user_id'))
+                        plan = None
+                        if m.get('membership_id'):
+                            plan = MembershipPlan.objects.filter(pk=m.get('membership_id')).first()
+                        prof = UserProfile(
+                            id=m.get('id') or str(m.get('_id')),
+                            user=u,
+                            phone=m.get('phone', ''),
+                            address=m.get('address', ''),
+                            pincode=m.get('pincode', ''),
+                            membership=plan,
+                            membership_expiry=m.get('membership_expiry')
+                        )
+                        members.append(prof)
+                    except Exception as e:
+                        print(f"Fallback member skip: {e}")
+
         context = {
             'total_books': total_books,
             'active_members': active_members,
             'pending_orders': pending_orders_count,
             'low_stock_count': low_stock_count,
+            'total_admins': total_admins,
+            'total_delivery_staff': total_delivery_staff,
             'books': books,
             'authors': authors,
             'riders': riders,
-            'orders': [], # Order model is used for 'Delivery Only' etc
+            'orders': [],
             'members': members,
             'live_rentals': live_rentals,
             'history_rentals': history_rentals,
             'payments': payments,
             'assigned_deliveries': assigned_deliveries,
-            'messages': messages_list,
+            'contact_messages': messages_list,
             'settings': SystemSettings.objects.first(),
             'delivery_staff': delivery_staff,
         }
@@ -806,6 +840,64 @@ def add_rider(request):
             user=user,
             defaults={'phone': phone, 'vehicle_details': vehicle_details, 'status': 'Offline'}
         )
+    return redirect('admin_dashboard')
+
+
+@admin_portal_required
+def edit_author(request, author_id):
+    author = get_object_or_404(Author, id=author_id)
+    if request.method == 'POST':
+        try:
+            author.name = request.POST.get('name', author.name)
+            author.bio = request.POST.get('bio', author.bio)
+            author.genres = request.POST.get('genres', author.genres)
+            author.nationality = request.POST.get('nationality', author.nationality)
+            if request.FILES.get('image'):
+                author.image = request.FILES.get('image')
+            author.save()
+            messages.success(request, f"Author '{author.name}' has been updated.")
+        except Exception as e:
+            messages.error(request, f"Error updating author: {str(e)}")
+    return redirect('admin_dashboard')
+
+
+@admin_portal_required
+def delete_author(request, author_id):
+    author = get_object_or_404(Author, id=author_id)
+    name = author.name
+    try:
+        author.delete()
+        messages.success(request, f"Author '{name}' has been deleted.")
+    except Exception as e:
+        messages.error(request, f"Error deleting author: {str(e)}")
+    return redirect('admin_dashboard')
+
+
+@admin_portal_required
+def edit_delivery_staff(request, staff_id):
+    staff = get_object_or_404(DeliveryStaff, id=staff_id)
+    if request.method == 'POST':
+        try:
+            staff.phone = request.POST.get('phone', staff.phone)
+            staff.vehicle_number = request.POST.get('vehicle', staff.vehicle_number)
+            active_val = request.POST.get('active')
+            staff.active = active_val == 'on' or active_val == 'true'
+            staff.save()
+            messages.success(request, f"Delivery staff '{staff.user.username}' has been updated.")
+        except Exception as e:
+            messages.error(request, f"Error updating delivery staff: {str(e)}")
+    return redirect('admin_dashboard')
+
+
+@admin_portal_required
+def delete_delivery_staff(request, staff_id):
+    staff = get_object_or_404(DeliveryStaff, id=staff_id)
+    username = staff.user.username
+    try:
+        staff.delete()
+        messages.success(request, f"Delivery staff '{username}' has been removed.")
+    except Exception as e:
+        messages.error(request, f"Error deleting delivery staff: {str(e)}")
     return redirect('admin_dashboard')
 
 
