@@ -33,13 +33,26 @@ def _delivery_staff_active_in_mongo(username):
             return False
         db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
         db = client[db_name]
-        # Optimized: only fetch necessary fields
-        auth = db.auth_user.find_one({'username': username}, {'_id': 1})
+        # Optimized: fetch necessary fields
+        auth = db.auth_user.find_one({'username': username})
         if not auth:
             return False
-        uid = auth['_id']
-        return db.library_deliverystaff.find_one({'user_id': uid, 'active': True}, {'_id': 1}) is not None
-    except Exception:
+        
+        uid_obj = auth.get('_id')
+        uid_int = auth.get('id')
+        
+        query = {'active': True, '$or': []}
+        if uid_obj is not None:
+            query['$or'].append({'user_id': uid_obj})
+        if uid_int is not None:
+            query['$or'].append({'user_id': uid_int})
+            
+        if not query['$or']:
+            return False
+            
+        return db.library_deliverystaff.find_one(query, {'_id': 1}) is not None
+    except Exception as e:
+        print(f"Role utils mongo error: {e}")
         return False
 
 
