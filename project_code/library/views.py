@@ -556,7 +556,12 @@ def assign_delivery(request, rental_id):
                         active=s.get('active', True)
                     )
                     try:
-                        u = db.auth_user.find_one({'$or': [{'id': s.get('user_id')}, {'_id': s.get('user_id')}]})
+                        u = db.auth_user.find_one({'$or': [
+                            {'id': s.get('user_id')}, 
+                            {'_id': s.get('user_id')},
+                            {'id': str(s.get('user_id'))},
+                            {'_id': str(s.get('user_id'))}
+                        ]})
                         if u:
                             staff_obj.user = type('U', (), {'username': u.get('username', 'Unknown')})()
                         else:

@@ -44,8 +44,10 @@ def _delivery_staff_active_in_mongo(username):
         query = {'active': True, '$or': []}
         if uid_obj is not None:
             query['$or'].append({'user_id': uid_obj})
+            query['$or'].append({'user_id': str(uid_obj)})
         if uid_int is not None:
             query['$or'].append({'user_id': uid_int})
+            query['$or'].append({'user_id': str(uid_int)})
             
         if not query['$or']:
             return False
