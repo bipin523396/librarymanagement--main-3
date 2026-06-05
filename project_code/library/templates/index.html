@@ -194,66 +194,25 @@
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
-            <!-- Author cards -->
-            <a href="{% url 'books_by_author' slug='sudha-murty' %}" class="group text-center cursor-pointer block">
+            {% for author in authors %}
+            <a href="{% url 'books_by_author' slug=author.slug %}" class="group text-center cursor-pointer block">
                 <div class="relative mb-4 inline-block">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJ0lgzb4bFBgYW0QfEWddlpyKFp7j5sHqCdO1NCLkzldGMnn3SHWAAxwczDPqp4aI279lecZy6atiN4ek9Dwf4NGc67mSgihhQuutGLc2vWQ&s=10" 
-                        alt="Author" 
+                    {% if author.image %}
+                    <img src="{{ author.image.url }}" 
+                        alt="{{ author.name }}" 
                         class="w-32 h-32 rounded-full object-cover border-4 border-transparent group-hover:border-orange-500 transition-all duration-300 shadow-md">
-                </div>
-                <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">{% trans "Sudha Murty" %}</h3>
-                <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">{% trans "Indian Literature" %}</p>
-            </a>
-
-            <a href="{% url 'books_by_author' slug='ruskin-bond' %}" class="group text-center cursor-pointer block">
-                <div class="relative mb-4 inline-block">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRM8sRqfFMLdFYHVVIvUlMIJ0yjwik98ze7WFlL3zHfpA&s" 
-                        alt="Author" 
+                    {% else %}
+                    <img src="https://ui-avatars.com/api/?name={{ author.name|urlencode }}&background=ea580c&color=fff&size=200" 
+                        alt="{{ author.name }}" 
                         class="w-32 h-32 rounded-full object-cover border-4 border-transparent group-hover:border-orange-500 transition-all duration-300 shadow-md">
+                    {% endif %}
                 </div>
-                <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">{% trans "Ruskin Bond" %}</h3>
-                <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">{% trans "Children's Fiction" %}</p>
+                <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">{{ author.name }}</h3>
+                <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">{{ author.genres|default:"Author"|truncatechars:20 }}</p>
             </a>
-
-            <a href="{% url 'books_by_author' slug='jk-rowling' %}" class="group text-center cursor-pointer block">
-                <div class="relative mb-4 inline-block">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQiW9wNKQPmx8ufqxuKQ4CKg0Rrw8KC4D8Qog&s" 
-                        alt="Author" 
-                        class="w-32 h-32 rounded-full object-cover border-4 border-transparent group-hover:border-orange-500 transition-all duration-300 shadow-md">
-                </div>
-                <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">{% trans "J.K. Rowling" %}</h3>
-                <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">{% trans "Fantasy" %}</p>
-            </a>
-
-            <a href="{% url 'books_by_author' slug='amish-tripathi' %}" class="group text-center cursor-pointer block">
-                <div class="relative mb-4 inline-block">
-                    <img src="https://images.moneycontrol.com/static-mcnews/2022/10/amish-tripathi-author.jpg?impolicy=website&width=1600&height=900" 
-                        alt="Author" 
-                        class="w-32 h-32 rounded-full object-cover border-4 border-transparent group-hover:border-orange-500 transition-all duration-300 shadow-md">
-                </div>
-                <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">{% trans "Amish Tripathi" %}</h3>
-                <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">{% trans "Mythology" %}</p>
-            </a>
-
-            <a href="{% url 'books_by_author' slug='arundhati-roy' %}" class="group text-center cursor-pointer block">
-                <div class="relative mb-4 inline-block">
-                    <img src="https://i.guim.co.uk/img/media/993e587413d93ed0797dcfa550d143a19e87cd44/627_444_4277_3031/master/4277.jpg?width=480&dpr=1&s=none&crop=none" 
-                        alt="Author" 
-                        class="w-32 h-32 rounded-full object-cover border-4 border-transparent group-hover:border-orange-500 transition-all duration-300 shadow-md">
-                </div>
-                <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">{% trans "Arundhati Roy" %}</h3>
-                <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">{% trans "Contemporary" %}</p>
-            </a>
-
-            <a href="{% url 'books_by_author' slug='james-clear' %}" class="group text-center cursor-pointer block">
-                <div class="relative mb-4 inline-block">
-                    <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&h=300&q=80" 
-                        alt="Author" 
-                        class="w-32 h-32 rounded-full object-cover border-4 border-transparent group-hover:border-orange-500 transition-all duration-300 shadow-md">
-                </div>
-                <h3 class="font-bold text-gray-800 group-hover:text-orange-600 transition">{% trans "James Clear" %}</h3>
-                <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">{% trans "Self-Help" %}</p>
-            </a>
+            {% empty %}
+            <p class="text-gray-500 col-span-full text-center py-8">{% trans "No authors available yet." %}</p>
+            {% endfor %}
         </div>
     </section>
 
