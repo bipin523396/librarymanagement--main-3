@@ -410,6 +410,7 @@
                         </td>
                         <td>
                             <div style="display:flex; flex-direction:column; gap:5px;">
+                                {% if delivery.id %}
                                 <form method="POST" action="{% url 'update_delivery_status' delivery.id %}" style="display:flex; gap:10px;">
                                     {% csrf_token %}
                                     <select name="status" class="form-input" style="padding:4px; font-size:12px;">
@@ -420,6 +421,9 @@
                                     </select>
                                     <button type="submit" class="btn btn-sm btn-primary" style="padding:4px 8px; font-size:12px;">Update</button>
                                 </form>
+                                {% else %}
+                                <span style="font-size:12px;color:#999;">No ID</span>
+                                {% endif %}
                                 {% if delivery.delivery_person and delivery.delivery_person.deliverystaff %}
                                 <button class="btn btn-sm btn-outline" style="font-size:12px; padding:4px 8px;" onclick="viewLiveLocation('{{ delivery.delivery_person.username }}', {{ delivery.delivery_person.deliverystaff.current_latitude }}, {{ delivery.delivery_person.deliverystaff.current_longitude }})">
                                     <i class="fas fa-map-marker-alt"></i> View Live Location
@@ -538,7 +542,7 @@
                             </span>
                         </td>
                         <td>
-                            {% if rental.rental_status == 'Pending' %}
+                            {% if rental.rental_status == 'Pending' and rental.id %}
                             <a href="{% url 'assign_delivery' rental.id %}" class="btn btn-sm btn-outline">
                                 Assign Delivery
                             </a>
@@ -660,7 +664,7 @@
                         <td>
                             <div style="display: flex; gap: 5px;">
                                 <a href="mailto:{{ msg.email }}?subject=Re: {{ msg.subject }}&body=Hi {{ msg.name }},%0D%0A%0D%0A" class="btn btn-sm btn-outline" style="text-decoration:none;">Reply</a>
-                                {% if msg.status != 'Resolved' %}
+                                {% if msg.status != 'Resolved' and msg.id %}
                                 <form method="POST" action="{% url 'resolve_message' msg.id %}" style="display:inline;">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm btn-success">Resolve</button>

@@ -177,6 +177,7 @@
                                         </form>
                                     {% endif %}
                                 {% else %}
+                                    {% if order.id %}
                                     {% if order.status == 'Assigned' %}
                                         <form method="POST" action="{% url 'update_delivery_status' order.id %}">
                                             {% csrf_token %}
@@ -213,6 +214,9 @@
                                         {% if order.rental and order.rental.user and order.rental.user.userprofile %}
                                         <button class="btn btn-map" onclick="openMap('{{ order.rental.user.userprofile.address|default:"New Delhi" }}')"><i class="fas fa-motorcycle"></i> Live Route</button>
                                         {% endif %}
+                                    {% endif %}
+                                    {% else %}
+                                    <span style="font-size:12px;color:#999;">No ID</span>
                                     {% endif %}
                                 {% endif %}
                             </td>

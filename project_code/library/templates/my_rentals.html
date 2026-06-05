@@ -50,7 +50,7 @@
                         {% endwith %}
                     </td>
                     <td class="py-4 px-6">
-                        {% if rental.delivery.status == 'Out For Delivery' %}
+                        {% if rental.delivery.status == 'Out For Delivery' and rental.delivery.id %}
                             <a href="{% url 'track_order' rental.delivery.id %}" class="inline-flex items-center text-xs font-bold text-orange-600 hover:text-orange-700 transition">
                                 <i class="fas fa-location-dot mr-1"></i> TRACK
                             </a>

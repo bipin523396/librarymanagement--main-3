@@ -19,9 +19,11 @@
             <p class="mb-2"><strong>{% trans "Available Copies" %}:</strong> {{ book.copies_available }}</p>
             <p class="mb-2"><strong>{% trans "Status" %}:</strong> {{ book.status }}</p>
             <div class="mt-4 flex space-x-3">
+                {% if book.id %}
                 <a href="{% url 'add_to_cart' book.id %}" class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition">{% trans "Add to Cart" %}</a>
                 <a href="{% url 'add_to_wishlist' book.id %}" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">{% trans "Add to Wishlist" %}</a>
                 <a href="{% url 'rent_book' book.id %}" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">{% trans "Rent" %}</a>
+                {% endif %}
             </div>
         </div>
     </div>
