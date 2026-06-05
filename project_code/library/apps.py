@@ -68,3 +68,21 @@ class LibraryConfig(AppConfig):
         # Patch MongoClient.close was removed to avoid socket leaks on manual clients
         pass
 
+
+        # Patch Django's QuerySet to handle MultipleObjectsReturned gracefully
+        from django.db.models.query import QuerySet
+        original_get = QuerySet.get
+        def safe_get(self, *args, **kwargs):
+            try:
+                return original_get(self, *args, **kwargs)
+            except self.model.MultipleObjectsReturned:
+                return self.filter(*args, **kwargs).first()
+        QuerySet.get = safe_get
+
+        original_get_or_create = QuerySet.get_or_create
+        def safe_get_or_create(self, defaults=None, **kwargs):
+            try:
+                return original_get_or_create(self, defaults=defaults, **kwargs)
+            except self.model.MultipleObjectsReturned:
+                return self.filter(**kwargs).first(), False
+        QuerySet.get_or_create = safe_get_or_create
