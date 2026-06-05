@@ -777,14 +777,19 @@ def add_delivery_staff(request):
                 if doc and '_id' in doc:
                     from bson import ObjectId
                     mongo_id = doc['_id']
+                    
+                    # Instead of upserting and risking 'id: null' duplicate constraint,
+                    # we update the record Djongo just created OR we set a random integer ID.
+                    import random
+                    rand_id = random.randint(100000, 9999999)
                     db.library_deliverystaff.update_one(
-                        {'user_id': mongo_id},
+                        {'$or': [{'user_id': user.pk if user else -1}, {'user_id': mongo_id}]},
                         {'$set': {
                             'user_id': mongo_id,
                             'phone': phone,
                             'vehicle_number': vehicle,
                             'active': True
-                        }},
+                        }, '$setOnInsert': {'id': rand_id}},
                         upsert=True
                     )
         except Exception as e:
