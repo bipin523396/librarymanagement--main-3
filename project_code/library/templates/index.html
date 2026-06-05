@@ -301,7 +301,9 @@
         updateCarousel();
 
         // 2. Stable cover fallback. Avoid third-party cover CDNs that intermittently fail.
-        const fallbackCoverImage = "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=400&q=80";
+        function getFallbackCover(title) {
+            return `https://ui-avatars.com/api/?name=${encodeURIComponent(title)}&background=ea580c&color=fff&size=400&font-size=0.2`;
+        }
         const coverImages = {};
 
         // 3. Dynamic Book Data Array populated by Django Template Engine
@@ -348,7 +350,7 @@
                 }
                 
                 bookArray.forEach(book => {
-                    const resolvedImage = coverImages[book.title] || book.image || fallbackCoverImage;
+                    const resolvedImage = coverImages[book.title] || book.image || getFallbackCover(book.title);
                     
                     let badgeColor = "bg-green-500 text-white";
                     if (book.status === "Low Stock") badgeColor = "bg-yellow-400 text-gray-900";
@@ -357,7 +359,7 @@
                     container.innerHTML += `
                         <div class="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full transform hover:-translate-y-1">
                             <div class="relative aspect-[3/4] overflow-hidden bg-gray-100">
-                                <img src="${resolvedImage}" alt="${book.title}" onerror="this.onerror=null;this.src='${fallbackCoverImage}'" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                                <img src="${resolvedImage}" alt="${book.title}" onerror="this.onerror=null;this.src='${getFallbackCover(book.title)}'" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                                 <div class="absolute top-3 right-3">
                                     <span class="px-3 py-1 text-[10px] font-black uppercase rounded-full shadow-sm ${badgeColor}">
                                         ${book.status}
@@ -400,7 +402,7 @@
             currentSelectedBook = book;
             
             // Populate modal values
-            document.getElementById("modalBookImage").src = coverImages[book.title] || book.image || fallbackCoverImage;
+            document.getElementById("modalBookImage").src = coverImages[book.title] || book.image || getFallbackCover(book.title);
             document.getElementById("modalBookTitle").innerText = book.title;
             document.getElementById("modalBookAuthor").innerText = "by " + book.author;
             document.getElementById("modalBookCategory").innerText = book.category;

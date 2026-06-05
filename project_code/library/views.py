@@ -72,9 +72,38 @@ def home(request):
     from .safe_queries import books_for_display
     from .models import Author
     books, categories, err = books_for_display(Book, Author)
+    
+    # Authors dynamic loading
+    try:
+        authors = list(Author.objects.all().order_by('-id')[:6])
+    except Exception:
+        authors = []
+        
+    # MongoDB fallback for authors if ORM fails
+    if not authors:
+        try:
+            from bookhub_backend.mongo_config import get_shared_client
+            import os
+            client = get_shared_client()
+            db = client[os.getenv('MONGODB_NAME', 'bookhub_db')]
+            raw_authors = list(db.library_author.find().sort("id", -1).limit(6))
+            authors = []
+            for a in raw_authors:
+                auth = Author(
+                    id=a.get('id') or str(a.get('_id')),
+                    name=a.get('name', ''),
+                    slug=a.get('slug', ''),
+                    bio=a.get('bio', ''),
+                    genres=a.get('genres', '')
+                )
+                authors.append(auth)
+        except Exception as e:
+            print(f"Author MongoDB fallback failed: {e}")
+
     return render(request, "index.html", {
         "books": books,
         "categories": categories,
+        "authors": authors,
         "error": err,
     })
 

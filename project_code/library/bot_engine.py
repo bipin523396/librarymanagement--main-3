@@ -18,7 +18,7 @@ SERPAPI_KEY = "09e538a7b57d3f0ad876a3e25dd5dd1ece56236a57dfadf95b86e5bbf3694b40"
 ZENSERP_KEY = "456be090-5eb8-11f0-9fdf-59ce8e9d2c54"
 SCRAPERAPI_KEYS = ["711e7b8eebd837c04d5f923c254fbebc", "86573e9606d5c94014560c65d25194fa"]
 REQUEST_TIMEOUT = float(os.getenv("BOT_REQUEST_TIMEOUT", "3"))
-ENABLE_WEB_SEARCH = os.getenv("BOT_ENABLE_WEB_SEARCH", "False").lower() in ("true", "1", "yes")
+ENABLE_WEB_SEARCH = True
 
 # --- Utility Functions ---
 def strip_html(text):
