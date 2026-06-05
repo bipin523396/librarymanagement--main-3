@@ -220,22 +220,18 @@
             addMessageToChat('user', message);
             searchInput.value = '';
             try {
-                // Get CSRF token from cookie if template tag is empty
-                let csrfToken = '{{ csrf_token }}';
-                if (!csrfToken || csrfToken === 'None') {
-                    const name = 'bookhub_csrf_token';
-                    let cookieValue = null;
-                    if (document.cookie && document.cookie !== '') {
-                        const cookies = document.cookie.split(';');
-                        for (let i = 0; i < cookies.length; i++) {
-                            const cookie = cookies[i].trim();
-                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                                break;
-                            }
+                // Read standard Django CSRF cookie
+                let csrfToken = null;
+                const name = 'csrftoken';
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            csrfToken = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
                         }
                     }
-                    csrfToken = cookieValue;
                 }
 
                 const response = await fetch("{% url 'chat_api' %}", {

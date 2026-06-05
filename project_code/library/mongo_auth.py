@@ -14,8 +14,8 @@ def mongo_session_login(request, user):
     if not key:
         raise ValueError('User has no username or email for session')
     request.session['_auth_user_id'] = key
-    request.session.pop('_auth_user_hash', None)
-    request.session.pop('_auth_user_backend', None)
+    request.session['_auth_user_hash'] = ''
+    request.session['_auth_user_backend'] = 'library.auth_backend.MongoModelBackend'
     request.user = user
 
 
