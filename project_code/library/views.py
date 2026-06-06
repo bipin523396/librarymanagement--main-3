@@ -731,12 +731,14 @@ def add_delivery_staff(request):
             # Create user for delivery staff (DO NOT set is_staff=True, otherwise they get admin portal)
             user = User.objects.create_user(username=username, password=password)
             user.is_staff = False
+            user.is_superuser = False
             user.save()
         else:
             # Update password if provided
             if password:
                 user.set_password(password)
             user.is_staff = False
+            user.is_superuser = False
             user.save()
             
         # Create or update linked DeliveryStaff
@@ -767,6 +769,7 @@ def add_delivery_staff(request):
                         'username': username,
                         'password': hashed,
                         'is_staff': False,
+                        'is_superuser': False,
                         'is_active': True,
                     }},
                     upsert=True
