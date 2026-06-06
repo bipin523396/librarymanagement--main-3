@@ -672,7 +672,26 @@ def update_delivery_status(request, delivery_id):
         delivery = get_delivery_or_404(delivery_id, Delivery)
         new_status = request.POST.get('status')
         if new_status:
-            Delivery.objects.filter(pk=delivery.pk).update(status=new_status)
+            try:
+                Delivery.objects.filter(pk=delivery.pk).update(status=new_status)
+            except Exception as e:
+                print('ORM Delivery update failed:', e)
+            
+            # MongoDB Direct Fallback
+            try:
+                import os
+                from bson import ObjectId
+                from bookhub_backend.mongo_config import get_shared_client
+                client = get_shared_client()
+                if client:
+                    db = client[os.getenv('MONGODB_NAME', 'bookhub_db')]
+                    did = ObjectId(str(delivery.pk)) if not isinstance(delivery.pk, ObjectId) else delivery.pk
+                    db.library_delivery.update_one(
+                        {'_id': did},
+                        {'$set': {'status': new_status}}
+                    )
+            except Exception as e:
+                print('Mongo fallback delivery update failed:', e)
 
             rental_id = delivery.rental_id
             if new_status == 'Delivered':
@@ -1172,6 +1191,35 @@ def delivery_dashboard(request):
                 except Exception as exc:
                     print('DELIVERY DASHBOARD ERROR:', exc)
                     deliveries = []
+            
+            # MongoDB Direct Fallback
+            if not deliveries and user_pk:
+                try:
+                    import os
+                    from bson import ObjectId
+                    from bookhub_backend.mongo_config import get_shared_client
+                    
+                    client = get_shared_client()
+                    if client:
+                        db = client[os.getenv('MONGODB_NAME', 'bookhub_db')]
+                        query = {'$or': [{'delivery_person_id': user_pk}]}
+                        try:
+                            oid = ObjectId(str(user_pk))
+                            query['$or'].append({'delivery_person_id': oid})
+                            query['$or'].append({'delivery_person_id': str(oid)})
+                        except Exception:
+                            pass
+                        
+                        raw_deliveries = list(db.library_delivery.find(query))
+                        deliveries = []
+                        for d in raw_deliveries:
+                            obj = Delivery(pk=d.get('id') or d.get('_id'))
+                            obj.rental_id = d.get('rental_id')
+                            obj.delivery_person_id = d.get('delivery_person_id')
+                            obj.status = d.get('status', 'Pending')
+                            deliveries.append(obj)
+                except Exception as e:
+                    print('Mongo fallback delivery_dashboard error:', e)
 
             active_deliveries, history_deliveries = split_deliveries_for_dashboard(
                 deliveries, Rental, assigned_status='assigned',

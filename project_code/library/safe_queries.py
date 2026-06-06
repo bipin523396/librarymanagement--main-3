@@ -147,10 +147,62 @@ def rental_for_delivery(delivery, rental_model):
     if not rental_id:
         return None
     try:
-        return rental_model.objects.filter(pk=rental_id).first()
+        rental = rental_model.objects.filter(pk=rental_id).first()
+        if rental:
+            return rental
     except Exception as exc:
         logger.warning('rental_for_delivery failed: %s', exc)
-        return None
+        
+    try:
+        import os
+        from bson import ObjectId
+        from bookhub_backend.mongo_config import get_shared_client
+        client = get_shared_client()
+        if client:
+            db_name = os.getenv('MONGODB_NAME', 'bookhub_db')
+            oid = ObjectId(str(rental_id)) if not isinstance(rental_id, ObjectId) else rental_id
+            doc = client[db_name].library_rental.find_one({'_id': oid})
+            if doc:
+                r = rental_model(pk=doc.get('_id'))
+                r.user_id = doc.get('user_id')
+                r.book_id = doc.get('book_id')
+                r.rental_status = doc.get('rental_status', 'Active')
+                r.address = doc.get('address', '')
+                
+                # Attach unsaved Django model instances for template rendering
+                try:
+                    from django.contrib.auth.models import User
+                    uid = ObjectId(str(r.user_id)) if not isinstance(r.user_id, ObjectId) else r.user_id
+                    u_doc = client[db_name].auth_user.find_one({'_id': uid})
+                    if u_doc:
+                        u = User(
+                            username=u_doc.get('username', 'Customer'),
+                            first_name=u_doc.get('first_name', '')
+                        )
+                        # We can't easily attach UserProfile because of reverse OneToOne,
+                        # but we can monkey-patch it for the template
+                        from library.models import UserProfile
+                        up = UserProfile(address=r.address, pincode='', phone='')
+                        u.userprofile = up
+                        r.user = u
+                except Exception as e:
+                    pass
+                
+                try:
+                    from library.models import Book
+                    bid = ObjectId(str(r.book_id)) if not isinstance(r.book_id, ObjectId) else r.book_id
+                    b_doc = client[db_name].library_book.find_one({'_id': bid})
+                    if b_doc:
+                        b = Book(title=b_doc.get('title', 'Unknown Book'))
+                        r.book = b
+                except Exception as e:
+                    pass
+
+                return r
+    except Exception as e:
+        logger.warning('rental_for_delivery mongo fallback failed: %s', e)
+        
+    return None
 
 
 def split_deliveries_for_dashboard(deliveries, rental_model, assigned_status='assigned'):
@@ -162,6 +214,15 @@ def split_deliveries_for_dashboard(deliveries, rental_model, assigned_status='as
             rental = rental_for_delivery(delivery, rental_model)
             if not rental:
                 continue
+            
+            # ATTACH the resolved rental to avoid lazy loading crashes in the template
+            # In Django, you can override the cached related object
+            delivery.mock_rental = rental
+            try:
+                delivery.rental = rental
+            except Exception:
+                pass
+            
             status = normalize_rental_status(getattr(rental, 'rental_status', ''))
             if status == assigned_status:
                 active.append(delivery)
