@@ -1213,7 +1213,11 @@ def delivery_dashboard(request):
                         raw_deliveries = list(db.library_delivery.find(query))
                         deliveries = []
                         for d in raw_deliveries:
-                            obj = Delivery(pk=d.get('id') or d.get('_id'))
+                            did = str(d.get('id') or d.get('_id'))
+                            obj = Delivery(id=did)
+                            # Explicitly set pk and id to bypass AutoField issues
+                            obj.pk = did
+                            obj.id = did
                             obj.rental_id = d.get('rental_id')
                             obj.delivery_person_id = d.get('delivery_person_id')
                             obj.status = d.get('status', 'Pending')

@@ -172,8 +172,12 @@ def rental_for_delivery(delivery, rental_model):
                 # Attach unsaved Django model instances for template rendering
                 try:
                     from django.contrib.auth.models import User
-                    uid = ObjectId(str(r.user_id)) if not isinstance(r.user_id, ObjectId) else r.user_id
-                    u_doc = client[db_name].auth_user.find_one({'_id': uid})
+                    u_query = {'$or': [{'_id': r.user_id}, {'id': r.user_id}]}
+                    try:
+                        u_query['$or'].append({'_id': ObjectId(str(r.user_id))})
+                    except Exception:
+                        pass
+                    u_doc = client[db_name].auth_user.find_one(u_query)
                     if u_doc:
                         u = User(
                             username=u_doc.get('username', 'Customer'),
@@ -190,8 +194,12 @@ def rental_for_delivery(delivery, rental_model):
                 
                 try:
                     from library.models import Book
-                    bid = ObjectId(str(r.book_id)) if not isinstance(r.book_id, ObjectId) else r.book_id
-                    b_doc = client[db_name].library_book.find_one({'_id': bid})
+                    b_query = {'$or': [{'_id': r.book_id}, {'id': r.book_id}]}
+                    try:
+                        b_query['$or'].append({'_id': ObjectId(str(r.book_id))})
+                    except Exception:
+                        pass
+                    b_doc = client[db_name].library_book.find_one(b_query)
                     if b_doc:
                         b = Book(title=b_doc.get('title', 'Unknown Book'))
                         r.book = b
